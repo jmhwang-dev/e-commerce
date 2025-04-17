@@ -15,13 +15,6 @@
 -->
 
 <!-- Put site-specific property overrides in this file. -->
+
 <configuration>
-    <property>
-        <name>fs.defaultFS</name>
-        <value>hdfs://master:9000</value>
-    </property>
-    <property>
-        <name>io.file.buffer.size</name>
-        <value>131072</value>
-    </property>
 </configuration>

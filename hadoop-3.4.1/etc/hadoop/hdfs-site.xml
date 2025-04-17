@@ -18,19 +18,4 @@
 
 <configuration>
 
-    <property>
-        <name>dfs.replication</name>
-        <value>2</value> <!-- 3개 노드 중 2개 복제 -->
-    </property>
-
-    <property>
-        <name>dfs.namenode.name.dir</name>
-        <value>file:///usr/local/hadoop_data/hdfs/namenode</value>
-    </property>
-
-    <property>
-        <name>dfs.datanode.data.dir</name>
-        <value>file:///usr/local/hadoop_data/hdfs/datanode</value>
-    </property>
-    
 </configuration>
