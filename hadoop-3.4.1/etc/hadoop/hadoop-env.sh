@@ -69,7 +69,7 @@ export HADOOP_HOME=/opt/hadoop-3.4.1
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-export HADOOP_CONF_DIR=${HOME}/Documents/github/jmhwang-dev/e-commerce/etc/hadoop
+export HADOOP_CONF_DIR=${HOME}/Documents/github/jmhwang-dev/e-commerce/hadoop-3.4.1/etc/hadoop
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
 # is provided, it will be converted to MB.  Daemons will
@@ -188,7 +188,7 @@ export HADOOP_WORKERS="${HADOOP_CONF_DIR}/workers"
 # Where (primarily) daemon log files are stored.
 # ${HADOOP_HOME}/logs by default.
 # Java property: hadoop.log.dir
-# export HADOOP_LOG_DIR=${HADOOP_HOME}/logs
+export HADOOP_LOG_DIR=${HADOOP_HOME}/logs
 
 # A string representing this instance of hadoop. $USER by default.
 # This is used in writing log and pid files, so keep that in mind!
