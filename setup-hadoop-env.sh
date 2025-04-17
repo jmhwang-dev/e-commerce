@@ -4,7 +4,7 @@ HADOOP_DIR="/opt/hadoop-3.4.1"
 OS_TYPE=$(uname)
 
 if [[ "$OS_TYPE" == "Darwin" ]]; then
-    brew install openjdk@8
+    brew update && brew install openjdk@8
     PROFILE_FILE="$HOME/.zshrc"
 elif [[ "$OS_TYPE" == "Linux" ]]; then
     sudo apt update && sudo apt install -y openjdk-8-jdk
