@@ -2,6 +2,10 @@ import pandas as pd
 import glob
 import os
 
+"""
+This script just create 
+"""
+
 SRC_PATH = "./downloads/olist/*"
 DST_PATH = "./eda/erd_tmp.dbml"
 
