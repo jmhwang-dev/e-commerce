@@ -36,11 +36,12 @@ translator = Translator.remote()
 # 예시 문장
 messages = [
     {"role": "user", "content": "Translate the following text from Portuguese into Korean.\nPortuguese: muito bom\nKorean:"},
+    {"role": "user", "content": "Translate the following text from Portuguese into Korean.\nPortuguese: Fiquei um pouco triste, achei que a cor do coração seria verde, conforme a foto..... Mas depois que recebi o coração cor de rosa que fui ver que são imagens ilustrativas...... 😥\nKorean:"},
 ]
 
 start = time.time()
 # Ray Actor 메서드 호출
-results = ray.get([translator.translate_to_korean.remote(msg) for msg in messages])
+results = ray.get([translator.translate_to_korean.remote(messages)])
 end = time.time()
 
 print(f"소요시간: {end - start} 초, 번역 결과: {results}")
