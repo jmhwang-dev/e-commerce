@@ -1,9 +1,10 @@
 import socket
+import time
 import ray
 import torch
 from transformers import pipeline
 
-hostname = socket.gethostbyname()
+hostname = socket.gethostname()
 if hostname == 'desktop':
     ray.init(address="auto", num_cpus=16, num_gpus=1)  # 1 GPU 사용
 elif hostname == "mini-pc":
@@ -26,6 +27,8 @@ messages = [
 ]
 
 # Ray를 사용하여 번역 작업 분배
+start = time.time()
 results = ray.get([ray.remote(translate_to_korean).remote(msg) for msg in messages])
+end = time.time()
 
-print("번역 결과:", results)  # 일부 결과만 출력
+print("소요시간: {} 번역 결과: {}".format(end-start, results))  # 일부 결과만 출력
