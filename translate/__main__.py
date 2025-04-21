@@ -38,10 +38,11 @@ if __name__=="__main__":
 
     if socket.gethostname() == 'desktop':
         target_list = df['preprocessed_comment'].dropna().unique()
-        dst_path = "./translate/translated_title.txt"
+        dst_path = "./translate/translated_comment.txt"
     else:
         target_list = df['preprocessed_title'].dropna().unique()
-        dst_path = "./translate/translated_comment.txt"
+        dst_path = "./translate/translated_title.txt"
+
 
     result = {}
     translator = Translator()
