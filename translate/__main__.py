@@ -46,7 +46,7 @@ if __name__=="__main__":
     result = {}
     translator = Translator()
 
-    for portuguess in tqdm(target_list[:2], desc="Processing", ncols=70, ascii=True, leave=True):
+    for portuguess in tqdm(target_list, desc="Processing", ncols=70, ascii=True, leave=True):
         translator.set_messages(portuguess)
         translator.run()
         korean = translator.get_output()
