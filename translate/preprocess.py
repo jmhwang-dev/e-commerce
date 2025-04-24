@@ -34,17 +34,15 @@ if __name__=="__main__":
 
     reviews_with_content_df = reviews_with_content_df[target_columns].dropna(how='all')
     reviews_with_content_df['review_id'] = df.loc[reviews_with_content_df.index, 'review_id']
-
     reviews_with_content_df = reviews_with_content_df[['review_id'] + target_columns]
-    reviews_with_content_df.rename(columns={"review_comment_title": "title", 'review_comment_message': "comment"}, inplace=True)
-
+    
     os.makedirs(PREPROCESSED_RESULT_DST_DIR, exist_ok=True)
     reviews_with_content_df.to_csv(PREPROCESSED_RESULT_DST_PATH, index=False)
 
     print(f"Before preprocessing: {df.shape}")
     print(f"After preprocessing: {reviews_with_content_df.shape}")
 
-    for col in ['title', 'comment']:
+    for col in target_columns:
         unique_values = reviews_with_content_df[col].dropna().unique()
         unique_values = sorted(unique_values, key=lambda x: len(x), reverse=True)
         print(f"# of unique {col}: {len(unique_values)}")
