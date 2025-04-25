@@ -38,9 +38,9 @@ if __name__ == "__main__":
                     kor = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
                     f.write(f"{kor}\n")
 
-                batch_size_ = min(batch_size_ + 5, 1024)  # 상한선 
-                i += batch_size_
                 print(f"{i+batch_size_} / {len(prompts)} ... complete: {inference_end - inference_start}")
+                i += batch_size_
+                batch_size_ = min(batch_size_ + 5, 1024)  # 상한선 
 
             except torch.cuda.OutOfMemoryError as e:
                 print(f"[⚠️ OOM] batch_size={batch_size_} ↓ 줄임")
