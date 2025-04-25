@@ -1,6 +1,7 @@
 import torch
 from transformers import pipeline
 from util.loader import *
+import time
 
 if __name__ == "__main__":
     DST_PATH = "./translate/artifact/translated_auto.txt"
@@ -20,26 +21,31 @@ if __name__ == "__main__":
 
     i = 0
     batch_size_ = 10
+    start = time.time()
     with open(DST_PATH, 'a') as f:
         while i < len(prompts):
             try:
+                inference_start = time.time()
                 outputs = pipe(
                     prompts[i:i+batch_size_],
                     max_new_tokens=256,
                     do_sample=False,
                     batch_size=batch_size_
                 )
+                inference_end = time.time()
 
                 for output in outputs:
                     kor = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
                     f.write(f"{kor}\n")
 
-                i += batch_size_
                 batch_size_ = min(batch_size_ + 5, 1024)  # 상한선 
-                print(f"{i+batch_size_} / {len(prompts)} ... complete")
+                i += batch_size_
+                print(f"{i+batch_size_} / {len(prompts)} ... complete: {inference_end - inference_start}")
 
             except torch.cuda.OutOfMemoryError as e:
                 print(f"[⚠️ OOM] batch_size={batch_size_} ↓ 줄임")
                 batch_size_ = max(1, batch_size_ - 1)
                 torch.cuda.empty_cache()
                 import gc; gc.collect()
+    end = time.time()
+    print(f"Done: {end-start}")
