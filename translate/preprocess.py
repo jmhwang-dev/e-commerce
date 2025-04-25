@@ -31,6 +31,9 @@ if __name__=="__main__":
         reviews_with_content_df[col] = reviews_with_content_df[col].replace(
             r'^\.$', None, regex=True
         )
+        reviews_with_content_df[col] = reviews_with_content_df[col].replace(
+            r'^$', None, regex=True
+        )
 
     reviews_with_content_df = reviews_with_content_df[target_columns].dropna(how='all')
     reviews_with_content_df['review_id'] = df.loc[reviews_with_content_df.index, 'review_id']
@@ -42,12 +45,13 @@ if __name__=="__main__":
     print(f"Before preprocessing: {df.shape}")
     print(f"After preprocessing: {reviews_with_content_df.shape}")
 
-    for col in target_columns:
-        unique_values = reviews_with_content_df[col].dropna().unique()
-        unique_values = sorted(unique_values, key=lambda x: len(x), reverse=True)
-        print(f"# of unique {col}: {len(unique_values)}")
-        file_name = f'unique_{col}.txt'
-        save_path = os.path.join(PREPROCESSED_RESULT_DST_DIR, file_name)
-        with open(save_path, 'w', encoding='utf-8') as f:
-            for title in unique_values:
-                f.write(f"{title}\n")
+    unique_title = reviews_with_content_df['review_comment_title'].dropna().drop_duplicates()
+    unique_message = reviews_with_content_df['review_comment_message'].dropna().drop_duplicates()
+    
+    all_portuguese = pd.concat([unique_title, unique_message])
+    all_portuguese = all_portuguese.dropna()
+    all_portuguese = all_portuguese.sort_values(key=lambda x: x.str.len(), ascending=False)
+
+    all_portuguese_save_path = os.path.join(PREPROCESSED_RESULT_DST_DIR, 'all_portuguess.txt')
+    all_portuguese.to_csv(all_portuguese_save_path, index=False, header=False)
+    print(f"Portuguess to translate: {all_portuguese_save_path}")
