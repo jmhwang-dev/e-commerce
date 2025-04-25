@@ -28,7 +28,7 @@ if __name__ == "__main__":
                 inference_start = time.time()
                 outputs = pipe(
                     prompts[i:i+batch_size_],
-                    max_new_tokens=256,
+                    max_new_tokens=512,
                     do_sample=False,
                     batch_size=batch_size_
                 )
