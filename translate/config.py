@@ -1,4 +1,9 @@
+from typing import Union
 from dataclasses import dataclass
+from dataclasses import asdict
+
+import os
+import yaml
 
 ARTIFACT_PATH = "./translate/artifact"
 
@@ -6,6 +11,16 @@ ARTIFACT_PATH = "./translate/artifact"
 class BaseConfig:
     src_path: str
     dst_path: str
+
+    def save(self, save_path: str):
+        if os.path.exists(save_path):
+            raise FileExistsError(f"{save_path} already exists.")
+        
+        config_dict = asdict(self)
+        with open(save_path, 'w') as f:
+            yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            
+        print(f"Configuration saved at {save_path}.")
 
 @dataclass(kw_only=True)
 class PipelineConfig(BaseConfig):
