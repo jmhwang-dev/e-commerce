@@ -20,7 +20,7 @@ if __name__ == "__main__":
     config.save()
 
     dataset = load_text(config.src_path)
-    messages = text2message(dataset[len(dataset)//2:])
+    messages = text2message(dataset)
 
     translator = Translator(config)
     translator.set_prompts(messages)
