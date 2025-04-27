@@ -1,6 +1,3 @@
-from transformers import pipeline
-import torch
-import os
 from typing import List
 
 def load_dataset(dataset_path) -> List:

@@ -1,27 +1,29 @@
-import torch
-from transformers import pipeline
 from loader import *
+from pipeline import Translator
+from config import Config
+
 import time
 
 if __name__ == "__main__":
-    DST_PATH = "./translate/artifact/translated_cpu.txt"
 
     dataset = load_dataset("./translate/artifact/all_portuguess.txt")
     messages = load_messages(dataset[len(dataset)//2:])
-    messages = messages[6649:]
 
-    pipe = pipeline(
-        "text-generation",
-        model="Unbabel/TowerInstruct-7B-v0.2",
-        torch_dtype=torch.bfloat16,
-        device_map="cpu"
-    )
+    # 사용
+    config_auto = Config(batch_size=8, device='auto')
+    config_cpu = Config(batch_size=50, device='cpu')
 
-    pipe.tokenizer.padding_side = 'left'
+    translator = Translator(config_auto)
+    translator = Translator(config_cpu)
+    print(config_auto)
+    print(config_cpu)
+
+
+    exit()
     prompts = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
     i = 0
-    batch_size_ = 100
+    batch_size_ = 50
     start = time.time()
     while i < len(prompts):
         try:
