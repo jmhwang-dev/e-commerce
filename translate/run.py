@@ -18,7 +18,6 @@ if __name__ == "__main__":
         dynamic_batch_size_decrement=1
     )
     config.save()
-    exit()
 
     dataset = load_text(config.src_path)
     messages = text2message(dataset[len(dataset)//2:])
