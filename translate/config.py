@@ -12,16 +12,6 @@ class BaseConfig:
     src_path: str
     dst_path: str
 
-    def save(self, save_path: str):
-        if os.path.exists(save_path):
-            raise FileExistsError(f"{save_path} already exists.")
-        
-        config_dict = asdict(self)
-        with open(save_path, 'w') as f:
-            yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-            
-        print(f"Configuration saved at {save_path}.")
-
 @dataclass(kw_only=True)
 class PipelineConfig(BaseConfig):
     device: str
@@ -36,3 +26,14 @@ class PipelineConfig(BaseConfig):
         
         if self.device not in ('auto', 'cpu'):
             raise ValueError("device should be one of 'auto' or 'cpu'.")
+        
+    def save(self,):
+        save_path = os.path.join(ARTIFACT_PATH, f'config_{self.device}.yml')
+        if os.path.exists(save_path):
+            raise FileExistsError(f"{save_path} already exists.")
+        
+        config_dict = asdict(self)
+        with open(save_path, 'w') as f:
+            yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            
+        print(f"Configuration saved at {save_path}.")

@@ -17,8 +17,8 @@ if __name__ == "__main__":
         dynamic_batch_size_increment=1,
         dynamic_batch_size_decrement=1
     )
-    save_config_path = os.path.join(ARTIFACT_PATH, "config_cpu.yaml")
-    config.save(save_config_path)
+    config.save()
+    exit()
 
     dataset = load_text(config.src_path)
     messages = text2message(dataset[len(dataset)//2:])
