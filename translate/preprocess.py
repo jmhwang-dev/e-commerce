@@ -1,14 +1,14 @@
 import pandas as pd
-# import numpy as np
 import os
 from config import *
 
-if __name__=="__main__":
-    df = pd.read_csv("./downloads/olist/olist_order_reviews_dataset.csv")
+ARTIFACT_PATH = "./translate/artifact"
+
+def cleanse_text(config: BaseConfig) -> None:
+    df = pd.read_csv(config.src_path)
 
     target_columns = ['review_comment_title', "review_comment_message"]
     reviews_with_content_df = df[target_columns].dropna(how='all')
-    # target_df = df.loc[reviews_with_content_df.index, ['review_id'] + target_columns]
 
     for col in target_columns:
         # 문자열 처리: 소문자화, 특수문자 정리 등
@@ -39,12 +39,13 @@ if __name__=="__main__":
     reviews_with_content_df['review_id'] = df.loc[reviews_with_content_df.index, 'review_id']
     reviews_with_content_df = reviews_with_content_df[['review_id'] + target_columns]
     
-    os.makedirs(PREPROCESSED_RESULT_DST_DIR, exist_ok=True)
-    reviews_with_content_df.to_csv(PREPROCESSED_RESULT_DST_PATH, index=False)
+    reviews_with_content_df.to_csv(config.dst_path, index=False)
 
     print(f"Before preprocessing: {df.shape}")
     print(f"After preprocessing: {reviews_with_content_df.shape}")
 
+def extract_text(config:BaseConfig):
+    reviews_with_content_df = pd.read_csv(config.src_path)
     unique_title = reviews_with_content_df['review_comment_title'].dropna().drop_duplicates()
     unique_message = reviews_with_content_df['review_comment_message'].dropna().drop_duplicates()
     
@@ -52,6 +53,21 @@ if __name__=="__main__":
     all_portuguese = all_portuguese.dropna()
     all_portuguese = all_portuguese.sort_values(key=lambda x: x.str.len(), ascending=False)
 
-    all_portuguese_save_path = os.path.join(PREPROCESSED_RESULT_DST_DIR, 'all_portuguess.txt')
-    all_portuguese.to_csv(all_portuguese_save_path, index=False, header=False)
-    print(f"Portuguess to translate: {all_portuguese_save_path}")
+    all_portuguese.to_csv(config.dst_path, index=False, header=False)
+    print(f"Portuguess to translate: {config.dst_path}")
+
+if __name__=="__main__":
+
+    os.makedirs(ARTIFACT_PATH, exist_ok=True)
+
+    config_cleanse = BaseConfig(
+        src_path="./downloads/olist/olist_order_reviews_dataset.csv",
+        dst_path=os.path.join(ARTIFACT_PATH, "preprocessed_reviews.csv")
+    )
+    cleanse_text(config_cleanse)
+
+    config_extract = BaseConfig(
+        src_path=config_cleanse.dst_path,
+        dst_path=os.path.join(ARTIFACT_PATH, "all_portuguess.txt")
+    )
+    extract_text(config_extract)
