@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-import os
+
+ARTIFACT_PATH = "./translate/artifact"
 
 @dataclass(kw_only=True)
 class BaseConfig:

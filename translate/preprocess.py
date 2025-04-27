@@ -2,8 +2,6 @@ import pandas as pd
 import os
 from config import *
 
-ARTIFACT_PATH = "./translate/artifact"
-
 def cleanse_text(config: BaseConfig) -> None:
     df = pd.read_csv(config.src_path)
 
