@@ -5,6 +5,9 @@ from config import *
 
 class Translator():
     def __init__(self, config:PipelineConfig):
+        if os.path.exists(config.dst_path):
+            raise FileExistsError
+        
         self.config = config
         self.pipeline = pipeline(
             "text-generation",
