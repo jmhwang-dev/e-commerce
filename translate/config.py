@@ -10,7 +10,7 @@ ARTIFACT_PATH = "./translate/artifact"
 @dataclass(kw_only=True)
 class BaseConfig:
     src_path: str
-    dst_path: str
+    dst_path: str = ""
 
 @dataclass(kw_only=True)
 class PipelineConfig(BaseConfig):
@@ -26,6 +26,9 @@ class PipelineConfig(BaseConfig):
         
         if self.device not in ('auto', 'cpu'):
             raise ValueError("device should be one of 'auto' or 'cpu'.")
+        
+        self.dst_path = os.path.join(ARTIFACT_PATH, f"translated_{self.device}.txt")
+
         
     def save(self,):
         save_path = os.path.join(ARTIFACT_PATH, f'config_{self.device}.yml')

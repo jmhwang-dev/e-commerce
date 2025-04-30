@@ -10,8 +10,6 @@ if __name__ == "__main__":
 
     config = PipelineConfig(
         src_path=os.path.join(ARTIFACT_PATH, "all_portuguess.txt"),
-        dst_path=os.path.join(ARTIFACT_PATH, "translated_auto.txt"),
-
         device='auto',
         batch_size=8,
         dynamic_batch_size_increment=1,
