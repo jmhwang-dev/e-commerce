@@ -8,12 +8,9 @@ from pprint import pprint
 
 class SentimentAnalyzer(BasePipeline):
     def __init__(self, config:TranslatePipelineConfig):
-        if os.path.exists(config.dst_path):
-            raise FileExistsError
-        
         self.config = config
         self.current_batch_size = self.config.batch_size
-        self.pipeline = pipeline("text-classification", model=self.config.checkpoint, return_all_scores=True)
+        self.pipeline = pipeline("text-classification", model=self.config.checkpoint, top_k=3)
 
     def set_input(self, dataset:List[str]):
         self.texts = dataset

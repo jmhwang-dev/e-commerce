@@ -12,6 +12,7 @@ class BaseConfig:
     src_path: str
     dst_dir_name: str
     dst_file_name: str
+    inplace: bool = False
 
     def set_save_config_params(self,):
         self.config_dict = {
@@ -24,8 +25,8 @@ class BaseConfig:
         config_file_name = f"config_{dst_file_name_}.yml"
         config_path = os.path.join(self.current_artifact_dir, config_file_name)
         
-        # if os.path.exists(config_path):
-        #     raise FileExistsError(f"{config_path} already exists.")
+        if not self.inplace and os.path.exists(config_path):
+            raise FileExistsError(f"{config_path} already exists.")
         
         self.set_save_config_params()
         with open(config_path, 'w') as f:
@@ -37,7 +38,7 @@ class BaseConfig:
         self.current_artifact_dir = os.path.join(ARTIFACT_DIR, self.dst_dir_name)
         self.dst_path = os.path.join(self.current_artifact_dir, self.dst_file_name)
         
-        if os.path.exists(self.dst_path):
+        if not self.inplace and os.path.exists(self.dst_path):
             raise FileExistsError(f"{self.dst_path} already exists.")
         
         os.makedirs(self.current_artifact_dir, exist_ok=True)
