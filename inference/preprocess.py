@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from config import *
 
 def cleanse_text(config: BaseConfig) -> None:
@@ -55,17 +54,21 @@ def extract_text(config:BaseConfig):
     print(f"Portuguess to translate: {config.dst_path}")
 
 if __name__=="__main__":
-
-    os.makedirs(ARTIFACT_PATH, exist_ok=True)
+    # TO RUN: python -m inference.preprocess
 
     config_cleanse = BaseConfig(
         src_path="./downloads/olist/olist_order_reviews_dataset.csv",
-        dst_path=os.path.join(ARTIFACT_PATH, "preprocessed_reviews.csv")
+        dst_dir_name='preprocess',
+        dst_file_name="preprocessed_reviews.csv"
     )
     cleanse_text(config_cleanse)
+    config_cleanse.save()
 
     config_extract = BaseConfig(
         src_path=config_cleanse.dst_path,
-        dst_path=os.path.join(ARTIFACT_PATH, "all_portuguess.txt")
+        dst_dir_name='preprocess',
+        dst_file_name="all_portuguess.txt"
     )
+
     extract_text(config_extract)
+    config_extract.save()
