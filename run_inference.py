@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def translate_p2e(dataset, queue_trans_e2k, queue_senti_eng, p2e_ready_event, p2e_done_event):
+def translate_p2e(dataset, queue_trans_e2k, p2e_ready_event, p2e_done_event):
     """포르투갈어에서 영어로 번역하는 함수"""
     try:
         translator_p2e = get_translator_p2e()
@@ -38,8 +38,7 @@ def translate_p2e(dataset, queue_trans_e2k, queue_senti_eng, p2e_ready_event, p2
             
             for result in results:
                 queue_trans_e2k.put(result)
-                queue_senti_eng.put(result)
-            
+
             save_translation(translator_p2e.config.dst_path, chunk, results)
             translator_p2e.increase_batch_size()
             
@@ -104,55 +103,6 @@ def translate_e2k(queue_trans_e2k, p2e_ready_event, p2e_done_event, worker_id=1)
         logger.error(f"E2K 번역기 {worker_id} 오류 발생: {str(e)}")
         logger.error(traceback.format_exc())
 
-def sentiment_analyze_eng(queue_senti_eng, p2e_ready_event, p2e_done_event):
-    """영어 텍스트 감정 분석 함수"""
-    try:
-        p2e_ready_event.wait()
-        analyzer_eng = get_sentiment_analyzer()
-        logger.info("감정 분석기 준비 완료")
-        
-        processed_count = 0
-        
-        while True:
-            # p2e 완료되고 큐가 비었을 때 종료
-            if p2e_done_event.is_set() and queue_senti_eng.empty():
-                logger.info(f"감정 분석 작업 완료: {processed_count}개 처리됨")
-                return
-            
-            dataset = []
-            
-            # 최대 배치 크기만큼 큐에서 데이터 가져오기
-            try:
-                # 처음 항목은 최대 1초까지 기다림 (CPU 부하 방지)
-                if not dataset:
-                    text = queue_senti_eng.get(timeout=1)
-                    dataset.append(text)
-                
-                # 나머지 배치는 대기 없이 빠르게 채움
-                for _ in range(analyzer_eng.current_batch_size - 1):
-                    if not queue_senti_eng.empty():
-                        text = queue_senti_eng.get_nowait()
-                        dataset.append(text)
-                    else:
-                        break
-            
-            except Empty:
-                # 타임아웃 발생 시 다시 검사
-                if p2e_done_event.is_set():
-                    continue
-                time.sleep(0.1)  # 짧은 대기 후 재시도
-            
-            if dataset:
-                logger.info(f"감정 분석: {len(dataset)}개 항목 처리 중")
-                analyzer_eng.set_input(dataset)
-                analyzer_eng.run()
-                results = analyzer_eng.get_results()
-                save_sentiment(analyzer_eng.config.dst_path, results)
-                processed_count += len(dataset)
-    
-    except Exception as e:
-        logger.error(f"감정 분석 중 오류 발생: {str(e)}")
-        logger.error(traceback.format_exc())
 
 def monitor_queue_sizes(queues, stop_event, interval=5):
     """큐 크기를 모니터링하는 함수"""
@@ -175,12 +125,10 @@ if __name__ == "__main__":
         monitor_stop_event = manager.Event()
         
         queue_trans_e2k = manager.Queue()
-        queue_senti_eng = manager.Queue()
         
         # 모니터링 스레드 시작
         queues = {
             "E2K": queue_trans_e2k,
-            "SENTI": queue_senti_eng
         }
         monitor_thread = threading.Thread(
             target=monitor_queue_sizes, 
@@ -192,7 +140,7 @@ if __name__ == "__main__":
         # P2E 번역 프로세스 시작
         worker_trans_p2e = mp.Process(
             target=translate_p2e, 
-            args=(dataset, queue_trans_e2k, queue_senti_eng, p2e_ready_event, p2e_done_event)
+            args=(dataset, queue_trans_e2k, p2e_ready_event, p2e_done_event)
         )
         worker_trans_p2e.start()
         
@@ -202,13 +150,6 @@ if __name__ == "__main__":
             args=(queue_trans_e2k, p2e_ready_event, p2e_done_event, 1)
         )
         worker_trans_e2k.start()
-        
-        # # 감정 분석 프로세스 시작 (주석 해제하여 활성화)
-        # worker_senti_eng = mp.Process(
-        #     target=sentiment_analyze_eng, 
-        #     args=(queue_senti_eng, p2e_ready_event, p2e_done_event)
-        # )
-        # worker_senti_eng.start()
         
         # P2E 프로세스가 일정량 작업 후 두 번째 E2K 작업자 시작
         # time.sleep(10)  # 일정 시간 후 또는 큐 크기에 따라 추가 작업자 시작할 수도 있음
@@ -228,9 +169,6 @@ if __name__ == "__main__":
         
         worker_trans_e2k_2.join()
         logger.info("E2K 번역 프로세스 2 종료됨")
-        
-        # worker_senti_eng.join()
-        # logger.info("감정 분석 프로세스 종료됨")
         
         # 모니터링 중지
         monitor_stop_event.set()
