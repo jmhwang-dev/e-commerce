@@ -4,7 +4,7 @@ def get_translator_p2e() -> Translator:
     config_p2e = TranslatePipelineConfig(
         src_path=None,
         dst_dir_name='inference',
-        dst_file_name="trans_p2e.txt",
+        dst_file_name="trans_p2e.csv",
         
         checkpoint="Unbabel/TowerInstruct-7B-v0.2",
         device='auto',
@@ -23,7 +23,7 @@ def get_translator_e2k() -> Translator:
     config_e2p = TranslatePipelineConfig(
         src_path=None,
         dst_dir_name='inference',
-        dst_file_name="trans_e2k.txt",
+        dst_file_name="trans_e2k.csv",
         
         checkpoint="Unbabel/TowerInstruct-7B-v0.2",
         device='cpu',
@@ -42,7 +42,7 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
     config_senti = PipelineConfig(
         src_path=None,
         dst_dir_name='inference',
-        dst_file_name="senti_eng.txt",
+        dst_file_name="senti_eng.csv",
         
         checkpoint="j-hartmann/sentiment-roberta-large-english-3-classes",
         device='cpu',
