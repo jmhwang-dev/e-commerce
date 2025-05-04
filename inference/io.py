@@ -18,21 +18,6 @@ def load_dataset(dataset_path:str) -> List[str]:
         dataset.append(portuguese.strip())
     return dataset
 
-# def save_translation(dst_path, dataset, texts) -> None:
-#     with open(dst_path, 'a') as f:
-#         for from_, into_ in zip(dataset, texts):
-#             f.write(f"{into_}\n")
-
-def save_translation(dst_path, dataset, texts):
-    df_new = pd.DataFrame({'from': dataset, 'into': texts})
-    try:
-        existing_df = pd.read_csv(dst_path)
-        df = pd.concat([existing_df, df_new], ignore_index=True)
-    except FileNotFoundError:
-        df = df_new
-    finally:
-        df.to_csv(dst_path, index=False)
-
 def save_sentiment(dst_path: str, score: List[Dict[str, Union[float, str]]]) -> None:
     df_new = pd.DataFrame(score)
     try:

@@ -48,9 +48,7 @@ class BaseConfig:
 class PipelineConfig(BaseConfig):
     checkpoint: str
     device: str = 'cpu'
-    batch_size: int = 1
-    dynamic_batch_size_increment: int = 0
-    dynamic_batch_size_decrement: int = 0
+    initial_batch_size: int
 
     def set_save_config_params(self,):
         super().set_save_config_params()
@@ -61,8 +59,6 @@ class PipelineConfig(BaseConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        if self.dynamic_batch_size_decrement < 0:
-            raise ValueError("dynamic_batch_size_decrement should be positive number.")
         
         if self.device not in ('auto', 'cpu'):
             raise ValueError("device should be one of 'auto' or 'cpu'.")

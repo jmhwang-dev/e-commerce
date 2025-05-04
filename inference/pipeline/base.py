@@ -1,9 +1,13 @@
 from typing import List
 from abc import ABC, abstractmethod
 
+from transformers import pipeline
+
 import torch
 import gc
 import time
+import pandas as pd
+
 
 class BasePipeline():
     @abstractmethod

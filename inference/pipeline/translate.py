@@ -1,13 +1,13 @@
-from typing import List
-from transformers import pipeline
-
 from inference.pipeline.base import *
 from config import *
+import gc
+import time
+from typing import List
 
 class Translator(BasePipeline):
-    def __init__(self, config:TranslatePipelineConfig):        
+    def __init__(self, config: TranslatePipelineConfig):        
         self.config = config
-        self.current_batch_size = self.config.batch_size
+        self.batch_size = self.config.initial_batch_size
 
         self.pipeline = pipeline(
             "text-generation",
@@ -17,53 +17,54 @@ class Translator(BasePipeline):
         )
         self.pipeline.tokenizer.padding_side = 'left'
 
-    def set_input(self, dataset:List[str]):
-        messages = []
-        for text in dataset:
-            message = [{
+    def set_input(self, dataset: List[str]):
+        self.prompts = [
+            [{
                 "role": "user",
                 "content": f"Translate the following text from {self.config.language_from} into {self.config.language_into}.\n{self.config.language_from}: {text}\n{self.config.language_into}:"
             }]
-            messages.append(message)
-        self.prompts = self.pipeline.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            for text in dataset
+        ]
 
-    def run(self,):
-        try:
-            inference_start = time.time()
-            self.outputs = self.pipeline(
-                    self.prompts,
+    def run(self):
+        start_index = 0
+        total = len(self.prompts)
+
+        while start_index < total:
+            end_index = min(start_index + self.batch_size, total)
+            chunk = self.prompts[start_index:end_index]
+
+            try:
+                start_time = time.time()
+                outputs = self.pipeline(
+                    chunk,
                     max_new_tokens=512,
                     do_sample=False,
-                    batch_size=self.current_batch_size
+                    batch_size=len(chunk)
                 )
-            inference_end = time.time()
-            print(f"Processing batch: {self.current_batch_size}/{len(self.prompts)} - Time: {inference_end - inference_start:.2f}s")
+                duration = time.time() - start_time
 
+                print(f"[{self.config.device}] - Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
 
-        except RuntimeError as e:
-            print(f"{str(e)}", end=': ')
-            self.decrease_batch_size()
-            self.current_batch_size = max(1, self.current_batch_size)
-            gc.collect()
+                self.save_results(outputs)
+                start_index = end_index
+                self.adjust_batch_size(+1)
 
-        except torch.cuda.OutOfMemoryError as e:
-            print(f"{str(e)}", end=': ')
-            self.decrease_batch_size()
-            self.current_batch_size = max(1, self.current_batch_size)
-            torch.cuda.empty_cache()
-            gc.collect()
-        
-    def get_results(self,) -> List[str]:
-        results = []
-        for output in self.outputs:
-            result = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()            
-            results.append(result)
-        return results
+            except (RuntimeError, torch.cuda.OutOfMemoryError):
+                print(f"⚠️[{self.config.device}] Out of Memory. Reducing batch size.")
+                self.adjust_batch_size(-1)
+                torch.cuda.empty_cache()
+                gc.collect()
 
-    def increase_batch_size(self, ):
-        print(f"Batch size has increased from {self.current_batch_size} to {self.current_batch_size + self.config.dynamic_batch_size_increment}")
-        self.current_batch_size += self.config.dynamic_batch_size_increment
+    def adjust_batch_size(self, delta: int):
+        new_size = max(1, self.batch_size + delta)
+        print(f"[{self.config.device}] Batch size {'increased' if delta > 0 else 'decreased'}: {self.batch_size} → {new_size}")
+        self.batch_size = new_size
 
-    def decrease_batch_size(self, ):
-        print(f"Batch size has decreased from {self.current_batch_size} to {self.current_batch_size - self.config.dynamic_batch_size_decrement}")
-        self.current_batch_size -= self.config.dynamic_batch_size_decrement
+    def save_results(self, outputs):
+        results = [
+            out[0]['generated_text'][-1]['content'] for out in outputs
+        ]
+        with open(self.config.dst_path, 'a', encoding='utf-8') as f:
+            for result in results:
+                f.write(result.strip() + "\n")

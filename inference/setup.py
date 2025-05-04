@@ -1,16 +1,16 @@
-from .pipeline import *
+from config import *
+from .pipeline.translate import Translator
+from .pipeline.sentiment import SentimentAnalyzer
 
-def get_translator_p2e() -> Translator:
+def get_translator_p2e(device_, initial_batch_size, dst_file_name) -> Translator:
     config_p2e = TranslatePipelineConfig(
         src_path=None,
         dst_dir_name='inference',
-        dst_file_name="trans_p2e.csv",
+        dst_file_name=dst_file_name,
         
         checkpoint="Unbabel/TowerInstruct-7B-v0.2",
-        device='auto',
-        batch_size=8,
-        dynamic_batch_size_increment=1,
-        dynamic_batch_size_decrement=1,
+        device=device_,
+        initial_batch_size=initial_batch_size,
 
         language_from='Portuguese',
         language_into="English",
@@ -26,10 +26,8 @@ def get_translator_e2k() -> Translator:
         dst_file_name="trans_e2k.csv",
         
         checkpoint="Unbabel/TowerInstruct-7B-v0.2",
-        device='cpu',
-        batch_size=8,
-        dynamic_batch_size_increment=1,
-        dynamic_batch_size_decrement=1,
+        device='auto',
+        batch_size=38103,
 
         language_from='English',
         language_into="Korean",
