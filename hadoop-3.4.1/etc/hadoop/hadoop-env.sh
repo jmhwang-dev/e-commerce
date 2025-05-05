@@ -68,7 +68,7 @@ export LANG=en_US.UTF-8
 # Location of Hadoop.  By default, Hadoop will attempt to determine
 # this location based upon its execution path.
 export HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
-
+export WORKING_DIR=${PWD}/hadoop-${HADOOP_VERSION}
 
 # Location of Hadoop's configuration information.  i.e., where this
 # file is living. If this is not defined, Hadoop will attempt to
@@ -78,7 +78,7 @@ export HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-export HADOOP_CONF_DIR=${PWD}/hadoop-${HADOOP_VERSION}/etc/hadoop
+export HADOOP_CONF_DIR=${WORKING_DIR}/etc/hadoop
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
 # is provided, it will be converted to MB.  Daemons will
