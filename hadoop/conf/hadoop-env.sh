@@ -1,4 +1,6 @@
 #
+export MY_WORKING_DIR=${PWD}/hadoop
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -51,7 +53,16 @@
 
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
-export JAVA_HOME=${JAVA_HOME}
+# export JAVA_HOME=${JAVA_HOME}
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-arm64"
+else
+    echo "[ERROR] Unknown architecture: $ARCH"
+    exit 1
+fi
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
