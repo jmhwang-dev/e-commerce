@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# 설정 변수
 HADOOP_VERSION=3.4.1
 DOWNLOADS_DIR="./downloads/hadoop-${HADOOP_VERSION}"
 HADOOP_TAR="hadoop-${HADOOP_VERSION}.tar.gz"
