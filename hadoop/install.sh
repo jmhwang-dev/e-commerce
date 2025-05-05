@@ -81,3 +81,4 @@ export PATH=\$HADOOP_HOME/bin:\$HADOOP_HOME/sbin:\$PATH
 EOF
 
 echo "[DONE] Hadoop ${HADOOP_VERSION} 설치 및 환경 설정 완료."
+# TODO: Resolve issue where terminal session closes after running `hdfs`
