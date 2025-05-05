@@ -44,14 +44,14 @@ class Translator(BasePipeline):
                 )
                 duration = time.time() - start_time
 
-                print(f"[{self.config.device}] - Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
+                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
 
                 self.save_results(outputs)
                 start_index = end_index
                 self.adjust_batch_size(+1)
 
             except (RuntimeError, torch.cuda.OutOfMemoryError):
-                print(f"⚠️[{self.config.device}] Out of Memory. Reducing batch size.")
+                print(f"[{self.config.device}] ⚠️ Out of Memory. Reducing batch size.")
                 self.adjust_batch_size(-1)
                 torch.cuda.empty_cache()
                 gc.collect()
