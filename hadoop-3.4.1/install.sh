@@ -3,7 +3,6 @@ set -e
 
 # 설정 변수
 HADOOP_VERSION=3.4.1
-HADOOP_DIR="/opt/hadoop-${HADOOP_VERSION}"
 DOWNLOADS_DIR="./downloads/hadoop-${HADOOP_VERSION}"
 HADOOP_TAR="hadoop-${HADOOP_VERSION}.tar.gz"
 HADOOP_TAR_ASC="${HADOOP_TAR}.asc"
