@@ -1,3 +1,4 @@
+export MY_WORKING_DIR=${PWD}/hadoop
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -51,13 +52,15 @@
 
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
+# export JAVA_HOME=
+# 시스템 아키텍처 확인 및 JAVA_HOME 설정
 ARCH=$(uname -m)
 if [[ "$ARCH" == "x86_64" ]]; then
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 elif [[ "$ARCH" == "aarch64" ]]; then
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64
 else
-    echo "Unsupported operating system"
+    echo "[ERROR] Unknown architecture: $ARCH"
     exit 1
 fi
 
@@ -67,8 +70,7 @@ export LANG=en_US.UTF-8
 
 # Location of Hadoop.  By default, Hadoop will attempt to determine
 # this location based upon its execution path.
-export HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
-export WORKING_DIR=${PWD}/hadoop-${HADOOP_VERSION}
+# export HADOOP_HOME=
 
 # Location of Hadoop's configuration information.  i.e., where this
 # file is living. If this is not defined, Hadoop will attempt to
@@ -78,7 +80,9 @@ export WORKING_DIR=${PWD}/hadoop-${HADOOP_VERSION}
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-export HADOOP_CONF_DIR=${WORKING_DIR}/etc/hadoop
+# export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
+export HADOOP_CONF_DIR=${MY_WORKING_DIR}/conf
+
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
 # is provided, it will be converted to MB.  Daemons will
@@ -178,7 +182,7 @@ export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
 
 # Filename which contains all of the hosts for any remote execution
 # helper scripts # such as workers.sh, start-dfs.sh, etc.
-# export HADOOP_WORKERS="${HADOOP_CONF_DIR}/workers"
+export HADOOP_WORKERS="${HADOOP_CONF_DIR}/workers"
 
 ###
 # Options for all daemons
@@ -198,6 +202,8 @@ export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
 # ${HADOOP_HOME}/logs by default.
 # Java property: hadoop.log.dir
 # export HADOOP_LOG_DIR=${HADOOP_HOME}/logs
+export HADOOP_LOG_DIR=${MY_WORKING_DIR}/logs
+
 
 # A string representing this instance of hadoop. $USER by default.
 # This is used in writing log and pid files, so keep that in mind!

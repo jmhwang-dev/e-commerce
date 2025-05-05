@@ -18,7 +18,11 @@
 
 <configuration>
     <property>
-        <name>dfs.replication</name>
-        <value>1</value>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/data</value>
     </property>
 </configuration>

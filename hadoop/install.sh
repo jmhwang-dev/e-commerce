@@ -2,11 +2,12 @@
 set -e
 
 HADOOP_VERSION=3.4.1
+INSTALL_DIR=/opt
 DOWNLOADS_DIR="./downloads/hadoop-${HADOOP_VERSION}"
 HADOOP_TAR="hadoop-${HADOOP_VERSION}.tar.gz"
 HADOOP_TAR_ASC="${HADOOP_TAR}.asc"
 HADOOP_TAR_SHA512="${HADOOP_TAR}.sha512"
-HADOOP_URL="https://dlcdn.apache.org/hadoop/common/stable"
+HADOOP_URL="https://dlcdn.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}"
 KEYS_URL="https://dlcdn.apache.org/hadoop/common/KEYS"
 
 # 다운로드 디렉토리 생성
@@ -21,8 +22,10 @@ for FILE in "$HADOOP_TAR" "$HADOOP_TAR_ASC" "$HADOOP_TAR_SHA512"; do
 done
 
 # KEYS 파일 다운로드
-echo "[INFO] Downloading KEYS..."
-wget -q -P "$DOWNLOADS_DIR" "$KEYS_URL"
+if [ ! -f "$DOWNLOADS_DIR/KEYS" ]; then
+    echo "[INFO] Downloading KEYS..."
+    wget -q -P "$DOWNLOADS_DIR" "$KEYS_URL"
+fi
 
 # SHA512 체크섬 검증
 echo "[INFO] Verifying SHA512 checksum..."
@@ -35,15 +38,11 @@ gpg --import "$DOWNLOADS_DIR/KEYS"
 
 echo "[INFO] Verifying GPG signature..."
 gpg --verify "$DOWNLOADS_DIR/$HADOOP_TAR_ASC" "$DOWNLOADS_DIR/$HADOOP_TAR"
-if [ $? -ne 0 ]; then
-    echo "[ERROR] GPG signature verification failed!"
-    exit 1
-fi
 echo "[INFO] GPG signature verified successfully."
 
 # Hadoop 압축 해제
 echo "[INFO] Extracting Hadoop..."
-sudo tar -xzf "$DOWNLOADS_DIR/$HADOOP_TAR" -C /opt/
+sudo tar -xzf "$DOWNLOADS_DIR/$HADOOP_TAR" -C "$INSTALL_DIR"
 
 # Java 설치
 echo "[INFO] Installing Java..."
