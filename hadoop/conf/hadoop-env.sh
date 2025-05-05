@@ -1,4 +1,3 @@
-export MY_WORKING_DIR=${PWD}/hadoop
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -53,16 +52,6 @@ export MY_WORKING_DIR=${PWD}/hadoop
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
 # export JAVA_HOME=
-# 시스템 아키텍처 확인 및 JAVA_HOME 설정
-ARCH=$(uname -m)
-if [[ "$ARCH" == "x86_64" ]]; then
-    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-elif [[ "$ARCH" == "aarch64" ]]; then
-    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64
-else
-    echo "[ERROR] Unknown architecture: $ARCH"
-    exit 1
-fi
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
@@ -182,7 +171,7 @@ export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
 
 # Filename which contains all of the hosts for any remote execution
 # helper scripts # such as workers.sh, start-dfs.sh, etc.
-export HADOOP_WORKERS="${HADOOP_CONF_DIR}/workers"
+# export HADOOP_WORKERS="${HADOOP_CONF_DIR}/workers"
 
 ###
 # Options for all daemons
