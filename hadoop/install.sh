@@ -11,6 +11,13 @@ HADOOP_TAR_ASC="${HADOOP_TAR}.asc"
 HADOOP_TAR_SHA512="${HADOOP_TAR}.sha512"
 HADOOP_URL="https://dlcdn.apache.org/hadoop/common/${HADOOP_DIR_NAME}"
 KEYS_URL="https://dlcdn.apache.org/hadoop/common/KEYS"
+HADOOP_HOME="${INSTALL_DIR}/${HADOOP_DIR_NAME}"
+
+# Hadoop이 이미 설치되어 있는지 확인
+if [ -d "$HADOOP_HOME" ]; then
+    echo "[INFO] Hadoop ${HADOOP_VERSION} is already installed at ${HADOOP_HOME}. Skipping installation."
+    exit 0
+fi
 
 # 다운로드 디렉토리 생성
 mkdir -p "$DOWNLOADS_DIR"
