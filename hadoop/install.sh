@@ -1,19 +1,21 @@
 #!/bin/bash
 set -e
 
+# 버전 및 경로 변수 설정
 HADOOP_VERSION=3.4.1
+HADOOP_DIR_NAME="hadoop-${HADOOP_VERSION}"
 INSTALL_DIR=/opt
-DOWNLOADS_DIR="./downloads/hadoop-${HADOOP_VERSION}"
-HADOOP_TAR="hadoop-${HADOOP_VERSION}.tar.gz"
+DOWNLOADS_DIR="./downloads/${HADOOP_DIR_NAME}"
+HADOOP_TAR="${HADOOP_DIR_NAME}.tar.gz"
 HADOOP_TAR_ASC="${HADOOP_TAR}.asc"
 HADOOP_TAR_SHA512="${HADOOP_TAR}.sha512"
-HADOOP_URL="https://dlcdn.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}"
+HADOOP_URL="https://dlcdn.apache.org/hadoop/common/${HADOOP_DIR_NAME}"
 KEYS_URL="https://dlcdn.apache.org/hadoop/common/KEYS"
 
 # 다운로드 디렉토리 생성
 mkdir -p "$DOWNLOADS_DIR"
 
-# 파일 다운로드 (이미 있는 경우 건너뛰기)
+# Hadoop 관련 파일 다운로드
 for FILE in "$HADOOP_TAR" "$HADOOP_TAR_ASC" "$HADOOP_TAR_SHA512"; do
     if [ ! -f "$DOWNLOADS_DIR/$FILE" ]; then
         echo "[INFO] Downloading $FILE..."
@@ -29,16 +31,19 @@ fi
 
 # SHA512 체크섬 검증
 echo "[INFO] Verifying SHA512 checksum..."
-(cd "$DOWNLOADS_DIR" && sha512sum -c "$HADOOP_TAR_SHA512") > /dev/null
-echo "[INFO] SHA512 checksum verified successfully."
+(
+    cd "$DOWNLOADS_DIR"
+    sha512sum -c "$HADOOP_TAR_SHA512"
+) > /dev/null
+echo "[INFO] SHA512 checksum verified."
 
-# GPG 공개키 가져오기 및 서명 검증
-echo "[INFO] Importing GPG public key..."
+# GPG 키 가져오기 및 서명 검증
+echo "[INFO] Importing GPG key..."
 gpg --import "$DOWNLOADS_DIR/KEYS"
 
 echo "[INFO] Verifying GPG signature..."
 gpg --verify "$DOWNLOADS_DIR/$HADOOP_TAR_ASC" "$DOWNLOADS_DIR/$HADOOP_TAR"
-echo "[INFO] GPG signature verified successfully."
+echo "[INFO] GPG signature verified."
 
 # Hadoop 압축 해제
 echo "[INFO] Extracting Hadoop..."
@@ -48,3 +53,24 @@ sudo tar -xzf "$DOWNLOADS_DIR/$HADOOP_TAR" -C "$INSTALL_DIR"
 echo "[INFO] Installing Java..."
 sudo apt-get update -qq
 sudo apt-get install -y openjdk-8-jdk
+
+# 아키텍처에 따라 JAVA_HOME 설정
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+    JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+    JAVA_HOME="/usr/lib/jvm/java-8-openjdk-arm64"
+else
+    echo "[ERROR] Unknown architecture: $ARCH"
+    exit 1
+fi
+
+# 환경변수 설정 스크립트 작성
+echo "[INFO] Configuring environment variables..."
+sudo tee /etc/profile.d/hadoop.sh > /dev/null <<EOF
+export HADOOP_HOME=${INSTALL_DIR}/${HADOOP_DIR_NAME}
+export JAVA_HOME=${JAVA_HOME}
+export PATH=\$HADOOP_HOME/bin:\$HADOOP_HOME/sbin:\$PATH
+EOF
+
+echo "[DONE] Hadoop ${HADOOP_VERSION} 설치 및 환경 설정 완료."
