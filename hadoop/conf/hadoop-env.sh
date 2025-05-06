@@ -1,5 +1,5 @@
 #
-export MY_WORKING_DIR=${PWD}/hadoop
+# export MY_WORKING_DIR=${PWD}/hadoop
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -82,7 +82,7 @@ export HADOOP_HOME=${HADOOP_HOME}
 #
 # export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
 # export HADOOP_CONF_DIR=${MY_WORKING_DIR}/conf
-export HADOOP_CONF_DIR=${HADOOP_CONF_DIR}
+export HADOOP_CONF_DIR=/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/conf
 
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
@@ -203,7 +203,8 @@ export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
 # ${HADOOP_HOME}/logs by default.
 # Java property: hadoop.log.dir
 # export HADOOP_LOG_DIR=${HADOOP_HOME}/logs
-export HADOOP_LOG_DIR=${MY_WORKING_DIR}/logs
+# export HADOOP_LOG_DIR=${MY_WORKING_DIR}/logs
+export HADOOP_LOG_DIR=/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/logs
 
 
 # A string representing this instance of hadoop. $USER by default.
