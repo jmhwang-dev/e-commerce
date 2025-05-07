@@ -1,4 +1,6 @@
 #
+# export MY_WORKING_DIR=${PWD}/hadoop
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -51,7 +53,16 @@
 
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
-# export JAVA_HOME=
+# export JAVA_HOME=${JAVA_HOME}
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-arm64"
+else
+    echo "[ERROR] Unknown architecture: $ARCH"
+    exit 1
+fi
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
@@ -59,7 +70,7 @@ export LANG=en_US.UTF-8
 
 # Location of Hadoop.  By default, Hadoop will attempt to determine
 # this location based upon its execution path.
-export HADOOP_HOME=/opt/hadoop-3.4.1
+export HADOOP_HOME=${HADOOP_HOME}
 
 # Location of Hadoop's configuration information.  i.e., where this
 # file is living. If this is not defined, Hadoop will attempt to
@@ -70,6 +81,9 @@ export HADOOP_HOME=/opt/hadoop-3.4.1
 # --config) may react strangely otherwise.
 #
 # export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
+# export HADOOP_CONF_DIR=${MY_WORKING_DIR}/conf
+export HADOOP_CONF_DIR=/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/conf
+
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
 # is provided, it will be converted to MB.  Daemons will
@@ -189,6 +203,9 @@ export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
 # ${HADOOP_HOME}/logs by default.
 # Java property: hadoop.log.dir
 # export HADOOP_LOG_DIR=${HADOOP_HOME}/logs
+# export HADOOP_LOG_DIR=${MY_WORKING_DIR}/logs
+export HADOOP_LOG_DIR=/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/logs
+
 
 # A string representing this instance of hadoop. $USER by default.
 # This is used in writing log and pid files, so keep that in mind!

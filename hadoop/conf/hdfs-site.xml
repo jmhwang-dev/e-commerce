@@ -17,5 +17,16 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/data</value>
+    </property>
+    <property>
+        <name>dfs.replication</name>
+        <value>2</value>
+    </property>
 </configuration>
