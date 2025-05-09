@@ -6,8 +6,8 @@ HADOOP_PROFILE="/etc/profile.d/hadoop.sh"
 # 하둡 환경 변수 및 경로 추가 함수 정의
 HADOOP_EXPORT_BLOCK=$(cat <<EOF
 # >>> HADOOP ENV START >>>
-HADOOP_HOME=${HADOOP_HOME}
-JAVA_HOME=${JAVA_HOME}
+export HADOOP_HOME=${HADOOP_HOME}
+export JAVA_HOME=${JAVA_HOME}
 
 # PATH에 이미 추가되어 있는지 확인
 add_to_path() {
@@ -37,8 +37,6 @@ else
     echo "[INFO] $HADOOP_PROFILE already exists. Skipping."
 fi
 
-exit 1
-
 # ~/.bash_profile 파일이 없으면 생성
 if [ ! -f "$HOME/.bash_profile" ]; then
     echo "[INFO] ~/.bash_profile not found. Creating..."
@@ -47,7 +45,6 @@ fi
 
 # ~/.bash_profile 경로
 BASH_PROFILE="$HOME/.bash_profile"
-
 # 환경 변수 추가 함수 정의
 add_var_to_bash_profile() {
     local var_name="$1"    # 변수 이름 (예: HADOOP_HOME)
@@ -69,7 +66,5 @@ add_var_to_bash_profile() {
 
 # 각 환경 변수를 ~/.bash_profile에 추가
 add_var_to_bash_profile "HADOOP_CONF_DIR" "$HADOOP_CONF_DIR"
-add_var_to_bash_profile "HADOOP_HOME" "$HADOOP_HOME"
-add_var_to_bash_profile "JAVA_HOME" "$JAVA_HOME"
 
 echo "[DONE] Hadoop environment variables configured."
