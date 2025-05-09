@@ -1,4 +1,4 @@
-source ${HOME}/.bash_profile.sh
+source ${HOME}/.bash_profile
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
