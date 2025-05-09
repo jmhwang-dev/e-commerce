@@ -1,3 +1,8 @@
+# INSTALL
+```bash
+bash ./hadoop/install/run.sh
+```
+
 # SETUP
 1. `/etc/hosts` 작성
     - master node에서는 클러스터 내 모든 노드들의 ip 작성
