@@ -19,11 +19,11 @@
 <configuration>
     <property>
         <name>dfs.namenode.name.dir</name>
-        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/name</value>
+        <value>file:/var/hadoop//dfs/nam</value>
     </property>
     <property>
         <name>dfs.datanode.data.dir</name>
-        <value>file:/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/cache/dfs/data</value>
+        <value>file:/var/hadoop//dfs/data</value>
     </property>
     <property>
         <name>dfs.replication</name>

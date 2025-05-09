@@ -1,5 +1,6 @@
-echo ${PWD}/hadoop/install/run.sh
-source ${HOME}/.bash_profile
+# source ${HOME}/.bash_profile
+# env | grep JAVA_HOME
+# exit 1
 
 # cat ~/.bash_profile
 # Licensed to the Apache Software Foundation (ASF) under one
@@ -54,8 +55,9 @@ source ${HOME}/.bash_profile
 
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
-echo ${JAVA_HOME} !!!!!
-export JAVA_HOME=${JAVA_HOME}
+# export JAVA_HOME=$JAVA_HOME
+export JDK_DIR_NAME_PATTERN="java-8-openjdk*"
+export JAVA_HOME=$(find /usr/lib/jvm -type d -name ${JDK_DIR_NAME_PATTERN} | head -n 1)
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
