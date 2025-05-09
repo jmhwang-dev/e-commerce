@@ -66,5 +66,8 @@ add_var_to_bash_profile() {
 
 # 각 환경 변수를 ~/.bash_profile에 추가
 add_var_to_bash_profile "HADOOP_CONF_DIR" "$HADOOP_CONF_DIR"
+add_var_to_bash_profile "JAVA_HOME" "$JAVA_HOME"
+add_var_to_bash_profile "HADOOP_HOME" "$HADOOP_HOME"
+
 
 echo "[DONE] Hadoop environment variables configured."

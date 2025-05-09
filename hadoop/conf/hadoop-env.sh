@@ -1,4 +1,7 @@
+echo ${PWD}/hadoop/install/run.sh
 source ${HOME}/.bash_profile
+
+# cat ~/.bash_profile
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -51,6 +54,7 @@ source ${HOME}/.bash_profile
 
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
+echo ${JAVA_HOME} !!!!!
 export JAVA_HOME=${JAVA_HOME}
 
 # The language environment in which Hadoop runs. Use the English
