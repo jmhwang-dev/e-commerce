@@ -60,7 +60,7 @@ class PipelineConfig(BaseConfig):
     def __post_init__(self):
         super().__post_init__()
         
-        if self.device not in ('auto', 'cpu'):
+        if self.device not in ('auto', 'cpu', 'cuda'):
             raise ValueError("device should be one of 'auto' or 'cpu'.")
         
 @dataclass(kw_only=True)

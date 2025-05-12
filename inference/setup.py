@@ -36,14 +36,17 @@ def get_translator_e2k(device_, initial_batch_size, dst_file_name) -> Translator
     config_e2k.save()
     return Translator(config_e2k)
 
-def get_sentiment_analyzer() -> SentimentAnalyzer:
+def get_sentiment_analyzer(device_, initial_batch_size_, dst_file_name_) -> SentimentAnalyzer:
     config_senti = PipelineConfig(
         src_path=None,
         dst_dir_name='inference',
-        dst_file_name="senti_eng.csv",
+        dst_file_name=dst_file_name_,
         
         checkpoint="j-hartmann/sentiment-roberta-large-english-3-classes",
-        device='cpu',
+
+        device=device_,
+        initial_batch_size=initial_batch_size_,
+
         inplace=True
     )
     config_senti.save()

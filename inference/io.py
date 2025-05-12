@@ -17,13 +17,3 @@ def load_dataset(dataset_path:str) -> List[str]:
     for portuguese in lines:
         dataset.append(portuguese.strip())
     return dataset
-
-def save_sentiment(dst_path: str, score: List[Dict[str, Union[float, str]]]) -> None:
-    df_new = pd.DataFrame(score)
-    try:
-        existing_df = pd.read_csv(dst_path)
-        df = pd.concat([existing_df, df_new], ignore_index=True)
-    except FileNotFoundError:
-        df = df_new
-    finally:
-        df.to_csv(dst_path, index=False)

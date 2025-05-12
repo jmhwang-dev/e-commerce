@@ -4,39 +4,60 @@ from config import *
 class SentimentAnalyzer(BasePipeline):
     def __init__(self, config:TranslatePipelineConfig):
         self.config = config
-        self.current_batch_size = self.config.batch_size
-        self.pipeline = pipeline("text-classification", model=self.config.checkpoint, top_k=3)
+        self.batch_size = self.config.initial_batch_size
+
+        self.pipeline = pipeline(
+            "text-classification",
+            model=self.config.checkpoint,
+            device=self.config.device,
+            top_k=3,
+
+            max_length=512,
+            truncation=True,
+            )
 
     def set_input(self, dataset:List[str]):
-        self.texts = dataset
+        self.prompts = dataset
 
     def run(self,):
+        start_index = 0
+        total = len(self.prompts)
+
+        while start_index < total:
+            end_index = min(start_index + self.batch_size, total)
+            chunk = self.prompts[start_index:end_index]
+            try:
+                start_time = time.time()
+                outputs = self.pipeline(chunk, batch_size=len(chunk))
+                duration = time.time() - start_time
+                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
+                self.save_results(outputs)
+                start_index = end_index
+                self.adjust_batch_size(+1)
+
+            except torch.cuda.OutOfMemoryError:
+                print(f"[{self.config.device}] ⚠️ Out of Memory. Reducing batch size.")
+                self.adjust_batch_size(-1)
+                torch.cuda.empty_cache()
+                gc.collect()
+
+    def adjust_batch_size(self, delta: int):
+        if self.config.device == 'auto':
+            new_size = max(1, self.batch_size + delta)
+        else:
+            # Limit maximum batch size for CPU inference
+            new_size = min(1000, self.batch_size + delta)
+        print(f"[{self.config.device}] Batch size {'increased' if delta > 0 else 'decreased'}: {self.batch_size} → {new_size}")
+        self.batch_size = new_size
+
+    def save_results(self, outputs):
+        rows = [{item['label']: item['score'] for item in row} for row in outputs]
+        df_new = pd.DataFrame(rows)
+
         try:
-            inference_start = time.time()
-            self.outputs = self.pipeline(self.texts)
-            inference_end = time.time()
-            print(f"dataset size: {len(self.texts)} ... complete: {inference_end - inference_start}")
-            
-        except RuntimeError as e:  # CPU에서의 메모리 부족 처리
-            pass
-            # print(f"[⚠️ RuntimeError] batch_size={batch_size_} ↓ {self.config.dynamic_batch_size_decrement} 줄임")
-            # batch_size_ = max(1, batch_size_ - 1)
-            # gc.collect()
-
-        except torch.cuda.OutOfMemoryError as e:
-            pass
-            # print(f"[⚠️ OOM] batch_size={batch_size_} ↓ {self.config.dynamic_batch_size_decrement} 줄임")
-            # batch_size_ = max(1, batch_size_ - 1)
-            # torch.cuda.empty_cache()
-            # gc.collect()
-
-    def get_results(self,):
-        self.results = []
-        for text, outputs in zip(self.texts, self.outputs):
-
-            redefine_score = {'text': text.strip()}
-            for output in outputs:
-                redefine_score[output['label']] = output['score']
-            self.results.append(redefine_score)
-            
-        return self.results
+            existing_df = pd.read_csv(self.config.dst_path)
+            df = pd.concat([existing_df, df_new], ignore_index=True)
+        except FileNotFoundError:
+            df = df_new
+        finally:
+            df.to_csv(self.config.dst_path, index=False)
