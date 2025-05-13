@@ -1,7 +1,8 @@
-import multiprocessing as mp
-
-from inference import *
+from setup import *
 from config import *
+from loader import *
+
+import multiprocessing as mp
 
 def translate_p2e(dataset, device_, initial_batch_size_, dst_file_name_):
     translator_p2e = get_translator_p2e(device_, initial_batch_size_, dst_file_name_)
@@ -9,6 +10,7 @@ def translate_p2e(dataset, device_, initial_batch_size_, dst_file_name_):
     translator_p2e.run()
 
 if __name__ == "__main__":
+    # TODO: Needs abstraction
     dataset_config = load_config('preprocess', 'config_all_portuguess.yml')
     dataset = load_dataset(dataset_config['dst_path'])
 

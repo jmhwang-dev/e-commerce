@@ -1,5 +1,5 @@
 import pandas as pd
-from config import *
+from inference.config import *
 
 def cleanse_text(config: BaseConfig) -> None:
     df = pd.read_csv(config.src_path)

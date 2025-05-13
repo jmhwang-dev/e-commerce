@@ -1,4 +1,4 @@
-from inference.pipeline.base import *
+from pipeline.base import *
 from config import *
 import gc
 import time

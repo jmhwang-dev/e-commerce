@@ -1,6 +1,6 @@
 from config import *
-from .pipeline.translate import Translator
-from .pipeline.sentiment import SentimentAnalyzer
+from pipeline.translate import Translator
+from pipeline.sentiment import SentimentAnalyzer
 
 def get_translator_p2e(device_, initial_batch_size, dst_file_name) -> Translator:
     config_p2e = TranslatePipelineConfig(
