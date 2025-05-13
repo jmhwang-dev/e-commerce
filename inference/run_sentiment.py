@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     chunk_size = len(dataset) // 2
 
-    worker_senti_gpu = mp.Process(target=analyze_sentiment, args=(dataset[:chunk_size], 'cuda', 300, 'zzzzzsenti_eng_cpu3_but_gpu.csv'))
+    worker_senti_gpu = mp.Process(target=analyze_sentiment, args=(dataset[:chunk_size], 'cuda', 300, 'senti_eng_cpu3_but_gpu.csv'))
     worker_senti_gpu.start()
 
     worker_senti_cpu = mp.Process(target=analyze_sentiment, args=(dataset[chunk_size:], 'cpu', 300, 'senti_eng_cpu3.csv'))
