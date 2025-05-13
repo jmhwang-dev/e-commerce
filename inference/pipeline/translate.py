@@ -1,8 +1,5 @@
-from pipeline.base import *
+from .base import *
 from config import *
-import gc
-import time
-from typing import List
 
 class Translator(BasePipeline):
     def __init__(self, config: TranslatePipelineConfig):        

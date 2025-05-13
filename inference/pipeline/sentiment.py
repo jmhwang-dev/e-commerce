@@ -1,4 +1,4 @@
-from pipeline.base import *
+from .base import *
 from config import *
 
 class SentimentAnalyzer(BasePipeline):
