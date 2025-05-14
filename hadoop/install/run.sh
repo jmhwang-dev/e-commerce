@@ -4,6 +4,8 @@ source ./hadoop/install/java.sh
 source ./hadoop/install/hadoop.sh
 source ./hadoop/install/profile.sh
 
+echo "[DONE] HDFS has configured."
+
 HOSTNAME=$(hostname)
 
 if [[ "$HOSTNAME" == "mini-pc" || $HOSTNAME =~ ^raspberrypi ]]; then
@@ -12,5 +14,3 @@ if [[ "$HOSTNAME" == "mini-pc" || $HOSTNAME =~ ^raspberrypi ]]; then
     sudo chown -R jmhwang:jmhwang /mnt/hadoop
     echo "[DONE] HDFS cluster has configured."
 fi
-
-echo "[DONE] HDFS has configured."
