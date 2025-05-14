@@ -1,8 +1,3 @@
-# source ${HOME}/.bash_profile
-# env | grep JAVA_HOME
-# exit 1
-
-# cat ~/.bash_profile
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -56,8 +51,7 @@
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
 # export JAVA_HOME=$JAVA_HOME
-export JDK_DIR_NAME_PATTERN="java-8-openjdk*"
-export JAVA_HOME=$(find /usr/lib/jvm -type d -name ${JDK_DIR_NAME_PATTERN} | head -n 1)
+export JAVA_HOME=$JAVA_HOME
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
@@ -75,7 +69,6 @@ export HADOOP_HOME=${HADOOP_HOME}
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-# export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
 export HADOOP_CONF_DIR=${HADOOP_CONF_DIR}
 
 

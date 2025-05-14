@@ -2,6 +2,7 @@ artifact/
 logs/
 tmp/
 cache/
+superset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -3,7 +3,6 @@ source ./hadoop/install/java.sh
 source ./hadoop/install/hadoop.sh
 source ./hadoop/install/profile.sh
 
-sudo mkdir -p /usr/local/hadoop_data/dfs/name
-sudo mkdir -p /usr/local/hadoop_data/dfs/data
-
-sudo chown -R jmhwang:jmhwang /usr/local/hadoop_data
+sudo mkdir -p /mnt/hadoop/dfs/name
+sudo mkdir -p /mnt/hadoop/dfs/data
+sudo chown -R jmhwang:jmhwang /mnt/hadoop
