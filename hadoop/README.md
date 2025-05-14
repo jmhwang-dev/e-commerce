@@ -11,13 +11,16 @@ bash ./hadoop/install/run.sh
     - master 호스트를 `core-site.xml`에 작성
     - [os가 ubuntu server라면]
         - `/etc/cloud/cloud.cfg`에서 `update_etc_hosts` 주석 (들여쓰기 주의)
-
+        
 2. ufw 방화벽 확인
-    - master node <-> data nodes
-    - data nodes <-> data nodes
+    - master node <-> worekr nodes
+    - worker nodes <-> worker nodes
+    - client <-> master node, worker nodes
+
 3. ssh 연결 확인
-    - master node <-> data nodes
-    - data nodes <-> data nodes
+    - master node <-> worker nodes
+    - worker nodes <-> worker nodes
+
 4. `workers` 파일에 `/etc/hosts`에 작성한 워커 이름 작성
 
 5. ~/.ssh/enviorment 내용 확인 -> `start-dfs.sh`를 사용하려면 반드시 필요
