@@ -22,7 +22,6 @@ add_to_path() {
     fi
 }
 
-# add_to_path "\$JAVA_HOME/bin"
 add_to_path "\$HADOOP_HOME/bin"
 add_to_path "\$HADOOP_HOME/sbin"
 # <<< HADOOP ENV END <<<

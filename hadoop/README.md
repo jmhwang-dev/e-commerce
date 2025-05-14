@@ -5,8 +5,8 @@ bash ./hadoop/install/run.sh
 
 # SETUP
 1. `/etc/hosts` 작성
-    - master node에서는 클러스터 내 모든 노드들의 ip 작성
-    - worker node에서는 마스터 노드의 ip 작성
+    - master node에 클러스터 내 모든 노드들의 ip 작성
+    - worker node에 마스터 노드의 ip 작성
     - 중복 이름이 없는지 확인
     - master 호스트를 `core-site.xml`에 작성
     - [os가 ubuntu server라면]
