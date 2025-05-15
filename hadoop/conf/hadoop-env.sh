@@ -51,7 +51,9 @@
 # The java implementation to use. By default, this environment
 # variable is REQUIRED on ALL platforms except OS X!
 # export JAVA_HOME=$JAVA_HOME
-export JAVA_HOME=$JAVA_HOME
+
+JDK_DIR_NAME_PATTERN="java-8-openjdk*"
+export JAVA_HOME=$(find /usr/lib/jvm -type d -name "${JDK_DIR_NAME_PATTERN}" | head -n 1)
 
 # The language environment in which Hadoop runs. Use the English
 # environment to ensure that logs are printed as expected.
@@ -59,7 +61,7 @@ export LANG=en_US.UTF-8
 
 # Location of Hadoop.  By default, Hadoop will attempt to determine
 # this location based upon its execution path.
-export HADOOP_HOME=${HADOOP_HOME}
+export HADOOP_HOME="/opt/hadoop-3.4.1"
 
 # Location of Hadoop's configuration information.  i.e., where this
 # file is living. If this is not defined, Hadoop will attempt to
@@ -69,7 +71,7 @@ export HADOOP_HOME=${HADOOP_HOME}
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-export HADOOP_CONF_DIR=${HADOOP_CONF_DIR}
+export HADOOP_CONF_DIR="/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/conf"
 
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit

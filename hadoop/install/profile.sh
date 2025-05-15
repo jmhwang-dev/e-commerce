@@ -46,8 +46,8 @@ fi
 BASH_PROFILE="$HOME/.bash_profile"
 # 환경 변수 추가 함수 정의
 add_var_to_bash_profile() {
-    local var_name="$1"    # 변수 이름 (예: HADOOP_HOME)
-    local var_value="$2"   # 변수 값 (예: $HADOOP_HOME)
+    local var_name="$1"    # 변수 이름 (예: HADOOP_CONF_DIR)
+    local var_value="$2"   # 변수 값 (예: $HADOOP_CONF_DIR)
 
     # 변수 값이 설정되어 있는 경우
     if [ -n "$var_value" ]; then
@@ -65,11 +65,4 @@ add_var_to_bash_profile() {
 
 # 각 환경 변수를 ~/.bash_profile에 추가
 add_var_to_bash_profile "HADOOP_CONF_DIR" "$HADOOP_CONF_DIR"
-
-# start-dfs.sh 실행을 위한 추가 config
-# ssh를 통한 비-인터랙티브(non-interactive) 세션에서 환경변수를 로드하기 위함
-echo JAVA_HOME=${JAVA_HOME} > ~/.ssh/environment
-echo HADOOP_HOME=${HADOOP_HOME} >> ~/.ssh/environment
-echo HADOOP_CONF_DIR=$HADOOP_CONF_DIR >> ~/.ssh/environment
-
 echo "[DONE] Hadoop environment variables configured."
