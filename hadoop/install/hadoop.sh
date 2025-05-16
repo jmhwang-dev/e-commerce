@@ -1,3 +1,8 @@
+HADOOP_DIST_TAR=${HADOOP_DIST_NAME}.tar.gz
+HADOOP_DIST_TAR_ASC=${HADOOP_DIST_TAR}.asc
+HADOOP_DIST_TAR_SHA512=${HADOOP_DIST_TAR}.sha512
+HADOOP_KEYS="KEYS"
+
 # Hadoop이 이미 설치되어 있는지 확인
 if [ -d "$HADOOP_HOME" ]; then
     echo "[INFO] Hadoop ${HADOOP_DIST_NAME} is already installed at ${HADOOP_HOME}. Skipping installation."
