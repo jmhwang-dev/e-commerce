@@ -1,0 +1,40 @@
+---
+- name: Hadoop 환경 변수 파일 생성
+  template:
+    src: hadoop.sh.j2
+    dest: /etc/profile.d/hadoop.sh
+    mode: '0644'
+  notify: 프로필 리로드
+  tags:
+    - install
+
+- name: Hadoop 설정 파일 생성
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ hadoop_conf_dir }}/{{ item.dest }}"
+    owner: "{{ hdfs_user }}"
+    group: "{{ hdfs_group }}"
+    mode: '0644'
+  loop:
+    - { src: 'core-site.xml.j2', dest: 'core-site.xml' }
+    - { src: 'hdfs-site.xml.j2', dest: 'hdfs-site.xml' }
+  tags:
+    - config
+
+- name: Hadoop 바이너리 파일 실행 권한 설정
+  file:
+    path: "{{ hadoop_home }}/bin"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  tags:
+    - install
+
+- name: Hadoop 스크립트 파일 실행 권한 설정
+  file:
+    path: "{{ hadoop_home }}/sbin"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  tags:
+    - install

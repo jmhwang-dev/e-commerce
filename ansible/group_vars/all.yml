@@ -1,0 +1,17 @@
+---
+ansible_user: jmhwang
+ansible_become: true
+
+java_package: openjdk-8-jdk
+jdk_dir_name_pattern: java-8-openjdk*
+
+apache_base_url: https://dlcdn.apache.org
+download_dir: /tmp
+install_dir: /opt
+
+dir_own_user_name: jmhwang
+dir_own_group_name: jmhwang
+
+# # 보안 설정
+# verify_checksums: true
+# verify_gpg: true

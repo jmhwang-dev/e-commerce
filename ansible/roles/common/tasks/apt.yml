@@ -1,0 +1,12 @@
+---
+- name: 필수 패키지 설치
+  apt:
+    name:
+      - wget
+      - gnupg
+      - coreutils
+    state: latest
+    update_cache: yes
+
+  tags: 
+    - install

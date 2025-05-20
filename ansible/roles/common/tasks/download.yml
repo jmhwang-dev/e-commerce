@@ -1,0 +1,58 @@
+---
+- name: "Check if {{ framework_name }} exists"
+  ansible.builtin.stat:
+    path: "{{ home_dir }}"
+  register: home_dir_stat
+
+- name: "{{ framework_name }} 관련 파일 다운로드"
+  when: not home_dir_stat.stat.exists
+  block:
+    - name: "Create download dir for {{framework_name}}"
+      ansible.builtin.file:
+        path: "{{ download_dir }}/{{ dist_name }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ dir_own_user_name }}"
+        group: "{{ dir_own_group_name }}"
+      register: download_path
+
+    - name: "{{framework_name}} 배포 파일 다운로드"
+      ansible.builtin.get_url:
+        url: "{{ base_url }}/{{ dist_name }}/{{ targz_name }}"
+        dest: "{{ download_path.path }}/{{ targz_name }}"
+        mode: '0644'
+        timeout: 600
+        force: no
+      register: framework_file
+    
+
+    - name: Set framework_file.dest if not present
+      ansible.builtin.set_fact:
+        framework_file: 
+          dest: "{{ download_path.path }}/{{ targz_name }}"
+      when: framework_file.dest is not defined
+
+    - name: GPG/Checksum/서명 파일 다운로드
+      ansible.builtin.get_url:
+        url: "{{ base_url }}/{{ item.subdir }}/{{ item.src }}"
+        dest: "{{ download_path.path }}/{{ item.dest }}"
+        mode: '0644'
+        force: no
+
+      loop:
+        - { src: "{{ asc_name }}", dest: "{{ asc_name }}", subdir: "{{ dist_name }}" }
+        - { src: "{{ sha512_name }}", dest: "{{ sha512_name }}", subdir: "{{ dist_name }}" }
+        - { src: "KEYS", dest: "KEYS", subdir: "" }  # 👈 root of base_url
+      register: verification_files
+
+    - name: Set verification_files with full dest paths
+      set_fact:
+        verification_files:
+           results: >-
+            {{ 
+              [ 
+                { 'dest': download_path.path ~ '/' ~ asc_name },
+                { 'dest': download_path.path ~ '/' ~ sha512_name },
+                { 'dest': download_path.path ~ '/KEYS' }
+              ]
+            }}

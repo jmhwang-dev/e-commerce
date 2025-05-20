@@ -1,0 +1,21 @@
+---
+- name: Java 설치
+  apt:
+    name: "{{ java_package }}"
+    state: latest
+    update_cache: yes
+  tags:
+    - install
+
+- name: JAVA_HOME 찾기
+  shell: find /usr/lib/jvm -type d -name "{{ jdk_dir_name_pattern }}" | head -n 1
+  register: java_home_result
+  changed_when: false
+  tags:
+    - install
+
+- name: JAVA_HOME 변수 설정
+  set_fact:
+    java_home: "{{ java_home_result.stdout }}"
+  tags:
+    - install

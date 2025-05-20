@@ -1,0 +1,14 @@
+---
+# - name: print
+#   ansible.builtin.debug:
+#     msg: "{{framework_file.dest}}"
+    
+- name: Extract {{framework_file.dest}} to {{ install_dir }}/{{ dist_name }}
+  ansible.builtin.unarchive:
+    src: "{{ framework_file.dest }}"
+    dest: "{{ install_dir }}"
+    remote_src: yes
+    owner: "{{ dir_own_user_name }}"
+    group: "{{ dir_own_group_name }}"
+    mode: '0755'
+  when: framework_file is defined and framework_file.dest is defined
