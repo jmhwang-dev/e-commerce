@@ -12,5 +12,5 @@ sha512_name: "{{targz_name}}.sha512"
 conf_dir: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/conf
 
 # HDFS 데이터 디렉토리
-namenode_dir: /mnt/hadoop2/dfs/name
-datanode_dir: /mnt/hadoop2/dfs/data
+namenode_dir: /mnt/hadoop/dfs/name
+datanode_dir: /mnt/hadoop/dfs/data
