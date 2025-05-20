@@ -15,7 +15,7 @@
     chdir: "{{ download_path.path }}"
     executable: /bin/bash
   loop: "{{ verification_files.results }}"
-  loop_control:
+  loop_control: # to customize the log output during loops.
     label: "{{ item.dest }}"
   register: verify_results
   when: item.dest is defined

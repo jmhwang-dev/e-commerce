@@ -24,7 +24,6 @@
         timeout: 600
         force: no
       register: framework_file
-    
 
     - name: Set framework_file.dest if not present
       ansible.builtin.set_fact:
@@ -42,7 +41,7 @@
       loop:
         - { src: "{{ asc_name }}", dest: "{{ asc_name }}", subdir: "{{ dist_name }}" }
         - { src: "{{ sha512_name }}", dest: "{{ sha512_name }}", subdir: "{{ dist_name }}" }
-        - { src: "KEYS", dest: "KEYS", subdir: "" }  # 👈 root of base_url
+        - { src: "KEYS", dest: "KEYS", subdir: "" }
       register: verification_files
 
     - name: Set verification_files with full dest paths
