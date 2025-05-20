@@ -1,5 +1,6 @@
 ---
 - name: Java 설치
+  become: true
   apt:
     name: "{{ java_package }}"
     state: latest

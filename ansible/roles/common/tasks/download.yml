@@ -5,15 +5,14 @@
   register: home_dir_stat
 
 - name: "{{ framework_name }} 관련 파일 다운로드"
-  when: not home_dir_stat.stat.exists
   block:
     - name: "Create download dir for {{framework_name}}"
       ansible.builtin.file:
         path: "{{ download_dir }}/{{ dist_name }}"
         state: directory
         mode: '0755'
-        owner: "{{ dir_own_user_name }}"
-        group: "{{ dir_own_group_name }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
       register: download_path
 
     - name: "{{framework_name}} 배포 파일 다운로드"
@@ -23,13 +22,7 @@
         mode: '0644'
         timeout: 600
         force: no
-      register: framework_file
-
-    - name: Set framework_file.dest if not present
-      ansible.builtin.set_fact:
-        framework_file: 
-          dest: "{{ download_path.path }}/{{ targz_name }}"
-      when: framework_file.dest is not defined
+      # register: framework_file
 
     - name: GPG/Checksum/서명 파일 다운로드
       ansible.builtin.get_url:
@@ -42,16 +35,28 @@
         - { src: "{{ asc_name }}", dest: "{{ asc_name }}", subdir: "{{ dist_name }}" }
         - { src: "{{ sha512_name }}", dest: "{{ sha512_name }}", subdir: "{{ dist_name }}" }
         - { src: "KEYS", dest: "KEYS", subdir: "" }
-      register: verification_files
+      # register: verification_files
 
-    - name: Set verification_files with full dest paths
-      set_fact:
-        verification_files:
-           results: >-
-            {{ 
-              [ 
-                { 'dest': download_path.path ~ '/' ~ asc_name },
-                { 'dest': download_path.path ~ '/' ~ sha512_name },
-                { 'dest': download_path.path ~ '/KEYS' }
-              ]
-            }}
+  when: not home_dir_stat.stat.exists
+
+- name: Set download_path.path if not present
+  ansible.builtin.set_fact:
+    download_path: 
+      path: "{{ download_dir }}/{{ dist_name }}"
+  
+- name: Set framework_file.dest if not present
+  ansible.builtin.set_fact:
+    framework_file: 
+      dest: "{{ download_path.path }}/{{ targz_name }}"
+
+- name: Set verification_files with full dest paths
+  ansible.builtin.set_fact: # set_fact:
+    verification_files:
+      results: >-
+        {{ 
+          [ 
+            { 'dest': download_path.path ~ '/' ~ asc_name },
+            { 'dest': download_path.path ~ '/' ~ sha512_name },
+            { 'dest': download_path.path ~ '/KEYS' }
+          ]
+        }}

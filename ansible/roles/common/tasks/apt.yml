@@ -1,5 +1,6 @@
 ---
 - name: 필수 패키지 설치
+  become: true
   apt:
     name:
       - wget

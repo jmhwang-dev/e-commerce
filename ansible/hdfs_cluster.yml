@@ -3,10 +3,7 @@
   hosts: hdfs_cluster
   roles:
     - common
-    # - hdfs
-  # tasks:
-  #   - name: Ping my hosts
-  #     ansible.builtin.ping:
+    - hdfs
 
 # - name: My second play (Spark 클러스터 메시지 출력)
 #   hosts: spark_cluster
