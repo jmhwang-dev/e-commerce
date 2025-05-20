@@ -6,17 +6,7 @@ all:
         hadoop_namenodes:
           hosts:
             master: {}
-        # hadoop_datanodes:
-        #   hosts:
-        #     worker1: {}
-        #     worker2: {}
-
-    # spark:
-    #   children:
-    #     spark_masters:
-    #       hosts:
-    #         master: {}
-    #     spark_workers:
-    #       hosts:
-    #         worker1: {}
-    #         worker2: {}
+        hadoop_datanodes:
+          hosts:
+            worker1: {}
+            worker2: {}
