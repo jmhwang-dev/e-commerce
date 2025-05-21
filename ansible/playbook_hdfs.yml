@@ -1,0 +1,6 @@
+---
+- name: INSTALL HDFS
+  hosts: cluster_hdfs
+  roles:
+    - install
+    - hdfs

@@ -1,5 +1,5 @@
 ---
-- name: Verification file actions
+- name: "Verify {{dist_name}}"
   ansible.builtin.shell: >-
     {% if item.dest | regex_search('KEYS$') %}
     gpg --import "{{ item.dest }}" || echo "Failed to import keys from {{ item.dest }}"
@@ -12,7 +12,7 @@
     exit 1
     {% endif %}
   args:
-    chdir: "{{ download_path.path }}"
+    chdir: "{{ download_dir.path }}"
     executable: /bin/bash
   loop: "{{ verification_files.results }}"
   loop_control: # to customize the log output during loops.

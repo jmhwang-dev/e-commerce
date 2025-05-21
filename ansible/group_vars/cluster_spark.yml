@@ -1,0 +1,12 @@
+---
+framework_name: 'spark'
+version: 3.5.5
+dist_name: "{{framework_name}}-{{ version }}-bin-hadoop3"
+
+home_dir: "{{ base_install_dir }}/{{ dist_name }}"
+base_url: "{{base_apache_url}}/spark"
+targz_name: "{{ dist_name }}.tgz"
+asc_name: "{{ targz_name }}.asc"
+sha512_name: "{{targz_name}}.sha512"
+
+conf_dir: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/spark/conf

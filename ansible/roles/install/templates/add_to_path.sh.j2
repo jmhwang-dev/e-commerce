@@ -1,6 +1,4 @@
-# >>> HADOOP ENV START >>>
-export HADOOP_HOME={{ home_dir }}
-export JAVA_HOME={{ java_home }}
+#!/bin/bash
 
 add_to_path() {
     if [[ ":$PATH:" != *":$1:"* ]]; then
@@ -10,7 +8,3 @@ add_to_path() {
         echo "[INFO] $1 is already in PATH, skipping."
     fi
 }
-
-add_to_path "$HADOOP_HOME/bin"
-add_to_path "$HADOOP_HOME/sbin"
-# <<< HADOOP ENV END <<<
