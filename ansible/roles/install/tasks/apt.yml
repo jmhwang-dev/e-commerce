@@ -1,5 +1,5 @@
 ---
-- name: 필수 패키지 설치
+- name: Install apt
   become: true
   apt:
     name:

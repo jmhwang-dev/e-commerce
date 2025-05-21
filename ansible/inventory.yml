@@ -3,14 +3,17 @@ all:
   children:
     cluster_hdfs:
       children:
-        hadoop_namenodes:
+        client:
+          hosts:
+            desktop: {}
+        namenodes:
           hosts:
             master: {}
-        # hadoop_datanodes:
-        #   hosts:
-        #     worker1: {}
-        #     worker2: {}
-
+        datanodes:
+          hosts:
+            worker1: {}
+            worker2: {}
+        
     # cluster_spark:
     #   children:
     #     spark_masters:
