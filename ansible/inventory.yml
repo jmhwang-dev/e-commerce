@@ -19,7 +19,7 @@ all:
         spark_masters:
           hosts:
             master: {}
-        spark_workers:
-          hosts:
-            worker1: {}
-            worker2: {}
+        # spark_workers:
+        #   hosts:
+        #     worker1: {}
+        #     worker2: {}
