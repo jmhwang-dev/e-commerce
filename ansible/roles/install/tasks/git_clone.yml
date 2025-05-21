@@ -4,10 +4,6 @@
     path: "{{git_clone_path}}/.git"
   register: repo_git_dir
 
-- name: print
-  debug:
-    var: "{{ansible_env.HOME}}"
-
 - name: Clone the repository if it doesn't exist
   ansible.builtin.git:
     repo: "git@github.com:jmhwang-dev/e-commerce.git"

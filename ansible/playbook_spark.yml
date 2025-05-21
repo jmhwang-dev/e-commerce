@@ -2,4 +2,4 @@
 - name: INSTALL Spark
   hosts: cluster_spark
   roles:
-    # - install
+    - install
