@@ -1,0 +1,15 @@
+---
+- name: Install tools to workers
+  apt:
+    name:
+      - kubeadm
+      - kubelet
+    state: latest
+    update_cache: true
+
+# sudo apt-mark hold kubelet kubeadm
+- name: "Hold Kubernetes components: kubelet kubeadm"
+  shell: apt-mark hold {{ item }}
+  loop:
+    - kubelet
+    - kubeadm

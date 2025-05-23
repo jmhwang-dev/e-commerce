@@ -14,12 +14,12 @@ all:
             worker1: {}
             worker2: {}
         
-    cluster_spark:
+    cluster_k8s:
       children:
-        spark_masters:
+        master:
           hosts:
             master: {}
-        # spark_workers:
-        #   hosts:
-        #     worker1: {}
-        #     worker2: {}
+        workers:
+          hosts:
+            worker1: {}
+            worker2: {}
