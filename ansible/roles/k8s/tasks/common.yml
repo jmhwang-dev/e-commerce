@@ -34,6 +34,15 @@
       - curl
       - gnupg
       - containerd
+      - kubeadm
+      - kubelet
 
     state: latest
     update_cache: yes
+
+# sudo apt-mark hold kubelet kubeadm
+- name: "Hold Kubernetes components: kubelet kubeadm"
+  shell: apt-mark hold {{ item }}
+  loop:
+    - kubelet
+    - kubeadm
