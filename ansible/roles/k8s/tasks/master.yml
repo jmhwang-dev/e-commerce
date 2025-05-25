@@ -14,3 +14,61 @@
 # sudo apt-mark hold kubectl
 - name: "Hold Kubernetes components: kubectl"
   shell: apt-mark hold kubectl
+
+
+- name: Initialize Kubernetes master node
+  vars:
+    pod_network_cidr: "10.244.0.0/16"
+
+  block:
+    - name: Initialize Kubernetes cluster with kubeadm
+      command: kubeadm init --pod-network-cidr={{ pod_network_cidr }}
+      register: kubeadm_init
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+- name: Set up kubeconfig for regular user
+  vars:
+    kube_user: "{{ ansible_user | default('ubuntu') }}"
+
+  block:
+    - name: Create .kube directory
+      file:
+        path: "/home/{{ kube_user }}/.kube"
+        state: directory
+        owner: "{{ kube_user }}"
+        group: "{{ kube_user }}"
+        mode: '0755'
+
+    - name: Copy admin.conf to user kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ kube_user }}/.kube/config"
+        remote_src: yes
+        owner: "{{ kube_user }}"
+        group: "{{ kube_user }}"
+        mode: '0644'
+
+- name: Apply Flannel CNI network
+  vars:
+    kube_user: "{{ ansible_user | default('ubuntu') }}"
+  block:
+    - name: Apply Flannel CNI using kubectl
+      become: false
+      become_user: "{{ kube_user }}"
+      shell: |
+        kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+      environment:
+        KUBECONFIG: "/home/{{ kube_user }}/.kube/config"
+      register: flannel_apply
+      failed_when: flannel_apply.rc != 0
+
+- name: Generate kubeadm join command on master
+  block:
+    - name: Generate join command
+      command: kubeadm token create --print-join-command
+      register: join_cmd_output
+
+    - name: Set fact on master
+      set_fact:
+        kubeadm_join_cmd: "{{ join_cmd_output.stdout }}"

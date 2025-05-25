@@ -1,21 +1,32 @@
 ---
-- name: Set up Kubernetes on master
-  hosts: master
+- name: Set up Kubernetes on all nodes
+  hosts: control_plane_node, worker_nodes
   become: true
-  gather_facts: true
+  tasks:
+    - name: Run k8s role with install_common=true
+      include_role:
+        name: k8s
+      vars:
+        reset_k8s: true
+        install_common: true
 
-  roles:
-  - role: k8s
-    vars:
-      install_common: true
-      install_master: true
-
-- name: Set up Kubernetes on workers
-  hosts: workers
+- name: Set up Kubernetes on control plane
+  hosts: control_plane_node
   become: true
-  gather_facts: true
+  tasks:
+    - name: Run k8s role with install_master=true
+      include_role:
+        name: k8s
+      vars:
+        install_master: true
 
-  roles:
-  - role: k8s
-    vars:
-      install_common: true
+- name: Set up Kubernetes (master + workers)
+  hosts: cluster_k8s
+  become: true
+  tasks:
+    - name: Include control plane role
+      include_role:
+        name: k8s
+      vars:
+        install_master: "{{ inventory_hostname in groups['control_plane_node'] }}"
+        install_workers: "{{ inventory_hostname in groups['worker_nodes'] }}"

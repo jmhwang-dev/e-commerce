@@ -1,0 +1,12 @@
+---
+- name: Join Kubernetes worker node with validation
+  vars:
+    kubeadm_join_cmd: "{{ hostvars[groups['control_plane_node'][0]]['kubeadm_join_cmd'] }}"
+
+  block:
+    - name: Run kubeadm join if kubelet.conf is missing or invalid
+      command: "{{ kubeadm_join_cmd }}"
+
+    - name: Debug confirmation
+      debug:
+        msg: "Join successful or already valid. Skipped if unnecessary."

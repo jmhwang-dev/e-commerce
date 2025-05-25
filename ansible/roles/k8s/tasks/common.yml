@@ -46,3 +46,79 @@
   loop:
     - kubelet
     - kubeadm
+
+# Configuration
+- name: Disable swap temporarily
+  command: swapoff -a
+
+- name: Disable swap permanently by editing fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^(?!#)(.*\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Ensure br_netfilter kernel module is loaded
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Ensure br_netfilter is configured to load on boot
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+    mode: '0644'
+
+- name: Set Kubernetes sysctl parameters
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+    mode: '0644'
+
+- name: Apply sysctl settings
+  command: sysctl --system
+
+- name: "Configure containerd with SystemdCgroup = true"
+  block:
+    - name: Create containerd config directory
+      file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: Generate default containerd config
+      command: "containerd config default"
+      register: containerd_config
+
+    - name: Write config.toml
+      copy:
+        content: "{{ containerd_config.stdout }}"
+        dest: /etc/containerd/config.toml
+        mode: '0644'
+
+    - name: Set SystemdCgroup = true
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+- name: Enable IP forwarding on all Kubernetes nodes
+  block:
+    - name: Enable IP forwarding permanently
+      copy:
+        dest: /etc/sysctl.d/k8s.conf
+        content: |
+          net.ipv4.ip_forward = 1
+        mode: '0644'
+
+    - name: Re-apply all remaining sysctl settings from disk
+      command: sysctl --system

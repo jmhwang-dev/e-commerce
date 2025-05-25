@@ -16,10 +16,10 @@ all:
         
     cluster_k8s:
       children:
-        master:
+        control_plane_node:
           hosts:
             master: {}
-        workers:
+        worker_nodes:
           hosts:
             worker1: {}
             worker2: {}
