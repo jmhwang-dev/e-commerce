@@ -11,3 +11,5 @@ docker push ghcr.io/jmhwang-dev/spark-hadoop:3.5.5-amd64
 
 # 실패시
 docker logout ghcr.io
+
+# 이후 링크에서 push 됐는지 확인: https://github.com/jmhwang-dev?tab=packages
