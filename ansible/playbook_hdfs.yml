@@ -2,7 +2,7 @@
 - name: INSTALL common packages on all nodes
   hosts: cluster_hdfs
   roles:
-    - install
+    - common
 
 - name: Setup HDFS on namenode(s)
   hosts: namenodes

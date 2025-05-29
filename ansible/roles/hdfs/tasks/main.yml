@@ -16,3 +16,4 @@
     group: "{{ ansible_user }}"
     mode: '0755'
   when: "'datanodes' in group_names"
+  
