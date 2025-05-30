@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spark-pi2
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: raspberrypi2 # 여기서 host 변경
+      containers:
+        - name: spark
+          image: apache/spark:4.0.0
+          command: ["/opt/spark/bin/spark-submit"]
+          args:
+            [
+              "--master", "local[*]",
+              "--class", "org.apache.spark.examples.SparkPi",
+              "/opt/spark/examples/jars/spark-examples_2.13-4.0.0.jar",
+              "10"
+            ]
+      restartPolicy: Never

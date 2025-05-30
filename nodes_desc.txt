@@ -1,0 +1,275 @@
+Name:               mini-pc
+Roles:              control-plane
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=mini-pc
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/control-plane=
+                    node.kubernetes.io/exclude-from-external-load-balancers=
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"c2:0e:72:12:d8:20"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 192.168.45.192
+                    kubeadm.alpha.kubernetes.io/cri-socket: unix:///var/run/containerd/containerd.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Fri, 30 May 2025 10:40:54 +0900
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+Unschedulable:      false
+Lease:
+  HolderIdentity:  mini-pc
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 30 May 2025 10:44:01 +0900
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Fri, 30 May 2025 10:41:07 +0900   Fri, 30 May 2025 10:41:07 +0900   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Fri, 30 May 2025 10:41:05 +0900   Fri, 30 May 2025 10:40:53 +0900   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Fri, 30 May 2025 10:41:05 +0900   Fri, 30 May 2025 10:40:53 +0900   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Fri, 30 May 2025 10:41:05 +0900   Fri, 30 May 2025 10:40:53 +0900   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Fri, 30 May 2025 10:41:05 +0900   Fri, 30 May 2025 10:41:05 +0900   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  192.168.45.192
+  Hostname:    mini-pc
+Capacity:
+  cpu:                4
+  ephemeral-storage:  478512880Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             15970788Ki
+  pods:               110
+Allocatable:
+  cpu:                4
+  ephemeral-storage:  440997469478
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             15868388Ki
+  pods:               110
+System Info:
+  Machine ID:                 4e24f3bda2f54288aab99763797422c6
+  System UUID:                ac3f7432-172a-5540-839c-48210b6ec3f8
+  Boot ID:                    e5f3190b-737a-4f6f-96f1-75ea18876dee
+  Kernel Version:             6.11.0-26-generic
+  OS Image:                   Ubuntu 24.04.2 LTS
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://1.7.27
+  Kubelet Version:            v1.33.1
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.0.0/24
+PodCIDRs:                     10.244.0.0/24
+Non-terminated Pods:          (8 in total)
+  Namespace                   Name                               CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                               ------------  ----------  ---------------  -------------  ---
+  kube-flannel                kube-flannel-ds-d89vd              100m (2%)     0 (0%)      50Mi (0%)        0 (0%)         3m1s
+  kube-system                 coredns-674b8bbfcf-bpfqm           100m (2%)     0 (0%)      70Mi (0%)        170Mi (1%)     3m1s
+  kube-system                 coredns-674b8bbfcf-dzl24           100m (2%)     0 (0%)      70Mi (0%)        170Mi (1%)     3m1s
+  kube-system                 etcd-mini-pc                       100m (2%)     0 (0%)      100Mi (0%)       0 (0%)         3m9s
+  kube-system                 kube-apiserver-mini-pc             250m (6%)     0 (0%)      0 (0%)           0 (0%)         3m8s
+  kube-system                 kube-controller-manager-mini-pc    200m (5%)     0 (0%)      0 (0%)           0 (0%)         3m9s
+  kube-system                 kube-proxy-xb74r                   0 (0%)        0 (0%)      0 (0%)           0 (0%)         3m1s
+  kube-system                 kube-scheduler-mini-pc             100m (2%)     0 (0%)      0 (0%)           0 (0%)         3m8s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests    Limits
+  --------           --------    ------
+  cpu                950m (23%)  0 (0%)
+  memory             290Mi (1%)  340Mi (2%)
+  ephemeral-storage  0 (0%)      0 (0%)
+  hugepages-1Gi      0 (0%)      0 (0%)
+  hugepages-2Mi      0 (0%)      0 (0%)
+Events:
+  Type     Reason                   Age   From             Message
+  ----     ------                   ----  ----             -------
+  Normal   Starting                 3m    kube-proxy       
+  Normal   Starting                 3m8s  kubelet          Starting kubelet.
+  Warning  InvalidDiskCapacity      3m8s  kubelet          invalid capacity 0 on image filesystem
+  Normal   NodeAllocatableEnforced  3m8s  kubelet          Updated Node Allocatable limit across pods
+  Normal   NodeHasSufficientMemory  3m8s  kubelet          Node mini-pc status is now: NodeHasSufficientMemory
+  Normal   NodeHasNoDiskPressure    3m8s  kubelet          Node mini-pc status is now: NodeHasNoDiskPressure
+  Normal   NodeHasSufficientPID     3m8s  kubelet          Node mini-pc status is now: NodeHasSufficientPID
+  Normal   RegisteredNode           3m2s  node-controller  Node mini-pc event: Registered Node mini-pc in Controller
+  Normal   NodeReady                3m    kubelet          Node mini-pc status is now: NodeReady
+
+
+Name:               raspberrypi
+Roles:              <none>
+Labels:             beta.kubernetes.io/arch=arm64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=arm64
+                    kubernetes.io/hostname=raspberrypi
+                    kubernetes.io/os=linux
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"a6:36:f9:7e:89:b9"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 192.168.45.193
+                    kubeadm.alpha.kubernetes.io/cri-socket: unix:///var/run/containerd/containerd.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Fri, 30 May 2025 10:41:18 +0900
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  raspberrypi
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 30 May 2025 10:44:01 +0900
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Fri, 30 May 2025 10:41:24 +0900   Fri, 30 May 2025 10:41:24 +0900   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Fri, 30 May 2025 10:41:22 +0900   Fri, 30 May 2025 10:41:18 +0900   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Fri, 30 May 2025 10:41:22 +0900   Fri, 30 May 2025 10:41:18 +0900   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Fri, 30 May 2025 10:41:22 +0900   Fri, 30 May 2025 10:41:18 +0900   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Fri, 30 May 2025 10:41:22 +0900   Fri, 30 May 2025 10:41:22 +0900   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  192.168.45.193
+  Hostname:    raspberrypi
+Capacity:
+  cpu:                4
+  ephemeral-storage:  245428200Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  hugepages-32Mi:     0
+  hugepages-64Ki:     0
+  memory:             8128008Ki
+  pods:               110
+Allocatable:
+  cpu:                4
+  ephemeral-storage:  226186628746
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  hugepages-32Mi:     0
+  hugepages-64Ki:     0
+  memory:             8025608Ki
+  pods:               110
+System Info:
+  Machine ID:                 8d4db3a23c2c4c7f8da14231557f125b
+  System UUID:                8d4db3a23c2c4c7f8da14231557f125b
+  Boot ID:                    b81422f7-3272-4c32-a310-85e22d2cdf10
+  Kernel Version:             6.8.0-1028-raspi
+  OS Image:                   Ubuntu 24.04.2 LTS
+  Operating System:           linux
+  Architecture:               arm64
+  Container Runtime Version:  containerd://1.7.27
+  Kubelet Version:            v1.33.1
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.2.0/24
+PodCIDRs:                     10.244.2.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                     CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                     ------------  ----------  ---------------  -------------  ---
+  kube-flannel                kube-flannel-ds-k87bm    100m (2%)     0 (0%)      50Mi (0%)        0 (0%)         2m47s
+  kube-system                 kube-proxy-c6zsn         0 (0%)        0 (0%)      0 (0%)           0 (0%)         2m47s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (2%)  0 (0%)
+  memory             50Mi (0%)  0 (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+  hugepages-1Gi      0 (0%)     0 (0%)
+  hugepages-2Mi      0 (0%)     0 (0%)
+  hugepages-32Mi     0 (0%)     0 (0%)
+  hugepages-64Ki     0 (0%)     0 (0%)
+Events:
+  Type    Reason                   Age                    From             Message
+  ----    ------                   ----                   ----             -------
+  Normal  Starting                 2m44s                  kube-proxy       
+  Normal  NodeAllocatableEnforced  2m48s                  kubelet          Updated Node Allocatable limit across pods
+  Normal  RegisteredNode           2m47s                  node-controller  Node raspberrypi event: Registered Node raspberrypi in Controller
+  Normal  NodeHasSufficientMemory  2m47s (x2 over 2m48s)  kubelet          Node raspberrypi status is now: NodeHasSufficientMemory
+  Normal  NodeHasNoDiskPressure    2m47s (x2 over 2m48s)  kubelet          Node raspberrypi status is now: NodeHasNoDiskPressure
+  Normal  NodeHasSufficientPID     2m47s (x2 over 2m48s)  kubelet          Node raspberrypi status is now: NodeHasSufficientPID
+  Normal  NodeReady                2m43s                  kubelet          Node raspberrypi status is now: NodeReady
+
+
+Name:               raspberrypi2
+Roles:              <none>
+Labels:             beta.kubernetes.io/arch=arm64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=arm64
+                    kubernetes.io/hostname=raspberrypi2
+                    kubernetes.io/os=linux
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"ca:c1:82:2a:37:40"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 192.168.45.194
+                    kubeadm.alpha.kubernetes.io/cri-socket: unix:///var/run/containerd/containerd.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Fri, 30 May 2025 10:41:17 +0900
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  raspberrypi2
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 30 May 2025 10:44:01 +0900
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Fri, 30 May 2025 10:41:23 +0900   Fri, 30 May 2025 10:41:23 +0900   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Fri, 30 May 2025 10:41:21 +0900   Fri, 30 May 2025 10:41:17 +0900   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Fri, 30 May 2025 10:41:21 +0900   Fri, 30 May 2025 10:41:17 +0900   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Fri, 30 May 2025 10:41:21 +0900   Fri, 30 May 2025 10:41:17 +0900   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Fri, 30 May 2025 10:41:21 +0900   Fri, 30 May 2025 10:41:21 +0900   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  192.168.45.194
+  Hostname:    raspberrypi2
+Capacity:
+  cpu:                4
+  ephemeral-storage:  245428200Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  hugepages-32Mi:     0
+  hugepages-64Ki:     0
+  memory:             8128008Ki
+  pods:               110
+Allocatable:
+  cpu:                4
+  ephemeral-storage:  226186628746
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  hugepages-32Mi:     0
+  hugepages-64Ki:     0
+  memory:             8025608Ki
+  pods:               110
+System Info:
+  Machine ID:                 a21f3eee6e4e4d6eb2b46a5fdbed3eb4
+  System UUID:                a21f3eee6e4e4d6eb2b46a5fdbed3eb4
+  Boot ID:                    a6196fe3-be22-4144-b777-dbede61d8f4e
+  Kernel Version:             6.8.0-1028-raspi
+  OS Image:                   Ubuntu 24.04.2 LTS
+  Operating System:           linux
+  Architecture:               arm64
+  Container Runtime Version:  containerd://1.7.27
+  Kubelet Version:            v1.33.1
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.1.0/24
+PodCIDRs:                     10.244.1.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                     CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                     ------------  ----------  ---------------  -------------  ---
+  kube-flannel                kube-flannel-ds-9c25h    100m (2%)     0 (0%)      50Mi (0%)        0 (0%)         2m48s
+  kube-system                 kube-proxy-dc5k6         0 (0%)        0 (0%)      0 (0%)           0 (0%)         2m48s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (2%)  0 (0%)
+  memory             50Mi (0%)  0 (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+  hugepages-1Gi      0 (0%)     0 (0%)
+  hugepages-2Mi      0 (0%)     0 (0%)
+  hugepages-32Mi     0 (0%)     0 (0%)
+  hugepages-64Ki     0 (0%)     0 (0%)
+Events:
+  Type    Reason                   Age                    From             Message
+  ----    ------                   ----                   ----             -------
+  Normal  Starting                 2m44s                  kube-proxy       
+  Normal  NodeHasSufficientMemory  2m48s (x2 over 2m48s)  kubelet          Node raspberrypi2 status is now: NodeHasSufficientMemory
+  Normal  NodeHasNoDiskPressure    2m48s (x2 over 2m48s)  kubelet          Node raspberrypi2 status is now: NodeHasNoDiskPressure
+  Normal  NodeHasSufficientPID     2m48s (x2 over 2m48s)  kubelet          Node raspberrypi2 status is now: NodeHasSufficientPID
+  Normal  NodeAllocatableEnforced  2m48s                  kubelet          Updated Node Allocatable limit across pods
+  Normal  RegisteredNode           2m47s                  node-controller  Node raspberrypi2 event: Registered Node raspberrypi2 in Controller
+  Normal  NodeReady                2m44s                  kubelet          Node raspberrypi2 status is now: NodeReady
