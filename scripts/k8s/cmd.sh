@@ -86,9 +86,11 @@ kubectl get pods -n minio -l app=minio -o wide
 # =============================
 # API
 kubectl port-forward svc/minio 9000:9000 -n minio
+curl -u id:pw http://localhost:9000/minio/health/ready
 
 # Web UI
 kubectl port-forward svc/minio-console 9001:9001 -n minio
+curl -I http://localhost:9001
 
 # 아래 결과 확인 후에
 kubectl get secret -n minio minio -o yaml
