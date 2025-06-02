@@ -1,0 +1,12 @@
+---
+- name: Prepare hostPath for MinIO
+  hosts: worker_nodes
+  become: true
+  tasks:
+    - name: Ensure /mnt/k8s_minio directory exists for hostPath
+      ansible.builtin.file:
+        path: /mnt/k8s_minio
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
