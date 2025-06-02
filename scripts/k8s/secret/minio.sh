@@ -1,7 +1,7 @@
 # create secretd
 kubectl create secret generic minio-credentials \
-  --from-literal=accesskey=minioadmin \
-  --from-literal=secretkey=minioadmin \
+  --from-literal=accesskey= \
+  --from-literal=secretkey= \
   -n minio
 
 # check
