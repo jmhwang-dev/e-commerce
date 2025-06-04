@@ -71,7 +71,7 @@ export HADOOP_HOME="/opt/hadoop-3.4.1"
 # /etc/profile.d or equivalent.  Some options (such as
 # --config) may react strangely otherwise.
 #
-export HADOOP_CONF_DIR="/home/jmhwang/Documents/github/jmhwang-dev/e-commerce/hadoop/conf"
+export HADOOP_CONF_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
