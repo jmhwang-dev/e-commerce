@@ -1,8 +1,9 @@
-# 실행 중인 모든 컨테이너 중지
-docker stop $(docker ps -aq)
+#!/bin/bash
 
-# 모든 컨테이너 삭제
+# Stop and remove all containers and images.
+docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 docker rmi -f $(docker images -aq)
 docker network prune -f
 docker volume prune -f
+
