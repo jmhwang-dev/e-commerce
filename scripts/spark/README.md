@@ -1,9 +1,9 @@
-# Build container image for spark-hadoop
+# spark-hadoop 컨테이너 이미지 빌드
 ```bash
 cd ./spark/image && bash ./build.sh
 ```
 
-# HOW TO SETUP GHCR
+# GHCR 설정 방법
 현재 시점(2025년 5월) 기준으로 GitHub Container Registry(GHCR)에 컨테이너 이미지를 푸시하거나 받기 위해서는 "클래식" Personal Access Token(PAT)을 사용하는 것이 권장됩니다. Fine-grained PAT은 아직 GHCR 인증을 완전히 지원하지 않습니다.
 
 ## 클래식 PAT 생성

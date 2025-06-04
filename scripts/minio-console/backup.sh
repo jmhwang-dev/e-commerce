@@ -1,8 +1,8 @@
-# connect
+# 연결
 mc alias set localminio http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 
-# backup
+# 백업
 mc mirror localminio/olist-data /tmp/olist-backup
 
-# check
+# 확인
 ls /tmp/olist-backup
