@@ -31,7 +31,6 @@
 # Pod는 Namespace 내에서 배치됨
 
 kubectl get nodes
-kubectl apply -f sparkpi-job.yaml
 
 kubectl get jobs
 kubectl logs job/spark-pi   # kubectl logs job/spark-pi --tail=10
@@ -82,6 +81,7 @@ kubectl describe svc minio -n minio
 kubectl get pods -n minio -l app=minio -o wide
 # NAME                     READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
 # minio-65956b458c-4j2sq   1/1     Running   0          23m   10.244.1.5   raspberrypi2   <none>           <none>
+kubectl describe pod minio-b46dfd6f7-j2dgp -n minio
 
 # =============================
 # API
@@ -93,15 +93,22 @@ kubectl port-forward svc/minio-console 9001:9001 -n minio
 curl -I http://localhost:9001
 
 # 아래 결과 확인 후에
+kubectl create secret docker-registry ghcr-creds \
+  --docker-username=jmhwang-dev \
+  --docker-password= \
+  --docker-server=ghcr.io \
+  --namespace=default
+  
 kubectl get secret -n minio minio -o yaml
+kubectl get secret ghcr-creds -n default
 
 # 디코딩 해서 실제값 확인
 echo "rootUser" | base64 -d
 echo "rootPassword" | base64 -d
 
 # 비밀번호 변경하려면
-helm upgrade minio minio/minio \
-  --namespace minio \
-  --set accessKey=minioadmin \
-  --set secretKey=minioadmin
+# helm upgrade minio minio/minio \
+#   --namespace minio \
+#   --set accessKey=minioadmin \
+#   --set secretKey=minioadmin
 # =============================

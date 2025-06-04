@@ -1,0 +1,66 @@
+# 브라질 이커머스 데이터셋(Olist) 분석용 Spark 작업
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: olist-analysis
+  namespace: spark
+spec:
+  type: Python
+  mode: cluster
+  image: ghcr.io/YOUR_USERNAME/spark-custom:latest
+  imagePullSecrets:
+    - ghcr-secret
+  mainApplicationFile: s3a://data-lake/jobs/olist_analysis.py
+  sparkVersion: 3.4.0
+  
+  hadoopConf:
+    fs.s3a.endpoint: http://minio.minio.svc.cluster.local:9000
+    fs.s3a.access.key: minioadmin
+    fs.s3a.secret.key: minioadmin123
+    fs.s3a.path.style.access: "true"
+    fs.s3a.connection.ssl.enabled: "false"
+    fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+  
+  sparkConf:
+    spark.sql.adaptive.enabled: "true"
+    spark.sql.adaptive.coalescePartitions.enabled: "true"
+    # Kryo 직렬화 (성능 향상)
+    spark.serializer: org.apache.spark.serializer.KryoSerializer
+    # Arrow 기반 Pandas 연동 (Python 성능 향상)
+    spark.sql.execution.arrow.pyspark.enabled: "true"
+    spark.eventLog.enabled: "true"
+    spark.eventLog.dir: s3a://spark-logs/
+  
+  # 애플리케이션 실행 시 전달할 인자들
+  arguments:
+    - "--input-path"     # 입력 데이터 경로
+    - "s3a://data-lake/raw/olist/"
+    - "--output-path"    # 출력 데이터 경로
+    - "s3a://data-lake/processed/olist-analysis/"
+    - "--analysis-type"  # 분석 유형
+    - "sales_trend"
+  
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 2        # 분석 작업은 재시도 횟수 줄임
+    onFailureRetryInterval: 30 # 재시도 간격 늘림
+  
+  driver:
+    cores: 2           # 분석 작업은 더 많은 CPU 필요
+    coreLimit: 2000m
+    memory: 2g         # 더 많은 메모리 할당
+    serviceAccount: spark-driver
+    # 라벨과 어노테이션으로 모니터링 설정
+    labels:
+      version: v1
+    annotations:
+      prometheus.io/scrape: "true"  # Prometheus 모니터링 대상으로 설정
+      prometheus.io/port: "4040"    # Spark UI 포트
+  
+  executor:
+    cores: 2           # 고성능 분석을 위한 더 많은 리소스
+    instances: 4       # 더 많은 병렬 처리
+    memory: 4g         # 대용량 데이터 처리를 위한 충분한 메모리
+    labels:
+      version: v1
+---

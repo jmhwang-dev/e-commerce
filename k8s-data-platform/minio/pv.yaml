@@ -1,0 +1,19 @@
+# PersistentVolume(PV): 실제 저장공간을 정의하는 리소스
+# 데이터를 영구적으로 저장하기 위해 필요 (Pod가 재시작되어도 데이터 유지)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: minio-pv
+spec:
+  capacity:
+    storage: 10Gi  # 10GB 저장공간 할당
+  accessModes:
+    # ReadWriteOnce: 한 번에 하나의 노드에서만 읽기/쓰기 가능
+    # 다른 옵션: ReadOnlyMany, ReadWriteMany
+    - ReadWriteOnce
+  # 볼륨이 해제될 때 데이터를 유지할지 결정
+  persistentVolumeReclaimPolicy: Retain  # Retain(유지), Delete(삭제), Recycle(재활용)
+  storageClassName: local-storage  # 스토리지 클래스 이름 (PVC와 매칭용)
+  hostPath:
+    path: /mnt/k8s_minio  # 호스트 노드의 실제 디렉토리 경로
+---
