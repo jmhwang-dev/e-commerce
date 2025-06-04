@@ -6,4 +6,3 @@ mc mirror localminio/olist-data /tmp/olist-backup
 
 # check
 ls /tmp/olist-backup
-
