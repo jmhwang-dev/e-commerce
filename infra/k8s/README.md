@@ -21,7 +21,7 @@ Kubernetes 기반 데이터 플랫폼으로 MinIO(Object Storage)와 Spark를 �
 
 ### 1. 배포
 ```bash
-cp ../.env.example ../.env # 환경 변수 설정
+cp ../../.env.example .env   # 환경 변수 설정
 chmod +x scripts/deploy_all.sh
 ./scripts/deploy_all.sh
 ```

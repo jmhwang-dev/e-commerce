@@ -2,17 +2,21 @@
 
 This repository contains work for building a data platform and analysis environment around the Olist Brazilian e‑commerce dataset.
 
-- `infra/k8s` - Kubernetes manifests and helper scripts for running MinIO and Spark.
-- `ansible` - Automation scripts for provisioning local or remote nodes.
-- `eda` - Exploratory data analysis notebooks.
-- `inference` - Experimental inference pipelines.
+- `infra/` - Infrastructure as code.
+  - `k8s/` - Kubernetes manifests and deployment scripts for MinIO and Spark.
+  - `ansible/` - Node provisioning playbooks.
+  - `hadoop/` - Hadoop configuration for HDFS clusters.
+- `scripts/` - Utility scripts for local development.
+- `src/` - Application source code such as inference pipelines.
+- `notebooks/` - Exploratory data analysis notebooks.
+- `docs/` - Project documentation including ER diagrams.
 
 ## Quick Start
 
-The `infra/k8s/scripts` folder provides shell scripts for deploying a local MinIO and Spark stack using Helm. Copy `.env.example` to `.env` and set your credentials first.
+The `infra/k8s/scripts` folder provides shell scripts for deploying a local MinIO and Spark stack using Helm. Copy `.env.example` to `infra/k8s/.env` and set your credentials first.
 
 ```bash
-cp .env.example .env
+cp .env.example infra/k8s/.env
 cd infra/k8s/scripts
 ./deploy_all.sh
 ```
