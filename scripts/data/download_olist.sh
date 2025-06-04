@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Download Olist datasets from Kaggle.
-# Requires Kaggle CLI configured with your API credentials.
-# Data will be stored under the repository root in the downloads/ directory.
+# Kaggle에서 Olist 데이터셋을 내려받습니다.
+# 실행 전 Kaggle CLI에 API 자격 정보를 설정해야 합니다.
+# 데이터는 저장소 루트의 downloads/ 디렉터리에 저장됩니다.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 

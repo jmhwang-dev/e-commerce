@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-# Build Spark container images and push to GHCR.
-# Requires an .env file containing:
+# Spark 컨테이너 이미지를 빌드하여 GHCR로 푸시합니다.
+# `.env` 파일에 다음 변수를 포함해야 합니다:
 #   GHCR_TOKEN=<TOKEN>
 
-# Resolve .env relative to this script so it works from any directory
+# 스크립트 위치와 관계없이 동작하도록 .env 경로를 계산합니다.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/../../.env"
 
@@ -27,37 +27,37 @@ TAG="4.0.0"
 REPO="ghcr.io/jmhwang-dev"
 PLATFORMS="linux/amd64,linux/arm64"
 
-# Login to GitHub Container Registry
-echo "Logging into GHCR..."
+# GitHub Container Registry 로그인
+echo "GHCR에 로그인합니다..."
 echo "$GHCR_TOKEN" | docker login ghcr.io -u jmhwang-dev --password-stdin
 
-# Ensure buildx builder exists
+# buildx 빌더가 존재하는지 확인
 if ! docker buildx inspect multiarch > /dev/null 2>&1; then
   docker buildx create --name multiarch --use
 fi
 
 docker buildx inspect --bootstrap
 
-# Build base image
+# 베이스 이미지 빌드
 docker buildx build \
   --platform $PLATFORMS \
   -t $REPO/spark-minio-base:$TAG \
   -f spark/image/Dockerfile.base \
   --push .
 
-# Build dev image
+# 개발용 이미지 빌드
 docker buildx build \
   --platform $PLATFORMS \
   -t $REPO/spark-minio-jupyter-dev:$TAG \
   -f spark/image/Dockerfile.dev \
   --push .
 
-# Build prod image
+# 운영용 이미지 빌드
 docker buildx build \
   --platform $PLATFORMS \
   -t $REPO/spark-minio-jupyter-prod:$TAG \
   -f spark/image/Dockerfile.prod \
   --push .
 
-echo "All images built and pushed successfully."
+echo "모든 이미지를 성공적으로 빌드하고 푸시했습니다."
 

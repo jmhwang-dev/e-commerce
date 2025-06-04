@@ -1,4 +1,4 @@
-# BASIC SETUP
+# 기본 설정
 1. `/etc/hosts` 작성
     - 모든 node에 클러스터 내 모든 노드들의 ip 작성
         - ex) x.x.x.x nodename
@@ -26,7 +26,7 @@
 
 5. ~/.ssh/enviorment 내용 확인 -> `start-dfs.sh`를 사용하려면 반드시 필요
 
-# INSTALL
+# 설치
 
 ## `pipx`
 ```bash
@@ -48,10 +48,10 @@ cd infra/ansible
 ansible-playbook -i inventory.yml <playbook>.yml -K
 ```
 
-# RUN TEST
+# 테스트 실행
 ## HDFS
 ```bash
-# at namenode
+# 네임노드에서
 hdfs namenode -format
 start-dfs.sh    
 hdfs dfs -mkdir /input
@@ -63,3 +63,18 @@ hdfs dfs -put file_path /input
 2. `dfs.datanode.data.dir`/current/BP-*/current/finalized 하위에 파일 생성되면 성공
 
 3. `hdfs dfs -cat /input/{file_path}`로 출력 확인
+
+## 변수
+
+### git_clone_path
+플레이북이 위치한 경로를 기준으로 저장소 루트를 자동으로 결정합니다:
+
+```yaml
+git_clone_path: "{{ playbook_dir | dirname }}"
+```
+
+다른 위치에서 플레이북을 실행할 때는 다음과 같이 변수를 덮어쓸 수 있습니다:
+
+```bash
+ansible-playbook -i inventory.yml playbook_hdfs.yml -e git_clone_path=/path/to/repo
+```

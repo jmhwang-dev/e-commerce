@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Install the MinIO Client (mc) binary.
+# MinIO 클라이언트(mc) 바이너리를 설치합니다.
 ARCH=$(uname -m)
 if [ "$ARCH" = "aarch64" ]; then
   curl -L -o /usr/local/bin/mc \

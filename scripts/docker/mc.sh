@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Run the MinIO Client with credentials from the environment.
-# The script assumes MinIO is exposed on NodePort 30900.
+# 환경변수에 설정된 자격 정보로 MinIO 클라이언트를 실행합니다.
+# 이 스크립트는 MinIO가 NodePort 30900으로 노출되어 있다고 가정합니다.
 docker run --rm -it \
   --network host \
   -v "$HOME/.mc:/root/.mc" \
