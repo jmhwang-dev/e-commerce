@@ -2,18 +2,24 @@
 set -e
 
 # Build Spark container images and push to GHCR.
-# Requires an .env file with GHCR credentials in the format:
-# ghcr=<TOKEN>
+# Requires an .env file containing:
+#   GHCR_TOKEN=<TOKEN>
 
-if [ -f .env ]; then
-  GHCR_TOKEN=$(grep '^ghcr=' .env | cut -d '=' -f2-)
+# Resolve .env relative to this script so it works from any directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/../../.env"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
 else
-  echo ".env file not found. Please create one with ghcr=<TOKEN> defined."
+  echo ".env file not found. Please create one with GHCR_TOKEN defined."
   exit 1
 fi
 
 if [ -z "$GHCR_TOKEN" ]; then
-  echo "GHCR token not found in .env (expected format: ghcr=...)."
+  echo "GHCR_TOKEN not found in .env."
   exit 1
 fi
 
