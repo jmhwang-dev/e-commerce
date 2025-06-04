@@ -70,7 +70,7 @@ hdfs dfs -put file_path /input
 플레이북이 위치한 경로를 기준으로 저장소 루트를 자동으로 결정합니다:
 
 ```yaml
-git_clone_path: "{{ playbook_dir | dirname }}"
+git_clone_path: "{{ playbook_dir | dirname | dirname }}"
 ```
 
 다른 위치에서 플레이북을 실행할 때는 다음과 같이 변수를 덮어쓸 수 있습니다:

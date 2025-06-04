@@ -1,7 +1,7 @@
 ---
 ansible_user: jmhwang
 # 이 저장소의 루트 경로입니다. 다른 위치에서 플레이북을 실행할 경우 원하는 경로로 덮어쓸 수 있습니다.
-git_clone_path: "{{ playbook_dir | dirname }}"
+git_clone_path: "{{ playbook_dir | dirname | dirname }}"
 
 java_package: openjdk-8-jdk
 jdk_dir_name_pattern: java-8-openjdk*
@@ -10,3 +10,4 @@ base_apache_url: https://dlcdn.apache.org
 
 base_download_dir: /tmp
 base_install_dir: /opt
+
