@@ -18,8 +18,8 @@ spec:
   hadoopConf:
     # MinIO 엔드포인트 주소 (쿠버네티스 서비스 DNS 사용)
     fs.s3a.endpoint: http://minio.minio.svc.cluster.local:9000
-    fs.s3a.access.key: minioadmin      # MinIO 접근 키
-    fs.s3a.secret.key: minioadmin123   # MinIO 비밀 키
+    fs.s3a.access.key: ${MINIO_ROOT_USER}      # MinIO 접근 키
+    fs.s3a.secret.key: ${MINIO_ROOT_PASSWORD}   # MinIO 비밀 키
     fs.s3a.path.style.access: "true"   # Path-style 접근 방식 사용
     fs.s3a.connection.ssl.enabled: "false"  # SSL 비활성화 (내부 통신)
     fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem  # S3A 파일시스템 구현체
@@ -52,9 +52,9 @@ spec:
       - name: MINIO_ENDPOINT
         value: "http://minio.minio.svc.cluster.local:9000"
       - name: MINIO_ACCESS_KEY
-        value: "minioadmin"
+        value: "${MINIO_ROOT_USER}"
       - name: MINIO_SECRET_KEY
-        value: "minioadmin123"
+        value: "${MINIO_ROOT_PASSWORD}"
   
   executor:
     cores: 2           # 더 많은 CPU 코어 할당
@@ -64,7 +64,7 @@ spec:
       - name: MINIO_ENDPOINT
         value: "http://minio.minio.svc.cluster.local:9000"
       - name: MINIO_ACCESS_KEY
-        value: "minioadmin"
+        value: "${MINIO_ROOT_USER}"
       - name: MINIO_SECRET_KEY
-        value: "minioadmin123"
+        value: "${MINIO_ROOT_PASSWORD}"
 ---
