@@ -5,8 +5,8 @@ docker run --rm -it \
   bash
 
 # 2. 환경변수 설정 (Spark 4.0.0부터는 환경변수 방식 권장)
-export AWS_ACCESS_KEY_ID=7JqfySFS6u10HmELYhfq
-export AWS_SECRET_ACCESS_KEY=LavELPnELnEIbq6xLcL2LGJwWqKWypSdCLN8k0um
+export AWS_ACCESS_KEY_ID="${MINIO_ROOT_USER:-minioadmin}"
+export AWS_SECRET_ACCESS_KEY="${MINIO_ROOT_PASSWORD:-minioadmin123}"
 
 # 3. PySpark 세션 시작 (필요한 JAR 명시)
 # hadoop-aws 와 AWS SDK v2 번들 jar 포함
@@ -23,3 +23,4 @@ df = spark.read \
     .option("inferSchema", "true") \
     .csv(s3a_path)
 df.show()
+
