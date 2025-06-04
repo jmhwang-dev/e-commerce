@@ -44,8 +44,8 @@ pipx install --include-deps ansible
 
 ## Frameworks
 ```bash
-cd ./ansible
-ansible-playbook -i inventory.yml {}.yml -K
+cd infra/ansible
+ansible-playbook -i inventory.yml <playbook>.yml -K
 ```
 
 # RUN TEST
