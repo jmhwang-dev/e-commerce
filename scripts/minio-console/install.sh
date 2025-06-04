@@ -10,4 +10,3 @@ else
     https://dl.min.io/client/mc/release/linux-amd64/mc
 fi
 chmod +x /usr/local/bin/mc
-

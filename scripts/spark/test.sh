@@ -23,4 +23,3 @@ df = spark.read \
     .option("inferSchema", "true") \
     .csv(s3a_path)
 df.show()
-

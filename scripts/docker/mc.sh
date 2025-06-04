@@ -7,4 +7,3 @@ docker run --rm -it \
   -v "$HOME/.mc:/root/.mc" \
   minio/mc \
   alias set localminio http://localhost:30900 "${MINIO_ROOT_USER:-minioadmin}" "${MINIO_ROOT_PASSWORD:-minioadmin123}"
-

@@ -43,4 +43,3 @@ kubectl wait --for=condition=ready pod -l app=minio -n minio --timeout=300s
 
 echo "🎉 배포 완료!"
 echo "MinIO Console: http://localhost:30901 (${MINIO_ROOT_USER:-minioadmin}/${MINIO_ROOT_PASSWORD:-minioadmin123})"
-
