@@ -2,6 +2,15 @@
 # 스크립트 실행 중 오류 발생시 즉시 중단
 set -e
 
+# Load environment variables if .env exists next to this script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/../.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 echo "🚀 spark-operator 배포 시작..."
 
 # Helm 레포지토리 추가 및 업데이트
@@ -14,24 +23,27 @@ helm repo update  # 최신 차트 정보 업데이트
 echo "🏠 네임스페이스 생성 중..."
 kubectl apply -f spark/namespace.yaml   # Spark용 namespace
 
+
 # GitHub Container Registry 접근을 위한 인증 정보 생성
 echo "🔐 GitHub Container Registry Secret 생성..."
-read -p "GitHub Username: " GITHUB_USERNAME      # 사용자에게 GitHub 사용자명 입력 요청
-read -s -p "GitHub Token: " GITHUB_TOKEN         # 비밀번호는 화면에 표시하지 않음 (-s 옵션)
-echo  # 줄바꿈
+GITHUB_USERNAME="${GHCR_USERNAME}"
+GITHUB_TOKEN="${GHCR_TOKEN}"
+if [ -z "$GITHUB_USERNAME" ] || [ -z "$GITHUB_TOKEN" ]; then
+  echo "❌ GHCR_USERNAME or GHCR_TOKEN not set in .env"
+  exit 1
+fi
 
 # kubectl로 Docker 레지스트리 인증 Secret 생성
 kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \                      # GitHub Container Registry 주소
-  --docker-username=$GITHUB_USERNAME \           # GitHub 사용자명
-  --docker-password=$GITHUB_TOKEN \              # GitHub Personal Access Token
+  --docker-username="$GITHUB_USERNAME" \           # GitHub 사용자명
+  --docker-password="$GITHUB_TOKEN" \              # GitHub Personal Access Token
   --namespace=spark \                            # spark namespace에 생성
   --dry-run=client -o yaml | kubectl apply -f - # 기존에 있으면 업데이트, 없으면 생성
 
 # Spark Operator 배포
 echo "⚡ Spark Operator 배포 중..."
 kubectl apply -f spark/rbac.yaml        # 권한 설정
-kubectl apply -f spark/ghcr-secret.yaml # GitHub 인증 정보
 # Helm으로 Spark Operator 설치
 helm upgrade --install spark-operator spark-operator/spark-operator -n spark -f spark/values.yaml
 
