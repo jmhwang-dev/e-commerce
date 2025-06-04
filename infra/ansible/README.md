@@ -63,3 +63,18 @@ hdfs dfs -put file_path /input
 2. `dfs.datanode.data.dir`/current/BP-*/current/finalized 하위에 파일 생성되면 성공
 
 3. `hdfs dfs -cat /input/{file_path}`로 출력 확인
+
+## Variables
+
+### git_clone_path
+By default, the playbook uses its own location to determine the repository root:
+
+```yaml
+git_clone_path: "{{ playbook_dir | dirname }}"
+```
+
+If you run the playbook from another directory, override this variable:
+
+```bash
+ansible-playbook -i inventory.yml playbook_hdfs.yml -e git_clone_path=/path/to/repo
+```
