@@ -10,4 +10,3 @@ base_apache_url: https://dlcdn.apache.org
 
 base_download_dir: /tmp
 base_install_dir: /opt
-
