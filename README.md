@@ -14,7 +14,6 @@ This repository contains work for building a data platform and analysis environm
 ## Quick Start
 
 The `infra/k8s/scripts` folder provides shell scripts for deploying a local MinIO and Spark stack using Helm. Copy `.env.example` to `infra/k8s/.env` and set your credentials first.
-The `infra/k8s/scripts` folder provides shell scripts for deploying a local MinIO and Spark stack using Helm. Copy `.env.example` to `infra/k8s/.env` and set your credentials first.
 
 ```bash
 cp .env.example infra/k8s/.env
