@@ -9,6 +9,8 @@ This repository contains work for building a data platform and analysis environm
 - `scripts/` - Utility scripts for local development.
 - `src/` - Application source code such as inference pipelines.
 - `notebooks/` - Exploratory data analysis notebooks.
+  - `pandas/` - Pandas-based notebooks.
+  - `spark/` - Spark-based notebooks.
 - `docs/` - Project documentation including ER diagrams.
 
 ## Quick Start
