@@ -21,13 +21,14 @@ Kubernetes 기반 데이터 플랫폼으로 MinIO(Object Storage)와 Spark를 �
 
 ### 1. 배포
 ```bash
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
+cp ../../.env.example .env   # 환경 변수 설정
+chmod +x scripts/deploy_all.sh
+./scripts/deploy_all.sh
 ```
 
 ### 2. MinIO 웹 콘솔 접속
 - URL: http://localhost:30901
-- 계정: minioadmin / minioadmin123
+- 계정: `.env` 파일에 설정한 관리자 계정
 
 ### 3. 샘플 Spark 작업 실행
 ```bash
@@ -42,17 +43,15 @@ kubectl get sparkapplications -n spark
 ## 📁 디렉토리 구조
 
 ```
-k8s-data-platform/
+infra/k8s/
 ├── minio/              # MinIO 설정
 │   ├── namespace.yaml  # MinIO 전용 네임스페이스 정의
 │   ├── pv.yaml         # 영구 저장소 볼륨 정의
 │   ├── pvc.yaml        # 저장소 요청 정의
-│   ├── secret.yaml     # MinIO 인증 정보 (관리자 계정)
 │   └── values.yaml     # MinIO Helm Chart 설정값
 ├── spark/              # Spark Operator 설정
 │   ├── namespace.yaml  # Spark 전용 네임스페이스 정의
 │   ├── rbac.yaml       # 권한 설정 (ServiceAccount, Role, ClusterRole 등)
-│   ├── ghcr-secret.yaml # GitHub Container Registry 인증 정보
 │   └── values.yaml     # Spark Operator Helm Chart 설정값
 ├── spark-jobs/         # Spark 작업 정의
 │   ├── sample-job.yaml # 기본 예제 작업 (SparkPi 계산)
@@ -88,7 +87,7 @@ k8s-data-platform/
 ### 데이터 업로드 (MinIO)
 ```bash
 # MinIO Client 설치 후
-mc alias set local http://localhost:30900 minioadmin minioadmin123
+mc alias set local http://localhost:30900 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
 mc cp your-data.csv local/data-lake/raw/
 ```
 

@@ -21,8 +21,8 @@ kubectl create namespace minio --dry-run=client -o yaml | kubectl apply -f -
 
 # 2. 시크릿 생성 (kubectl 방식)
 kubectl create secret generic minio-credentials \
-  --from-literal=root-user=minioadmin \
-  --from-literal=root-password=minioadmin \
+  --from-literal=root-user="$MINIO_ROOT_USER" \
+  --from-literal=root-password="$MINIO_ROOT_PASSWORD" \
   --namespace minio \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -40,7 +40,7 @@ helm install minio minio/minio \
   --set resources.requests.memory=512Mi
 
 echo "✅ 배포 완료!"
-echo "🔑 계정: minioadmin / minioadmin123"
+echo "🔑 계정: $MINIO_ROOT_USER / $MINIO_ROOT_PASSWORD"
 
 # helm install minio minio/minio \
 #   --namespace minio \
