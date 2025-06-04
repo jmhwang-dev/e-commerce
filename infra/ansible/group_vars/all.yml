@@ -1,6 +1,8 @@
 ---
 ansible_user: jmhwang
-git_clone_path: "{{ ansible_env.HOME }}/Documents/github/jmhwang-dev/e-commerce"
+# Path to the root of this repository. Override when running the playbook from a different
+# location.
+git_clone_path: "{{ playbook_dir | dirname }}"
 
 java_package: openjdk-8-jdk
 jdk_dir_name_pattern: java-8-openjdk*
