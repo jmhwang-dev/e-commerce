@@ -1,0 +1,70 @@
+# ETL(Extract, Transform, Load) 작업용 Spark 애플리케이션
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: etl-job
+  namespace: spark
+spec:
+  type: Python         # Python으로 작성된 Spark 애플리케이션
+  mode: cluster
+  image: ghcr.io/YOUR_USERNAME/spark-custom:latest
+  imagePullSecrets:
+    - ghcr-secret
+  # Python 파일 경로 (s3a://는 S3 호환 스토리지 접근 프로토콜)
+  mainApplicationFile: s3a://data-lake/jobs/etl_job.py
+  sparkVersion: 3.4.0
+  
+  # Hadoop 설정 (S3 호환 스토리지 접근을 위한 설정)
+  hadoopConf:
+    # MinIO 엔드포인트 주소 (쿠버네티스 서비스 DNS 사용)
+    fs.s3a.endpoint: http://minio.minio.svc.cluster.local:9000
+    fs.s3a.access.key: ${MINIO_ROOT_USER}      # MinIO 접근 키
+    fs.s3a.secret.key: ${MINIO_ROOT_PASSWORD}   # MinIO 비밀 키
+    fs.s3a.path.style.access: "true"   # Path-style 접근 방식 사용
+    fs.s3a.connection.ssl.enabled: "false"  # SSL 비활성화 (내부 통신)
+    fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem  # S3A 파일시스템 구현체
+  
+  # Spark 설정
+  sparkConf:
+    # AQE(Adaptive Query Execution): 런타임에 쿼리 최적화
+    spark.sql.adaptive.enabled: "true"
+    spark.sql.adaptive.coalescePartitions.enabled: "true"
+    # 이벤트 로그 설정 (Spark UI에서 작업 이력 확인용)
+    spark.eventLog.enabled: "true"
+    spark.eventLog.dir: s3a://spark-logs/              # 로그 저장 위치
+    spark.history.fs.logDirectory: s3a://spark-logs/   # History Server용 로그 디렉토리
+  
+  # 재시작 정책 (ETL 작업은 실패 시 재시도 필요)
+  restartPolicy:
+    type: OnFailure              # 실패시에만 재시작
+    onFailureRetries: 3          # 최대 3번 재시도
+    onFailureRetryInterval: 10   # 재시도 간격 (초)
+    onSubmissionFailureRetries: 5      # 제출 실패시 재시도 횟수
+    onSubmissionFailureRetryInterval: 20  # 제출 실패시 재시도 간격
+  
+  driver:
+    cores: 1
+    coreLimit: 1200m
+    memory: 1g         # ETL 작업은 더 많은 메모리 필요
+    serviceAccount: spark-driver
+    # 환경변수로 MinIO 접속 정보 전달
+    env:
+      - name: MINIO_ENDPOINT
+        value: "http://minio.minio.svc.cluster.local:9000"
+      - name: MINIO_ACCESS_KEY
+        value: "${MINIO_ROOT_USER}"
+      - name: MINIO_SECRET_KEY
+        value: "${MINIO_ROOT_PASSWORD}"
+  
+  executor:
+    cores: 2           # 더 많은 CPU 코어 할당
+    instances: 3       # 더 많은 병렬 처리
+    memory: 2g         # 더 많은 메모리 할당
+    env:               # Executor에도 동일한 환경변수 설정
+      - name: MINIO_ENDPOINT
+        value: "http://minio.minio.svc.cluster.local:9000"
+      - name: MINIO_ACCESS_KEY
+        value: "${MINIO_ROOT_USER}"
+      - name: MINIO_SECRET_KEY
+        value: "${MINIO_ROOT_PASSWORD}"
+---

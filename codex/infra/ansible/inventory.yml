@@ -1,0 +1,25 @@
+---
+all:
+  children:
+    cluster_hdfs:
+      children:
+        client:
+          hosts:
+            desktop: {}
+        namenodes:
+          hosts:
+            master: {}
+        datanodes:
+          hosts:
+            worker1: {}
+            worker2: {}
+        
+    cluster_k8s:
+      children:
+        control_plane_node:
+          hosts:
+            master: {}
+        worker_nodes:
+          hosts:
+            worker1: {}
+            worker2: {}

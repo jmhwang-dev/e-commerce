@@ -1,0 +1,15 @@
+---
+framework_name: 'spark'
+version: 3.5.5
+dist_name: "{{framework_name}}-{{ version }}-bin-hadoop3"
+
+home_env_name: "SPARK_HOME"
+home_dir: "{{ base_install_dir }}/{{ dist_name }}"
+base_url: "{{ base_apache_url }}/spark/{{ framework_name }}-{{ version }}"
+
+targz_name: "{{ dist_name }}.tar.gz"
+asc_name: "{{ targz_name }}.asc"
+sha512_name: "{{ targz_name }}.sha512"
+
+conf_dir_env_name: "SPARK_CONF_DIR"
+conf_dir: "{{ git_clone_path }}/spark/conf"

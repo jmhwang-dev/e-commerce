@@ -1,0 +1,6 @@
+# Spark 관련 모든 리소스를 위한 별도 namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark  # Spark Operator, Spark 작업들이 이 namespace에서 실행
+---

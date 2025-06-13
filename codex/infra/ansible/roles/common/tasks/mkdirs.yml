@@ -1,0 +1,18 @@
+---
+- name: Create dir to save envs
+  ansible.builtin.file:
+    path: "{{ansible_env.HOME}}/.envs"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  register: envs_dir
+
+- name: "Create dir to download {{framework_name}}"
+  ansible.builtin.file:
+    path: "{{ base_download_dir }}/{{ dist_name }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  register: download_dir

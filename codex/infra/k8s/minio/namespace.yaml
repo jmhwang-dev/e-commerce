@@ -1,0 +1,7 @@
+# Namespace: 쿠버네티스에서 리소스를 논리적으로 분리하는 가상 공간
+# 각 서비스별로 namespace를 나누어 관리하면 더 체계적
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minio  # MinIO 관련 모든 리소스는 이 namespace에 생성됨
+---
