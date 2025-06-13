@@ -1,0 +1,15 @@
+# PersistentVolumeClaim(PVC): 저장공간을 요청하는 리소스
+# PV(실제 저장공간)와 Pod(애플리케이션) 사이의 연결고리 역할
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: minio
+spec:
+  accessModes:
+    - ReadWriteOnce  # PV와 동일한 접근 모드여야 함
+  resources:
+    requests:
+      storage: 10Gi  # 요청하는 저장공간 크기
+  storageClassName: local-storage  # PV와 매칭되는 스토리지 클래스
+---

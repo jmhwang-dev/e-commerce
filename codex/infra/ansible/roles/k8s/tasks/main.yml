@@ -1,0 +1,14 @@
+---
+- import_tasks: reset.yml
+  when: reset_k8s | default(false)
+
+- import_tasks: common.yml
+  when: install_common | default(false)
+
+- import_tasks: master.yml
+  when: install_master | default(false) | bool
+
+- import_tasks: workers.yml
+  when: install_workers | default(false) | bool
+
+- import_tasks: autoremove.yml

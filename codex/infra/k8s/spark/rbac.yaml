@@ -1,0 +1,73 @@
+# RBAC(Role-Based Access Control): 역할 기반 접근 제어
+# 쿠버네티스에서 누가 어떤 리소스에 접근할 수 있는지 제어하는 보안 기능
+
+# ServiceAccount: Pod가 쿠버네티스 API에 접근할 때 사용하는 계정
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-operator  # Spark Operator가 사용할 계정
+  namespace: spark
+---
+# ClusterRole: 클러스터 전체에 적용되는 권한 집합을 정의
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: spark-operator
+rules:  # 허용할 작업들을 정의
+- apiGroups: [""]  # 빈 문자열은 core API 그룹을 의미
+  resources: ["pods", "services", "configmaps", "secrets"]  # 접근 가능한 리소스들
+  verbs: ["*"]     # 모든 작업 허용 (get, list, create, update, delete 등)
+- apiGroups: ["apps"]  # apps API 그룹
+  resources: ["deployments", "replicasets"]
+  verbs: ["*"]
+- apiGroups: ["sparkoperator.k8s.io"]  # Spark Operator 전용 API 그룹
+  resources: ["sparkapplications", "scheduledsparkapplications"]
+  verbs: ["*"]
+---
+# ClusterRoleBinding: ClusterRole을 특정 ServiceAccount에 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-operator
+roleRef:  # 어떤 권한을 부여할지
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: spark-operator
+subjects:  # 누구에게 권한을 부여할지
+- kind: ServiceAccount
+  name: spark-operator
+  namespace: spark
+---
+# Spark Driver Pod용 ServiceAccount (실제 Spark 작업 실행 시 사용)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-driver  # Spark Driver Pod가 사용할 계정
+  namespace: spark
+---
+# Role: 특정 namespace 내에서만 유효한 권한 집합
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-driver
+  namespace: spark  # spark namespace 내에서만 유효
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]  # Spark 작업 실행에 필요한 최소 권한
+  verbs: ["*"]
+---
+# RoleBinding: Role을 ServiceAccount에 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-driver
+  namespace: spark
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: spark-driver
+subjects:
+- kind: ServiceAccount
+  name: spark-driver
+  namespace: spark
+---

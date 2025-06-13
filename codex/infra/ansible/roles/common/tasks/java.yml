@@ -1,0 +1,12 @@
+---
+- name: Install JAVA
+  become: true
+  apt:
+    name: "{{ java_package }}"
+    state: latest
+    update_cache: yes
+
+- name: Find JAVA_HOME
+  shell: find /usr/lib/jvm -type d -name "{{ jdk_dir_name_pattern }}" | head -n 1
+  register: java_home_result
+  changed_when: false

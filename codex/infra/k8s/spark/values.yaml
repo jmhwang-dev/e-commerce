@@ -1,0 +1,33 @@
+# Spark Operator를 설치할 때 사용하는 설정값들
+
+# Spark Operator Docker 이미지 정보
+image:
+  repository: ghcr.io/googlecloudplatform/spark-operator  # 이미지 저장소
+  tag: v1beta2-1.3.8-3.1.1  # 이미지 태그 (버전)
+
+# Spark 작업들이 실행될 namespace 지정
+sparkJobNamespace: spark
+
+# Webhook 설정 (Spark 작업 생성 시 자동으로 설정을 주입해주는 기능)
+webhook:
+  enable: true   # webhook 기능 활성화
+  port: 8080     # webhook이 사용할 포트
+
+# ServiceAccount 생성 설정
+serviceAccounts:
+  spark:  # Spark Driver용 ServiceAccount
+    create: true
+    name: spark-driver
+  sparkoperator:  # Spark Operator용 ServiceAccount
+    create: true
+    name: spark-operator
+
+# Spark Operator Pod의 리소스 제한
+resources:
+  limits:    # 최대 사용 가능 리소스
+    cpu: 100m      # 0.1 CPU 코어 (Operator는 많은 리소스 불필요)
+    memory: 300Mi  # 300MB 메모리
+  requests:  # 최소 보장 리소스
+    cpu: 100m
+    memory: 300Mi
+---
