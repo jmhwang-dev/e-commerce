@@ -11,16 +11,16 @@ def analyze_sentiment(dataset, device_, initial_batch_size_, dst_file_name_):
 
 if __name__ == "__main__":
     # TODO: Needs abstraction
-    dataset_path = os.path.join(ARTIFACT_DIR, 'inference', "trans_p2e_cpu.txt")
+    dataset_path = os.path.join("./downloads", 'backup', "trans_p2e_final.txt")
     dataset = load_dataset(dataset_path)
 
     chunk_size = len(dataset) // 2
 
-    worker_senti_gpu = mp.Process(target=analyze_sentiment, args=(dataset[:chunk_size], 'cuda', 300, 'senti_eng_cpu3_but_gpu.csv'))
+    worker_senti_gpu = mp.Process(target=analyze_sentiment, args=(dataset[:chunk_size], 'cuda', 600, 'senti_eng_final.csv'))
     worker_senti_gpu.start()
 
     worker_senti_cpu = mp.Process(target=analyze_sentiment, args=(dataset[chunk_size:], 'cpu', 300, 'senti_eng_cpu3.csv'))
     worker_senti_cpu.start()
-
     worker_senti_cpu.join()
+
     worker_senti_gpu.join()
