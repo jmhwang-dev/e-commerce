@@ -1,0 +1,9 @@
+---
+- import_tasks: git_clone.yml
+- import_tasks: mkdirs.yml
+- import_tasks: apt.yml
+- import_tasks: java.yml
+- import_tasks: download.yml
+- import_tasks: verify.yml
+- import_tasks: extract.yml
+- import_tasks: profile.yml
