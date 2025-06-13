@@ -1,0 +1,8 @@
+---
+- name: INSTALL Spark
+  hosts: cluster_spark
+  become: true
+  # gather_facts: true # default: true
+  roles:
+    - docker
+    - 

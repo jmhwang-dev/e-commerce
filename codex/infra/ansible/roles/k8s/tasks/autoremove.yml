@@ -1,5 +1,0 @@
----
-- name: Clean APT cache and remove unneeded packages
-  apt:
-    autoclean: yes
-    autoremove: yes
