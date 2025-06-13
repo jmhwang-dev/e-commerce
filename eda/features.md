@@ -83,15 +83,3 @@
 |------------------------|---------------------------|------------------------------------------------|-------------------|
 | `customer_avg_rating`  | `reviews`                 | `groupby customer_id: review_score.mean()`     | 고객별 평균 평점  |
 | `product_avg_rating`   | `reviews`, `order_items`  | `groupby product_id: review_score.mean()`      | 상품별 평균 평점  |
-
-## 추천 개선 사항
-
-- 타겟 변수 구분: `is_delivered_late`, `late_by_days`는 명확히 분리해 관리
-- 데이터 리키지 주의: `state_avg_delay_days`, `seller_avg_delay_days`는 예측 시점 이전 기준만 사용
-- 변수 타입 구분: 범주형(`Categorical`), 연속형(`Numerical`), 이진형(`Boolean`)을 구분해 명시
-- 파생 관계 정리: 예) `late_by_days`는 `actual_delivery_days`와 `estimated_delivery_days`로부터 계산됨
-
-## 결론
-
-- 실무적으로 구현 가능한 피처 위주로 구성되어 있으며, 해석력과 실용성이 우수함
-- 이 구조를 바탕으로 피처 엔지니어링 → 모델 학습 → 중요도 해석까지 자연스럽게 이어질 수 있음
