@@ -1,0 +1,10 @@
+#!/bin/bash
+
+add_to_path() {
+    if [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+        echo "[INFO] Added $1 to PATH"
+    else
+        echo "[INFO] $1 is already in PATH, skipping."
+    fi
+}

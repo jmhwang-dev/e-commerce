@@ -1,0 +1,11 @@
+---
+ansible_user: jmhwang
+git_clone_path: "{{ ansible_env.HOME }}/Documents/github/jmhwang-dev/e-commerce"
+
+java_package: openjdk-8-jdk
+jdk_dir_name_pattern: java-8-openjdk*
+
+base_apache_url: https://dlcdn.apache.org
+
+base_download_dir: /tmp
+base_install_dir: /opt
