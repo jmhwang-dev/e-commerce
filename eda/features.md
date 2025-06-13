@@ -75,13 +75,6 @@
 | `customer_order_count`   | `groupby customer_id: count()`              | 고객 총 주문 수         |
 | `is_repeat_customer`     | `customer_order_count > 1`                  | 재구매 고객 여부        |
 
-## 리뷰 기반 감성 피처 (리키지 여부 검토 필요)
-
-| Feature Name           | 계산 로직                                           | 설명                         |
-|------------------------|------------------------------------------------------|------------------------------|
-| `customer_avg_rating`  | `groupby customer_id: review_score.mean()`           | 고객 평균 평점               |
-| `product_avg_rating`   | `groupby product_id: review_score.mean()`            | 상품 평균 평점               |
-
 ## 비용 관련 피처
 
 | Feature Name         | 계산 로직                             | 설명                     |
