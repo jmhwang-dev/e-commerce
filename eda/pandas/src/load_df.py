@@ -33,7 +33,7 @@ def get_preprocessed_df(file_name: OlistFileName) -> pd.DataFrame:
     if not os.path.exists(PREPROCESSED_DIR):
         raise FileNotFoundError(f"Check path: {PREPROCESSED_DIR}")
     
-    path = os.path.join(PREPROCESSED_DIR, f'{file_name}.csv')
+    path = os.path.join(PREPROCESSED_DIR, f'{file_name.value}.csv')
     if not os.path.exists(path):
         raise FileNotFoundError(f"Check path: {path}")
 

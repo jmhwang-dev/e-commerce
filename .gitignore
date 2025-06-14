@@ -5,6 +5,7 @@ cache/
 superset/
 *.DS_Store
 *.csv
+brazil-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
