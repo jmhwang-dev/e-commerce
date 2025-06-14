@@ -5,47 +5,45 @@
 
 ## 타겟 변수
 
-| Feature Name       | 계산 로직                                                                 | 설명                       |
-|--------------------|----------------------------------------------------------------------------|----------------------------|
-| `is_delivered_late` | `order_delivered_customer_date > order_estimated_delivery_date`           | 배송 지연 여부 (분류 타겟) |
-| `late_by_days`      | `(actual_delivery_days - estimated_delivery_days).clip(lower=0)`          | 배송 지연 일수 (회귀 타겟) |
+| Feature Name       | 계산 로직                                                                        | 설명                   |
+|--------------------|--------------------------------------------------------------------------------|----------------------|
+| `delivery_diff_days` | `order_estimated_delivery_date - order_delivered_customer_date`              | 배송 지연 여부 (분류 타겟) |
+| `is_late_delivery`   | `delivery_diff_days.dt.total_seconds() < 0 \| delivery_diff_days.isna() < 0` | 배송 지연 일수 (회귀 타겟) |
 
 ## 주문 구조 피처
 
 | Feature Name           | 계산 로직                                               | 설명                         |
 |------------------------|----------------------------------------------------------|------------------------------|
 | `order_items_count`    | `groupby order_id: count()`                              | 주문당 상품 수               |
-| `has_multiple_sellers` | `groupby order_id: seller_id.nunique() > 1`             | 주문에 여러 셀러 포함 여부   |
+| `seller_count_by_order` | `groupby order_id: seller_id.nunique()`             | 주문에 여러 셀러 포함 여부   |
 
-## 시간 및 계절성 정보
+## 시간 및 계절성 정보 (보류)
 
-| Feature Name              | 계산 로직                                                             | 설명                               |
-|---------------------------|------------------------------------------------------------------------|------------------------------------|
-| `order_hour`              | `order_purchase_timestamp.dt.hour`                                    | 주문 시간                          |
-| `order_day_of_week`       | `order_purchase_timestamp.dt.dayofweek`                               | 주문 요일 (0=월요일)               |
-| `order_month`             | `order_purchase_timestamp.dt.month`                                   | 주문 월                            |
-| `order_week_of_year`      | `order_purchase_timestamp.dt.isocalendar().week`                      | 연중 주차                          |
-| `is_weekend_order`        | `order_day_of_week.isin([5, 6])`                                      | 주말 주문 여부                     |
-| `is_holiday_season`       | `order_purchase_timestamp.dt.month.isin([11, 12])`                    | 연말 성수기 여부                   |
-| `days_to_shipping_limit`  | `shipping_limit_date - order_purchase_timestamp`                      | 출고 마감까지 여유 일수           |
-| `is_same_day_shipping`    | `days_to_shipping_limit <= 1`                                         | 당일/익일 출고 여부               |
+| Feature Name              | 계산 로직                                             | 설명                 |
+|---------------------------|-----------------------------------------------------|---------------------|
+| `order_hour`              | `order_purchase_timestamp.dt.hour`                  | 주문 시간             |
+| `order_day_of_week`       | `order_purchase_timestamp.dt.dayofweek`             | 주문 요일 (0=월요일)    |
+| `order_month`             | `order_purchase_timestamp.dt.month`                 | 주문 월               |
+| `order_week_of_year`      | `order_purchase_timestamp.dt.isocalendar().week`    | 연중 주차              |
+| `is_weekend_order`        | `order_day_of_week.isin([5, 6])`                    | 주말 주문 여부          |
+| `is_holiday_season`       | `order_purchase_timestamp.dt.month.isin([11, 12])`  | 연말 성수기 여부         |
+| `days_to_shipping_limit`  | `shipping_limit_date - order_purchase_timestamp`    | 출고 마감까지 여유 일수   |
+| `is_same_day_shipping`    | `days_to_shipping_limit <= 1`                       | 당일/익일 출고 여부      |
 
-## 배송 지연 관련 통계 피처 (과거 기준 집계)
+## 배송 지연 관련 통계 피처 (과거 기준 집계) (보류)
 
 | Feature Name              | 계산 로직                                                      | 설명                               |
-|---------------------------|------------------------------------------------------------------|------------------------------------|
-| `actual_delivery_days`    | `order_delivered_customer_date - order_purchase_timestamp`       | 실제 배송 소요 일수                |
-| `estimated_delivery_days` | `order_estimated_delivery_date - order_purchase_timestamp`       | 예상 배송 소요 일수                |
-| `state_avg_delay_days`    | `groupby customer_state: 평균 지연 일수`                         | 주별 평균 지연 일수 (리키지 주의) |
-| `seller_avg_delay_days`   | `groupby seller_id: 평균 지연 일수`                              | 셀러별 평균 지연 일수 (리키지 주의) |
-| `category_avg_delay_days` | `groupby product_category_name: 평균 지연 일수`                  | 카테고리별 평균 지연 일수          |
+|---------------------------|-------------------------------------------------------------|------------------------------------|
+| `actual_delivery_days`    | `order_delivered_customer_date - order_purchase_timestamp`  | 실제 배송 소요 일수                |
+| `estimated_delivery_days` | `order_estimated_delivery_date - order_purchase_timestamp`  | 예상 배송 소요 일수                |
+| `state_avg_delay_days`    | `groupby customer_state: 평균 지연 일수`                       | 주별 평균 지연 일수                |
+| `seller_avg_delay_days`   | `groupby seller_id: 평균 지연 일수`                            | 셀러별 평균 지연 일수              |
+| `category_avg_delay_days` | `groupby product_category_name: 평균 지연 일수`                | 카테고리별 평균 지연 일수            |
 
 ## 거리 및 지역 정보
 
 | Feature Name                 | 계산 로직                                                   | 설명                         |
 |------------------------------|--------------------------------------------------------------|------------------------------|
-| `customer_state`            | `customers.customer_state`                                  | 고객 위치 주                 |
-| `seller_state`              | `sellers.seller_state`                                      | 셀러 위치 주                 |
 | `customer_seller_distance_km` | `haversine(customer_lat, customer_lng, seller_lat, seller_lng)` | 고객-셀러 간 직선 거리       |
 | `is_same_state_shipping`    | `customer_state == seller_state`                            | 고객-셀러 동일 주 여부       |
 
