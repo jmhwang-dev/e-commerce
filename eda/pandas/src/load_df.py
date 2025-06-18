@@ -18,7 +18,7 @@ class OlistFileName(Enum):
     SELLERS = "sellers"
     CATEGORY = "product_category_name_translation"
 
-def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
+def get_origin_df(file_name: OlistFileName) -> pd.DataFrame:
     if not os.path.exists(ARTIFACT_DIR):
         raise FileNotFoundError(f"Check path: {ARTIFACT_DIR}")
 
