@@ -57,7 +57,7 @@ if __name__=="__main__":
     # TO RUN: python -m inference.preprocess
 
     config_cleanse = BaseConfig(
-        src_path="./downloads/olist/olist_order_reviews_dataset.csv",
+        src_path="./artifact/medallion/bronze/olist/olist_order_reviews_dataset.csv",
         dst_dir_name='preprocess',
         dst_file_name="order_reviews.csv"
     )

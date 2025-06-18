@@ -5,7 +5,7 @@ from dataclasses import asdict
 import os
 import yaml
 
-ARTIFACT_DIR = "./artifact"
+ARTIFACT_ROOT_DIR = "./artifact"
 
 @dataclass(kw_only=True)
 class BaseConfig:
@@ -23,7 +23,7 @@ class BaseConfig:
     def save(self,):
         dst_file_name_ = os.path.splitext(self.dst_file_name)[0]
         config_file_name = f"config_{dst_file_name_}.yml"
-        config_path = os.path.join(self.current_artifact_dir, config_file_name)
+        config_path = os.path.join(self.current_ARTIFACT_ROOT_DIR, config_file_name)
         
         if not self.inplace and os.path.exists(config_path):
             raise FileExistsError(f"{config_path} already exists.")
@@ -35,13 +35,13 @@ class BaseConfig:
         print(f"Configuration saved at {config_path}.")
 
     def __post_init__(self):
-        self.current_artifact_dir = os.path.join(ARTIFACT_DIR, self.dst_dir_name)
-        self.dst_path = os.path.join(self.current_artifact_dir, self.dst_file_name)
+        self.current_ARTIFACT_ROOT_DIR = os.path.join(ARTIFACT_ROOT_DIR, self.dst_dir_name)
+        self.dst_path = os.path.join(self.current_ARTIFACT_ROOT_DIR, self.dst_file_name)
         
         if not self.inplace and os.path.exists(self.dst_path):
             raise FileExistsError(f"{self.dst_path} already exists.")
         
-        os.makedirs(self.current_artifact_dir, exist_ok=True)
+        os.makedirs(self.current_ARTIFACT_ROOT_DIR, exist_ok=True)
 
 
 @dataclass(kw_only=True)

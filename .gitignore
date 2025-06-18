@@ -7,6 +7,7 @@ superset/
 *.csv
 brazil-*
 medallion/
+codex/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -15,22 +15,23 @@ class OlistFileName(Enum):
     SELLERS = "sellers"
     CATEGORY = "product_category_name_translation"
 
-def get_origin_df(file_name: OlistFileName) -> pd.DataFrame:
-    if not os.path.exists(ARTIFACT_DIR):
-        raise FileNotFoundError(f"Check path: {ARTIFACT_DIR}")
+def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
+    if not os.path.exists(ARTIFACT_ROOT_DIR):
+        raise FileNotFoundError(f"Check path: {ARTIFACT_ROOT_DIR}")
 
-    with open(os.path.join(ARTIFACT_DIR, 'eda', 'pandas', 'paths.json'), 'r') as f:
+    with open(os.path.join(ARTIFACT_ROOT_DIR, 'eda', 'pandas', 'paths.json'), 'r') as f:
         paths_dict = json.load(f)
 
     df = pd.read_csv(paths_dict[file_name.value])
+    print(df.shape)
     df.drop_duplicates(inplace=True)
     return df
 
-def get_preprocessed_df(file_name: OlistFileName) -> pd.DataFrame:
-    if not os.path.exists(PREPROCESSED_DIR):
-        raise FileNotFoundError(f"Check path: {PREPROCESSED_DIR}")
+def get_silver_df(file_name: OlistFileName) -> pd.DataFrame:
+    if not os.path.exists(SILVER_DIR):
+        raise FileNotFoundError(f"Check path: {SILVER_DIR}")
     
-    path = os.path.join(PREPROCESSED_DIR, f'{file_name.value}.csv')
+    path = os.path.join(SILVER_DIR, f'{file_name.value}.csv')
     if not os.path.exists(path):
         raise FileNotFoundError(f"Check path: {path}")
 

@@ -6,7 +6,7 @@ import os
 This script just create 
 """
 
-SRC_PATH = "./downloads/olist/*"
+SRC_PATH = "./artifact/medallion/bronze/olist/*"
 DST_PATH = "./eda/erd_tmp.dbml"
 
 def dataframe_to_dbml(df:pd.DataFrame, table_name:str) -> str:
