@@ -2,10 +2,7 @@ import os
 import json
 import pandas as pd
 from enum import Enum
-
-ARTIFACT_DIR = "../artifact"
-PREPROCESSED_DIR = "../artifact/preprocess"
-
+from .paths import *
 
 class OlistFileName(Enum):
     CUSTOMERS = "customers"

@@ -1,11 +1,10 @@
 from typing import Union
 from dataclasses import dataclass
 from dataclasses import asdict
+from common.paths import *
 
 import os
 import yaml
-
-ARTIFACT_DIR = "./artifact"
 
 @dataclass(kw_only=True)
 class BaseConfig:

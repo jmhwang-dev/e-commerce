@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: olist-postgres
+    environment:
+      POSTGRES_DB: olist
+      POSTGRES_USER: olist
+      POSTGRES_PASSWORD: olist
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./bronze:/mnt/bronze       # raw CSV 데이터
+      - ./silver:/mnt/silver    # 실버 레이어 저장소
+      - ./gold:/mnt/gold        # 골드 레이어 저장소
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
