@@ -3,8 +3,8 @@ import json
 import pandas as pd
 from enum import Enum
 
-ARTIFACT_DIR = "../../artifact"
-PREPROCESSED_DIR = "../../artifact/preprocess"
+ARTIFACT_DIR = "../artifact"
+PREPROCESSED_DIR = "../artifact/preprocess"
 
 
 class OlistFileName(Enum):
