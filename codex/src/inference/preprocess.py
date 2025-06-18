@@ -59,7 +59,7 @@ if __name__=="__main__":
     config_cleanse = BaseConfig(
         src_path="./downloads/olist/olist_order_reviews_dataset.csv",
         dst_dir_name='preprocess',
-        dst_file_name="reviews.csv"
+        dst_file_name="order_reviews.csv"
     )
     cleanse_text(config_cleanse)
     config_cleanse.save()
