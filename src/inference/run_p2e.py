@@ -27,25 +27,24 @@ def translate_p2e(src_path, dataset, dataset_start_index_, dataset_end_index_, d
     translator_p2e.run()
 
 if __name__ == "__main__":
-    config_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / "config_all_portuguese.yml"
-    dataset_config = PreprocessConfig.load(config_path)
+    p2e_dataset_config_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / "p2e_dataset_config.yml"
+    p2e_dataset_config = PreprocessConfig.load(p2e_dataset_config_path)
 
-    dataset = load_dataset(dataset_config.dst_path)
+    p2e_dataset = load_dataset(p2e_dataset_config.dst_path)
     worker_cnt = 2
-    chunk_size = len(dataset) // worker_cnt
+    chunk_size = len(p2e_dataset) // worker_cnt
 
-    output_path_worker1 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'trans_p2e_auto.txt')
+    output_path_worker1 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'p2e_auto_batch2.txt')
     worker_trans_p2e_auto = mp.Process(
         target=translate_p2e,
-        args=(dataset_config.dst_path, dataset, 0, chunk_size, output_path_worker1, 'auto', 2,)
+        args=(p2e_dataset_config.dst_path, p2e_dataset, 0, chunk_size, output_path_worker1, 'auto', 10,)
     )
 
-    output_path_worker2 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'trans_p2e_cpu.txt')
+    output_path_worker2 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'p2e_cpu_batch2.txt')
     worker_trans_p2e_cpu = mp.Process(
         target=translate_p2e,
-        args=(dataset_config.dst_path, dataset, chunk_size, len(dataset), output_path_worker2, 'cpu', 2,)
+        args=(p2e_dataset_config.dst_path, p2e_dataset, chunk_size, len(p2e_dataset), output_path_worker2, 'cpu', 100,)
     )
-
 
     worker_trans_p2e_auto.start()
     worker_trans_p2e_cpu.start()

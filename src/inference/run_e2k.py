@@ -1,25 +1,52 @@
-from setup import *
-from config import *
-from loader import *
+from common.config import *
+from common.paths import *
+from common.loader import *
+
+from inference.pipeline.translate import Translator
 
 import multiprocessing as mp
+from pathlib import Path
 
-def translate_e2k(dataset, device_, initial_batch_size_, dst_file_name_):
-    translator_p2e = get_translator_e2k(device_, initial_batch_size_, dst_file_name_)
-    translator_p2e.set_input(dataset)
+def translate_e2k(src_path, dataset, dataset_start_index_, dataset_end_index_, dst_file_name, device_, initial_batch_size_, ):
+    config_e2k = TranslatePipelineConfig(
+        src_path=src_path,
+        dataset_start_index=dataset_start_index_,
+        dataset_end_index=dataset_end_index_,
+
+        dst_path=dst_file_name,
+        checkpoint="Unbabel/TowerInstruct-7B-v0.2",
+        device=device_,
+        initial_batch_size=initial_batch_size_,
+        language_from='English',
+        language_into='Korean',
+        inplace=True
+    )
+    config_e2k.save()
+    translator_p2e = Translator(config_e2k)
+    translator_p2e.set_input(dataset[dataset_start_index_:dataset_end_index_])
     translator_p2e.run()
 
 if __name__ == "__main__":
-    # TODO: Needs abstraction
-    dataset_config = load_config('preprocess', 'config_all_portuguess.yml')
-    dataset = load_dataset("./artifact/inference/trans_p2e.txt")
+    p2e_config_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / "config_p2e_auto.yml"
+    p2e_config_atuo = TranslatePipelineConfig.load(p2e_config_path)
 
-    chunk_size = len(dataset) // 5
+    e2k_dataset_auto = load_dataset(p2e_config_atuo.dst_path)
+    output_path_worker1 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'e2k_auto.txt')
+    worker_trans_p2e_auto = mp.Process(
+        target=translate_e2k,
+        args=(p2e_config_atuo.dst_path, e2k_dataset_auto, 0, len(e2k_dataset_auto), output_path_worker1, 'auto', 9,)
+    )
 
-    worker_trans_p2e_auto = mp.Process(target=translate_e2k, args=(dataset[:chunk_size*3], 'auto', 9, 'trans_e2k_auto.txt'))
+    p2e_config_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / "config_p2e_cpu.yml"
+    p2e_config_cpu = TranslatePipelineConfig.load(p2e_config_path)
+    e2k_dataset_cpu = load_dataset(p2e_config_cpu.dst_path)
+    output_path_worker2 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'e2k_cpu.txt')
+    worker_trans_p2e_cpu = mp.Process(
+        target=translate_e2k,
+        args=(p2e_config_cpu.dst_path, e2k_dataset_cpu, 0, len(e2k_dataset_cpu), output_path_worker2, 'cpu', 120,)
+    )
+
     worker_trans_p2e_auto.start()
-
-    worker_trans_p2e_cpu = mp.Process(target=translate_e2k, args=(dataset[chunk_size*3:], 'cpu', 120, 'trans_e2k_cpu.txt'))
     worker_trans_p2e_cpu.start()
 
     worker_trans_p2e_auto.join()

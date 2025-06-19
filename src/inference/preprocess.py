@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     config_extract = PreprocessConfig(
         src_path=config_cleanse.dst_path,
-        dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "all_portuguese.txt"),
+        dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "p2e_dataset.txt"),
         inplace=False
     )
     config_extract.save()

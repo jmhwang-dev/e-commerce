@@ -59,7 +59,7 @@ class BaseConfig(ABC):
 
         with open(path, "r") as f:
             config_dict = yaml.safe_load(f)
-
+        
         return cls(**config_dict)
 
 @dataclass(kw_only=True)
@@ -69,7 +69,7 @@ class PreprocessConfig(BaseConfig):
 
     def __post_init__(self):
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / f"config_{stem}.yml"
+        self._config_save_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / f"{stem}_config.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dst_path": self.dst_path
@@ -98,14 +98,13 @@ class PipelineConfig(BaseConfig):
         if self.device not in ("auto", "cpu", "cuda"):
             raise ValueError("device should be one of 'auto', 'cpu', or 'cuda'.")
 
-        stem = Path(self.src_path).stem
-        self.dst_path = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, self.dst_path)
-        self._config_save_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / f"config_{self.device}_{stem}.yml"
+        stem = Path(self.dst_path).stem
+        self._config_save_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / f"config_{stem}.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dataset_start_index": self.dataset_start_index,
             "dataset_end_index": self.dataset_end_index,
-            "dst": self.dst_path,
+            "dst_path": self.dst_path,
             "checkpoint": self.checkpoint,
             "device": self.device,
             "initial_batch_size": self.initial_batch_size

@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from enum import Enum
 from .paths import *
+from typing import List
 
 class OlistFileName(Enum):
     CUSTOMERS = "customers"
@@ -37,3 +38,11 @@ def get_silver_df(file_name: OlistFileName) -> pd.DataFrame:
 
     df = pd.read_csv(path)
     return df
+
+def load_dataset(dataset_path:str) -> List[str]:
+    dataset = []
+    with open(dataset_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    for portuguese in lines:
+        dataset.append(portuguese.strip())
+    return dataset

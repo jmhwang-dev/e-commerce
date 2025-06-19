@@ -39,6 +39,7 @@ class Translator(BasePipeline):
                     do_sample=False,
                     batch_size=len(chunk)
                 )
+
                 duration = time.time() - start_time
 
                 print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s. Saved at {self.config.dst_path}")
@@ -69,3 +70,5 @@ class Translator(BasePipeline):
         with open(self.config.dst_path, 'a', encoding='utf-8') as f:
             for result in results:
                 f.write(result.strip() + "\n")
+
+
