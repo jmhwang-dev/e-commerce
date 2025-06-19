@@ -1,5 +1,5 @@
 from .base import *
-from config import *
+from common.config import *
 
 class SentimentAnalyzer(BasePipeline):
     def __init__(self, config:TranslatePipelineConfig):

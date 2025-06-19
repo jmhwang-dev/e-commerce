@@ -1,5 +1,5 @@
 from .base import *
-from config import *
+from common.config import *
 
 class Translator(BasePipeline):
     def __init__(self, config: TranslatePipelineConfig):        
@@ -41,7 +41,7 @@ class Translator(BasePipeline):
                 )
                 duration = time.time() - start_time
 
-                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
+                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s. Saved at {self.config.dst_path}")
 
                 self.save_results(outputs)
                 start_index = end_index

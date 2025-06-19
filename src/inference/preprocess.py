@@ -68,7 +68,7 @@ if __name__ == "__main__":
     config_cleanse = PreprocessConfig(
         src_path=os.path.join(BRONZE_DIR, "olist_order_reviews_dataset.csv"),
         dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "olist_order_reviews_dataset.csv"),
-        inplace=True
+        inplace=False
     )
     config_cleanse.save()
     cleanse_text(config_cleanse)
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     config_extract = PreprocessConfig(
         src_path=config_cleanse.dst_path,
         dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "all_portuguese.txt"),
-        inplace=True
+        inplace=False
     )
     config_extract.save()
     extract_text(config_extract)
