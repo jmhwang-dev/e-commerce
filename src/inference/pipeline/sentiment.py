@@ -1,11 +1,17 @@
 from .base import *
-from config import *
+from common.config import *
+
+from transformers.pipelines import pipeline
+
+import torch
+import gc
+import time
+import pandas as pd
 
 class SentimentAnalyzer(BasePipeline):
-    def __init__(self, config:TranslatePipelineConfig):
+    def __init__(self, config:PipelineConfig):
         self.config = config
         self.batch_size = self.config.initial_batch_size
-
         self.pipeline = pipeline(
             "text-classification",
             model=self.config.checkpoint,
@@ -16,10 +22,11 @@ class SentimentAnalyzer(BasePipeline):
             truncation=True,
             )
 
-    def set_input(self, dataset:List[str]):
-        self.prompts = dataset
+    def set_input(self, dataset: Iterable[Any]):
+        # type 명시
+        self.prompts = list(dataset)
 
-    def run(self,):
+    def run(self):
         start_index = 0
         total = len(self.prompts)
 
@@ -56,8 +63,9 @@ class SentimentAnalyzer(BasePipeline):
 
         try:
             existing_df = pd.read_csv(self.config.dst_path)
-            df = pd.concat([existing_df, df_new], ignore_index=True)
         except FileNotFoundError:
             df = df_new
-        finally:
-            df.to_csv(self.config.dst_path, index=False)
+        else:
+            df = pd.concat([existing_df, df_new], ignore_index=True)
+
+        df.to_csv(self.config.dst_path, index=False)

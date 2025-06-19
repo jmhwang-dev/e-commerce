@@ -1,20 +1,33 @@
 from .base import *
-from config import *
+from common.config import *
+
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+from transformers.pipelines import pipeline
+
+import torch
+import gc
+import time
+import pandas as pd
+
 
 class Translator(BasePipeline):
     def __init__(self, config: TranslatePipelineConfig):        
         self.config = config
         self.batch_size = self.config.initial_batch_size
 
+        # 모델에 기본 tokenizer가 지정되어 있지 않을수가 있으므로 명시적으로 지정
+        tokenizer = AutoTokenizer.from_pretrained(self.config.checkpoint)
+        tokenizer.padding_side = "left"
+
         self.pipeline = pipeline(
             "text-generation",
             model=self.config.checkpoint,
+            tokenizer=tokenizer,
             torch_dtype=torch.bfloat16,
             device_map=self.config.device
         )
-        self.pipeline.tokenizer.padding_side = 'left'
 
-    def set_input(self, dataset: List[str]):
+    def set_input(self, dataset: Iterable[Any]):
         self.prompts = [
             [{
                 "role": "user",
@@ -39,9 +52,10 @@ class Translator(BasePipeline):
                     do_sample=False,
                     batch_size=len(chunk)
                 )
+
                 duration = time.time() - start_time
 
-                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s")
+                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s. Saved at {self.config.dst_path}")
 
                 self.save_results(outputs)
                 start_index = end_index
@@ -69,3 +83,5 @@ class Translator(BasePipeline):
         with open(self.config.dst_path, 'a', encoding='utf-8') as f:
             for result in results:
                 f.write(result.strip() + "\n")
+
+

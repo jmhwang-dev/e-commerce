@@ -1,8 +1,8 @@
 import pandas as pd
-from inference.config import *
+from common.config import *
 
 def cleanse_text(config: BaseConfig) -> None:
-    df = pd.read_csv(config.src_path)
+    df = pd.read_csv(config.src)
 
     target_columns = ['review_comment_title', "review_comment_message"]
     reviews_with_content_df = df[target_columns].dropna(how='all')
@@ -57,7 +57,7 @@ if __name__=="__main__":
     # TO RUN: python -m inference.preprocess
 
     config_cleanse = BaseConfig(
-        src_path="./downloads/olist/olist_order_reviews_dataset.csv",
+        src_path="./artifact/medallion/bronze/olist/olist_order_reviews_dataset.csv",
         dst_dir_name='preprocess',
         dst_file_name="order_reviews.csv"
     )

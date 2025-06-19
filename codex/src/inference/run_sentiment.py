@@ -11,7 +11,7 @@ def analyze_sentiment(dataset, device_, initial_batch_size_, dst_file_name_):
 
 if __name__ == "__main__":
     # TODO: Needs abstraction
-    dataset_path = os.path.join(ARTIFACT_DIR, 'inference', "trans_p2e_cpu.txt")
+    dataset_path = os.path.join(ARTIFACT_ROOT_DIR, 'inference', "trans_p2e_cpu.txt")
     dataset = load_dataset(dataset_path)
 
     chunk_size = len(dataset) // 2

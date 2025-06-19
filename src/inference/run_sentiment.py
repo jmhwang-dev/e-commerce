@@ -1,26 +1,52 @@
-from setup import *
-from config import *
-from loader import *
+from common.config import *
+from common.paths import *
+from common.loader import *
+
+from inference.pipeline.sentiment import SentimentAnalyzer
 
 import multiprocessing as mp
+from pathlib import Path
 
-def analyze_sentiment(dataset, device_, initial_batch_size_, dst_file_name_):
-    analyzor = get_sentiment_analyzer(device_, initial_batch_size_, dst_file_name_)
-    analyzor.set_input(dataset)
-    analyzor.run()
+def analyze_sentiment(src_path, dataset, dataset_start_index_, dataset_end_index_, dst_file_name, device_, initial_batch_size_, ):
+    config_senti = PipelineConfig(
+        src_path=src_path,
+        dataset_start_index=dataset_start_index_,
+        dataset_end_index=dataset_end_index_,
+
+        dst_path=dst_file_name,
+        checkpoint="j-hartmann/sentiment-roberta-large-english-3-classes",
+        device=device_,
+        initial_batch_size=initial_batch_size_,
+        inplace=True
+    )
+    config_senti.save()
+    translator_p2e = SentimentAnalyzer(config_senti)
+    translator_p2e.set_input(dataset[dataset_start_index_:dataset_end_index_])
+    translator_p2e.run()
 
 if __name__ == "__main__":
-    # TODO: Needs abstraction
-    dataset_path = os.path.join("./downloads", 'backup', "trans_p2e_final.txt")
-    dataset = load_dataset(dataset_path)
+    e2k_config_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / "config_p2e_auto.yml"
+    e2k_config_atuo = TranslatePipelineConfig.load(e2k_config_path)
 
-    chunk_size = len(dataset) // 2
+    senti_dataset_auto = load_dataset(e2k_config_atuo.dst_path)
+    output_path_worker1 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'senti_auto.txt')
+    worker_trans_p2e_auto = mp.Process(
+        target=analyze_sentiment,
+        args=(e2k_config_atuo.dst_path, senti_dataset_auto, 0, len(senti_dataset_auto), output_path_worker1, 'cuda', 600,)
+    )
 
-    worker_senti_gpu = mp.Process(target=analyze_sentiment, args=(dataset[:chunk_size], 'cuda', 600, 'senti_eng_final.csv'))
-    worker_senti_gpu.start()
+    e2k_config_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / "config_p2e_cpu.yml"
+    e2k_config_cpu = TranslatePipelineConfig.load(e2k_config_path)
 
-    worker_senti_cpu = mp.Process(target=analyze_sentiment, args=(dataset[chunk_size:], 'cpu', 300, 'senti_eng_cpu3.csv'))
-    worker_senti_cpu.start()
-    worker_senti_cpu.join()
+    senti_dataset_cpu = load_dataset(e2k_config_cpu.dst_path)
+    output_path_worker2 = os.path.join(ARTIFACT_INFERENCE_RESULT_DIR, 'senti_cpu.txt')
+    worker_trans_p2e_cpu = mp.Process(
+        target=analyze_sentiment,
+        args=(e2k_config_cpu.dst_path, senti_dataset_cpu, 0, len(senti_dataset_auto), output_path_worker2, 'cpu', 300,)
+    )
 
-    worker_senti_gpu.join()
+    worker_trans_p2e_auto.start()
+    worker_trans_p2e_cpu.start()
+
+    worker_trans_p2e_auto.join()
+    worker_trans_p2e_cpu.join()
