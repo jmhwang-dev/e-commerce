@@ -1,13 +1,5 @@
-from typing import List, Iterable, Any
+from typing import Iterable, Any
 from abc import ABC, abstractmethod
-
-from transformers.pipelines import pipeline
-
-import torch
-import gc
-import time
-import pandas as pd
-
 
 class BasePipeline(ABC):
     @abstractmethod
@@ -22,6 +14,6 @@ class BasePipeline(ABC):
     def run(self):
         pass
 
-    @abstractmethod
-    def get_results(self) -> List:
-        pass
+    # @abstractmethod
+    # def get_results(self) -> List:
+    #     pass
