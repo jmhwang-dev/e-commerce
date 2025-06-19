@@ -1,8 +1,8 @@
 import pandas as pd
-from inference.config import *
+from common.config import *
 
 def cleanse_text(config: BaseConfig) -> None:
-    df = pd.read_csv(config.src_path)
+    df = pd.read_csv(config.src)
 
     target_columns = ['review_comment_title', "review_comment_message"]
     reviews_with_content_df = df[target_columns].dropna(how='all')
