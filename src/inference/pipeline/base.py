@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Iterable, Any
 from abc import ABC, abstractmethod
 
-from transformers import pipeline
+from transformers.pipelines import pipeline
 
 import torch
 import gc
@@ -9,19 +9,19 @@ import time
 import pandas as pd
 
 
-class BasePipeline():
+class BasePipeline(ABC):
     @abstractmethod
     def __init__(self):
         pass
-    
+
     @abstractmethod
-    def set_input(dataset:List[str]):
+    def set_input(self, dataset: Iterable[Any]):
         pass
 
     @abstractmethod
-    def run():
+    def run(self):
         pass
 
     @abstractmethod
-    def get_results() -> List:
+    def get_results(self) -> List:
         pass

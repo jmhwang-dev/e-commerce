@@ -16,7 +16,7 @@ class SentimentAnalyzer(BasePipeline):
             truncation=True,
             )
 
-    def set_input(self, dataset:List[str]):
+    def set_input(self, dataset):
         self.prompts = dataset
 
     def run(self,):
