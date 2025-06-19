@@ -2,7 +2,7 @@ from .base import *
 from common.config import *
 
 class SentimentAnalyzer(BasePipeline):
-    def __init__(self, config:TranslatePipelineConfig):
+    def __init__(self, config:PipelineConfig):
         self.config = config
         self.batch_size = self.config.initial_batch_size
 
