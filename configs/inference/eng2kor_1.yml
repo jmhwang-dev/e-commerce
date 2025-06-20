@@ -1,7 +1,7 @@
-src_path: ./artifacts/inference/1_por2eng.txt
+src_path: ./artifacts/inference/por2eng_1.txt
 dataset_start_index: 0
 dataset_end_index: 19051
-dst_path: ./artifacts/inference/1_eng2kor.txt
+dst_path: ./artifacts/inference/eng2kor_1.txt
 checkpoint: Unbabel/TowerInstruct-7B-v0.2
 device: auto
 initial_batch_size: 9

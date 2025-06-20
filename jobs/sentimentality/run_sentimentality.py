@@ -25,21 +25,21 @@ def analyze_sentiment(src_path, dataset, dataset_start_index_, dataset_end_index
     translator_p2e.run()
 
 if __name__ == "__main__":
-    e2k_config_path = Path(CONFIGS_INFERENCE_DIR) / "1_por2eng.yml"
+    e2k_config_path = Path(CONFIGS_INFERENCE_DIR) / "por2eng_1.yml"
     e2k_config_atuo = TranslatePipelineConfig.load(e2k_config_path)
 
     senti_dataset_auto = load_dataset(e2k_config_atuo.dst_path)
-    output_path_worker1 = os.path.join(ARTIFACTS_INFERENCE_DIR, '1_eng_senti.csv')
+    output_path_worker1 = os.path.join(ARTIFACTS_INFERENCE_DIR, 'eng_senti_1.csv')
     worker_trans_p2e_auto = mp.Process(
         target=analyze_sentiment,
         args=(e2k_config_atuo.dst_path, senti_dataset_auto, 0, len(senti_dataset_auto), output_path_worker1, 'cuda', 600,)
     )
 
-    e2k_config_path = Path(CONFIGS_INFERENCE_DIR) / "2_por2eng.yml"
+    e2k_config_path = Path(CONFIGS_INFERENCE_DIR) / "por2eng_2.yml"
     e2k_config_cpu = TranslatePipelineConfig.load(e2k_config_path)
 
     senti_dataset_cpu = load_dataset(e2k_config_cpu.dst_path)
-    output_path_worker2 = os.path.join(ARTIFACTS_INFERENCE_DIR, '2_eng_senti.csv')
+    output_path_worker2 = os.path.join(ARTIFACTS_INFERENCE_DIR, 'eng_senti_2.csv')
     worker_trans_p2e_cpu = mp.Process(
         target=analyze_sentiment,
         args=(e2k_config_cpu.dst_path, senti_dataset_cpu, 0, len(senti_dataset_cpu), output_path_worker2, 'cpu', 300,)

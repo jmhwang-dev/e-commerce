@@ -34,13 +34,13 @@ if __name__ == "__main__":
     worker_cnt = 2
     chunk_size = len(p2e_dataset) // worker_cnt
 
-    output_path_worker1 = os.path.join(ARTIFACTS_INFERENCE_DIR, '1_por2eng.txt')
+    output_path_worker1 = os.path.join(ARTIFACTS_INFERENCE_DIR, 'por2eng_1.txt')
     worker_trans_p2e_auto = mp.Process(
         target=translate_p2e,
         args=(p2e_dataset_config.dst_path, p2e_dataset, 0, chunk_size, output_path_worker1, 'auto', 10,)
     )
 
-    output_path_worker2 = os.path.join(ARTIFACTS_INFERENCE_DIR, '2_por2eng.txt')
+    output_path_worker2 = os.path.join(ARTIFACTS_INFERENCE_DIR, 'por2eng_2.txt')
     worker_trans_p2e_cpu = mp.Process(
         target=translate_p2e,
         args=(p2e_dataset_config.dst_path, p2e_dataset, chunk_size, len(p2e_dataset), output_path_worker2, 'cpu', 100,)

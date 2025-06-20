@@ -1,7 +1,0 @@
-src_path: ./artifacts/inference/1_por2eng.txt
-dataset_start_index: 0
-dataset_end_index: 19051
-dst_path: ./artifacts/inference/1_eng_senti.csv
-checkpoint: j-hartmann/sentiment-roberta-large-english-3-classes
-device: cuda
-initial_batch_size: 600

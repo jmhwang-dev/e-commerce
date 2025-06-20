@@ -1,7 +1,7 @@
 src_path: ./artifacts/preprocess/reviews_textonly.txt
 dataset_start_index: 19051
 dataset_end_index: 38103
-dst_path: ./artifacts/inference/2_por2eng.txt
+dst_path: ./artifacts/inference/por2eng_2.txt
 checkpoint: Unbabel/TowerInstruct-7B-v0.2
 device: cpu
 initial_batch_size: 100
