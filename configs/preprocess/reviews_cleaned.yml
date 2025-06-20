@@ -1,0 +1,2 @@
+src_path: ./data/bronze/olist_order_reviews_dataset.csv
+dst_path: ./artifacts/preprocess/reviews_cleaned.csv

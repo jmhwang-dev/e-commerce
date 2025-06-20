@@ -3,7 +3,7 @@ from common.config import PreprocessConfig
 from common.paths import *
 from pathlib import Path
 
-def cleanse_text(config: PreprocessConfig) -> None:
+def clean_text(config: PreprocessConfig) -> None:
     df = pd.read_csv(config.src_path)
 
     target_columns = ['review_comment_title', "review_comment_message"]
@@ -39,7 +39,7 @@ def cleanse_text(config: PreprocessConfig) -> None:
     reviews_with_content_df = reviews_with_content_df[['review_id'] + target_columns]
 
     # ✅ 결과 저장 경로: 전처리 artifact 디렉토리
-    dst_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / Path(config.dst_path).name
+    dst_path = Path(ARTIFACTS_PREPROCESS_DIR) / Path(config.dst_path).name
     reviews_with_content_df.to_csv(dst_path, index=False)
 
     print(f"Before preprocessing: {df.shape}")
@@ -58,25 +58,7 @@ def extract_text(config: PreprocessConfig):
     all_portuguese = all_portuguese.sort_values(key=lambda x: x.str.len(), ascending=False)
 
     # ✅ 결과 저장 경로: 전처리 artifact 디렉토리
-    dst_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / Path(config.dst_path).name
+    dst_path = Path(ARTIFACTS_PREPROCESS_DIR) / Path(config.dst_path).name
     all_portuguese.to_csv(dst_path, index=False, header=False)
 
     print(f"Portuguese to translate: {dst_path}")
-
-
-if __name__ == "__main__":
-    config_cleanse = PreprocessConfig(
-        src_path=os.path.join(BRONZE_DIR, "olist_order_reviews_dataset.csv"),
-        dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "olist_order_reviews_dataset.csv"),
-        inplace=False
-    )
-    config_cleanse.save()
-    cleanse_text(config_cleanse)
-
-    config_extract = PreprocessConfig(
-        src_path=config_cleanse.dst_path,
-        dst_path=os.path.join(ARTIFACT_INFERENCE_PREPROCESS_DIR, "p2e_dataset.txt"),
-        inplace=False
-    )
-    config_extract.save()
-    extract_text(config_extract)

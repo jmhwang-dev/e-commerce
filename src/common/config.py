@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union, Type, TypeVar
 import yaml
-import os
 
-from common.paths import ARTIFACT_INFERENCE_PREPROCESS_DIR, ARTIFACT_INFERENCE_RESULT_DIR
+from common.paths import *
 
 T = TypeVar("T", bound="BaseConfig")
 
@@ -69,7 +68,7 @@ class PreprocessConfig(BaseConfig):
 
     def __post_init__(self):
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / f"{stem}_config.yml"
+        self._config_save_path = Path(CONFIGS_PREPROCESS_DIR) / f"{stem}.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dst_path": self.dst_path
@@ -99,7 +98,7 @@ class PipelineConfig(BaseConfig):
             raise ValueError("device should be one of 'auto', 'cpu', or 'cuda'.")
 
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / f"config_{stem}.yml"
+        self._config_save_path = Path(CONFIGS_INFERENCE_DIR) / f"{stem}.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dataset_start_index": self.dataset_start_index,

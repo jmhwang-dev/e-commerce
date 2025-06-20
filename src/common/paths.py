@@ -1,9 +1,28 @@
 import os
 
-ARTIFACT_ROOT_DIR = "./artifact"
-ARTIFACT_INFERENCE_PREPROCESS_DIR = os.path.join(ARTIFACT_ROOT_DIR, 'inference', 'preprocess')
-ARTIFACT_INFERENCE_RESULT_DIR = os.path.join(ARTIFACT_ROOT_DIR, 'inference', 'result')
+ARTIFACTS_ROOT_DIR = "./artifacts"
+ARTIFACTS_PREPROCESS_DIR = os.path.join(ARTIFACTS_ROOT_DIR, 'preprocess')
+ARTIFACTS_POSTPROCESS_DIR = os.path.join(ARTIFACTS_ROOT_DIR, 'postprocess')
+ARTIFACTS_INFERENCE_DIR = os.path.join(ARTIFACTS_ROOT_DIR, 'inference')
 
-MEDALLION_ROOT_DIR = "./medallion"
+CONFIGS_ROOT_DIR = "./configs"
+CONFIGS_PREPROCESS_DIR = os.path.join(CONFIGS_ROOT_DIR, 'preprocess')
+CONFIGS_POSTPROCESS_DIR = os.path.join(CONFIGS_ROOT_DIR, 'postprocess')
+CONFIGS_INFERENCE_DIR = os.path.join(CONFIGS_ROOT_DIR, 'inference')
+
+MEDALLION_ROOT_DIR = "./data"
 BRONZE_DIR = os.path.join(MEDALLION_ROOT_DIR, 'bronze')
 SILVER_DIR = os.path.join(MEDALLION_ROOT_DIR, 'silver')
+
+os.makedirs(ARTIFACTS_ROOT_DIR, exist_ok=True)
+os.makedirs(ARTIFACTS_PREPROCESS_DIR, exist_ok=True)
+os.makedirs(ARTIFACTS_POSTPROCESS_DIR, exist_ok=True)
+os.makedirs(ARTIFACTS_INFERENCE_DIR, exist_ok=True)
+
+os.makedirs(CONFIGS_ROOT_DIR, exist_ok=True)
+os.makedirs(CONFIGS_PREPROCESS_DIR, exist_ok=True)
+os.makedirs(CONFIGS_POSTPROCESS_DIR, exist_ok=True)
+os.makedirs(CONFIGS_INFERENCE_DIR, exist_ok=True)
+
+os.makedirs(BRONZE_DIR, exist_ok=True)
+os.makedirs(SILVER_DIR, exist_ok=True)

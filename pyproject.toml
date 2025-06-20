@@ -24,8 +24,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 packages = [
-  { include = "common", from = "src" },
+  { include = "*", from = "src" }
 ]
+
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 pytest = "^8.4.1"
