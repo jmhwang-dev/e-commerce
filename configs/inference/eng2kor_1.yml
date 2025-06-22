@@ -1,4 +1,4 @@
-src_path: ./artifacts/inference/por2eng_1.txt
+src_path: ./artifacts/inference/por2eng_gather.txt
 dataset_start_index: 0
 dataset_end_index: 19051
 dst_path: ./artifacts/inference/eng2kor_1.txt

@@ -2,52 +2,58 @@ from common.config import *
 from common.paths import *
 from common.loader import *
 
-from pipelines import Translator
+from preprocess import *
 
 import multiprocessing as mp
 from pathlib import Path
 
-def translate_e2k(src_path, dataset, dataset_start_index_, dataset_end_index_, dst_file_name, device_, initial_batch_size_, ):
-    config_e2k = TranslatePipelineConfig(
-        src_path=src_path,
-        dataset_start_index=dataset_start_index_,
-        dataset_end_index=dataset_end_index_,
+def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[TranslatePipelineConfig, mp.Process]:
+    dataset = load_texts(config.dst_path)
+    chunk_size = len(dataset) // worker_cnt
 
-        dst_path=dst_file_name,
-        checkpoint="Unbabel/TowerInstruct-7B-v0.2",
-        device=device_,
-        initial_batch_size=initial_batch_size_,
-        language_from='English',
-        language_into='Korean',
-        inplace=True
-    )
-    config_e2k.save()
-    translator_p2e = Translator(config_e2k)
-    translator_p2e.set_input(dataset[dataset_start_index_:dataset_end_index_])
-    translator_p2e.run()
+    worker_dict = {}
+    for i in range(worker_cnt):
+        start_index = i * chunk_size
+        end_index = (i + 1) * chunk_size if i < worker_cnt - 1 else len(dataset)
+        dst_file_name = f'{dst_prefix}_{i+1}.txt'
+
+        device = 'auto' if i == 0 else 'cpu'
+        initial_batch_size = 9 if i == 0 else 120
+
+        config_translate = TranslatePipelineConfig(
+            src_path=config.dst_path,
+            dataset_start_index=start_index,
+            dataset_end_index=end_index,
+
+            dst_path=os.path.join(INFERENCE_ARTIFACTS_DIR, dst_file_name),
+            checkpoint="Unbabel/TowerInstruct-7B-v0.2",
+            device=device,
+            initial_batch_size=initial_batch_size,
+            language_from='English',
+            language_into='Korean',
+            inplace=True
+        )
+
+        config_translate.save()
+
+        worker = mp.Process(
+            target=run_translator,
+            args=(config_translate, dataset[start_index:end_index])
+        )
+        worker_dict[config_translate.config_save_path] = worker
+
+    return worker_dict
+
 
 if __name__ == "__main__":
-    p2e_config_path = Path(CONFIGS_INFERENCE_DIR) / "por2eng_1.yml"
-    p2e_config_atuo = TranslatePipelineConfig.load(p2e_config_path)
+    por2eng_gather_config_path = Path(INFERENCE_CONFIGS_DIR) / "por2eng_gather.yml"
+    por2eng_gather_config = GatherConfig.load(por2eng_gather_config_path)
+    dst_prefix = 'eng2kor'
+    worker_dict = get_workers(por2eng_gather_config, dst_prefix, 2)
 
-    e2k_dataset_auto = load_dataset(p2e_config_atuo.dst_path)
-    output_path_worker1 = os.path.join(ARTIFACTS_INFERENCE_DIR, 'eng2kor_1.txt')
-    worker_trans_p2e_auto = mp.Process(
-        target=translate_e2k,
-        args=(p2e_config_atuo.dst_path, e2k_dataset_auto, 0, len(e2k_dataset_auto), output_path_worker1, 'auto', 9,)
-    )
+    for worker in worker_dict.values():
+        worker.start()
+        worker.join()
 
-    p2e_config_path = Path(CONFIGS_INFERENCE_DIR) / "por2eng_2.yml"
-    p2e_config_cpu = TranslatePipelineConfig.load(p2e_config_path)
-    e2k_dataset_cpu = load_dataset(p2e_config_cpu.dst_path)
-    output_path_worker2 = os.path.join(ARTIFACTS_INFERENCE_DIR, f'eng2kor_2.txt')
-    worker_trans_p2e_cpu = mp.Process(
-        target=translate_e2k,
-        args=(p2e_config_cpu.dst_path, e2k_dataset_cpu, 0, len(e2k_dataset_cpu), output_path_worker2, 'cpu', 120,)
-    )
-
-    worker_trans_p2e_auto.start()
-    worker_trans_p2e_cpu.start()
-
-    worker_trans_p2e_auto.join()
-    worker_trans_p2e_cpu.join()
+    src_paths = list(map(lambda x: TranslatePipelineConfig.load(x).dst_path, worker_dict.keys()))
+    gather_results(src_paths, dst_prefix)

@@ -1,1 +1,1 @@
-from .inference.reviews import *
+from .reviews import *

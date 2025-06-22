@@ -1,4 +1,3 @@
-# TODO: postproces.ipynb 정리
 from common.paths import *
 import pandas as pd
 import re
@@ -67,42 +66,42 @@ def resolve_conflict_rows(translation_df: pd.DataFrame):
     return translation_df
 
 
-# 문자열 정리 함수 (더 정확한 버전)
-def clean_text(text):
-    if pd.isna(text) or not isinstance(text, str):
-        return text
+# # 문자열 정리 함수 (더 정확한 버전)
+# def clean_text(text):
+#     if pd.isna(text) or not isinstance(text, str):
+#         return text
     
-    # 1. 맨 앞 따옴표 제거
-    if text.startswith('"'):
-        text = text[1:]
+#     # 1. 맨 앞 따옴표 제거
+#     if text.startswith('"'):
+#         text = text[1:]
     
-    # 2. 연속된 따옴표들을 하나로 변경 (2개 이상의 연속 따옴표를 1개로)
-    text = re.sub(r'"{2,}', '"', text)
+#     # 2. 연속된 따옴표들을 하나로 변경 (2개 이상의 연속 따옴표를 1개로)
+#     text = re.sub(r'"{2,}', '"', text)
     
-    # 3. 맨 마지막 따옴표 제거
-    if text.endswith('"'):
-        text = text[:-1]
+#     # 3. 맨 마지막 따옴표 제거
+#     if text.endswith('"'):
+#         text = text[:-1]
     
-    return text
+#     return text
 
-# 데이터프레임 전체 문자열 정리 함수 (추천)
-def clean_dataframe_strings(df, columns=None):
-    """
-    데이터프레임의 문자열 열들을 정리하는 함수
+# # 데이터프레임 전체 문자열 정리 함수 (추천)
+# def clean_dataframe_strings(df, columns=None):
+#     """
+#     데이터프레임의 문자열 열들을 정리하는 함수
     
-    Parameters:
-    df: pandas DataFrame
-    columns: 처리할 열 목록 (None이면 모든 문자열 열 자동 처리)
-    """
-    df_cleaned = df.copy()
+#     Parameters:
+#     df: pandas DataFrame
+#     columns: 처리할 열 목록 (None이면 모든 문자열 열 자동 처리)
+#     """
+#     df_cleaned = df.copy()
     
-    # columns가 지정되지 않으면 모든 문자열 열을 자동 선택
-    if columns is None:
-        columns = df_cleaned.select_dtypes(include=['object']).columns
+#     # columns가 지정되지 않으면 모든 문자열 열을 자동 선택
+#     if columns is None:
+#         columns = df_cleaned.select_dtypes(include=['object']).columns
     
-    # 각 열에 대해 문자열 정리 적용
-    for col in columns:
-        if col in df_cleaned.columns:
-            df_cleaned[col] = df_cleaned[col].apply(clean_text)
+#     # 각 열에 대해 문자열 정리 적용
+#     for col in columns:
+#         if col in df_cleaned.columns:
+#             df_cleaned[col] = df_cleaned[col].apply(clean_text)
     
-    return df_cleaned
+#     return df_cleaned

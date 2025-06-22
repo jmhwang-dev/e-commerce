@@ -1,6 +1,6 @@
-src_path: ./artifacts/inference/por2eng_2.txt
-dataset_start_index: 0
-dataset_end_index: 19052
+src_path: ./artifacts/inference/por2eng_gather.txt
+dataset_start_index: 19051
+dataset_end_index: 38103
 dst_path: ./artifacts/inference/eng2kor_2.txt
 checkpoint: Unbabel/TowerInstruct-7B-v0.2
 device: cpu
