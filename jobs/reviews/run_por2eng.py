@@ -1,6 +1,6 @@
-from common.config import *
-from common.paths import *
-from common.loader import *
+from utils.config import *
+from utils.paths import *
+from utils.loader import *
 
 from preprocess import *
 

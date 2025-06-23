@@ -1,5 +1,4 @@
-artifact/
-artifacts/
+artifact*/
 logs/
 tmp/
 cache/

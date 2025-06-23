@@ -1,7 +1,7 @@
 import pandas as pd
-from common.config import *
-from common.paths import *
-from common.loader import *
+from utils.config import *
+from utils.paths import *
+from utils.loader import *
 from pipelines import *
 from pathlib import Path
 

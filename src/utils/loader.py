@@ -17,7 +17,7 @@ class OlistFileName(Enum):
     CATEGORY = "product_category_name_translation"
 
 def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
-    with open(os.path.join(BRONZE_DIR, 'eda', 'pandas', 'paths.json'), 'r') as f:
+    with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
         paths_dict = json.load(f)
 
     df = pd.read_csv(paths_dict[file_name.value])

@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 import shutil
 
-from common.config import PreprocessConfig, TranslatePipelineConfig
+from utils.config import PreprocessConfig, TranslatePipelineConfig
 
 ARTIFACT_PATH = Path("./tests/tmp_config_test/")
 ARTIFACT_PATH.mkdir(parents=True, exist_ok=True)

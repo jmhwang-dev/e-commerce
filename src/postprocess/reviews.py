@@ -1,35 +1,77 @@
-from common.paths import *
+from utils.paths import *
 import pandas as pd
 import re
+from pathlib import Path
+from utils.config import *
 
-def concat_results(paths, col_name) -> pd.DataFrame:
-    translation_df_list = []
-    for path in paths:
-        df = pd.read_csv(
-            path,
-            header=None,
-            names=[col_name],
-            sep=r'\n',
-            engine='python',
-            quotechar='"',
-            doublequote=True,
-        )
+def clean_quotes(text):
+    if pd.isna(text):
+        return text
+    text = str(text).strip()
+    if text.startswith('"') and text.endswith('"'):
+        text = text[1:-1]
+    text = text.replace('""', '"')
+    return text
 
-        # df = pd.read_csv(
-        #     path,
-        #     header=None,
-        #     names=[col_name],
-        #     sep=r'\n',
-        #     engine='python',
-        #     quotechar=None  # ✅ 따옴표 무시하고 그대로 읽기
-        # )
+def load_texts_as_df() -> pd.DataFrame:
+    config_path_reviews_textonly = Path(PREPROCESS_CONFIGS_DIR) / "reviews_textonly.yml"
+    config_path_por2eng = Path(INFERENCE_CONFIGS_DIR) / "por2eng_gather.yml"
+    config_path_eng2kor = Path(INFERENCE_CONFIGS_DIR) / "eng2kor_gather.yml"
+
+    reviews_textonly_path = PreprocessConfig.load(config_path_reviews_textonly).dst_path
+    por2eng_path = GatherConfig.load(config_path_por2eng).dst_path
+    eng2kor_path = GatherConfig.load(config_path_eng2kor).dst_path
+
+    path_by_colum = {
+        'por_cleaned': reviews_textonly_path,
+        'eng': por2eng_path,
+        'kor': eng2kor_path,
+    }
+
+    df_list = []
+    for col_name, path in path_by_colum.items():
+        # tmp_df = pd.read_csv(
+        #             path,
+        #             # header=None,
+        #             names=[col_name],
+        #             sep=r'\n',
+        #             engine='python',
+        #             quoting=3,
+        #             escapechar=None,
+        #             quotechar='“"',
+        #             doublequote=True,
+        #         )
+        tmp_df = pd.read_csv(
+                    path,
+                    names=[col_name],
+                    sep=r'\n',
+                    engine='python',
+                    quoting=3,                    # QUOTE_NONE (안전)
+                    header=None,
+                    encoding='utf-8'
+                )
+        tmp_df[col_name] = tmp_df[col_name].apply(clean_quotes)
+        df_list.append(tmp_df)
+
+    translation_df = pd.concat(df_list, axis=1)
+    translation_df.drop_duplicates(inplace=True)
+    return translation_df
+
+    #     # df = pd.read_csv(
+    #     #     path,
+    #     #     header=None,
+    #     #     names=[col_name],
+    #     #     sep=r'\n',
+    #     #     engine='python',
+    #     #     quotechar=None  # ✅ 따옴표 무시하고 그대로 읽기
+    #     # )
         
-        df[col_name] = df[col_name].str.strip('"“”')
+    #     df[col_name] = df[col_name].str.strip('"“”')
 
-        translation_df_list.append(df)
-    concat_df = pd.concat(translation_df_list, axis=0)
-    # concat_df.columns = [col_name]
-    return concat_df.reset_index(drop=True)
+    #     translation_df_list.append(df)
+    # concat_df = pd.concat(translation_df_list, axis=0)
+    # # concat_df.columns = [col_name]
+    # return concat_df.reset_index(drop=True)
 
 def remove_special_chars(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.columns:

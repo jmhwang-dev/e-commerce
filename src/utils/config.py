@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union, Type, TypeVar
 import yaml
 
-from common.paths import *
+from utils.paths import *
 
 T = TypeVar("T", bound="BaseConfig")
 
