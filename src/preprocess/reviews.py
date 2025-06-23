@@ -4,49 +4,166 @@ from utils.paths import *
 from utils.loader import *
 from pipelines import *
 from pathlib import Path
+import re
+import emoji
+import pandas as pd
+import os
+import csv
 
-def clean_text(config: PreprocessConfig) -> None:
-    df = pd.read_csv(config.src_path)
+def remove_emoji(text):
+    if not isinstance(text, str):
+        return text
+    text = emoji.replace_emoji(text, replace=' ')
+    return text
 
-    target_columns = ['review_comment_title', "review_comment_message"]
-    reviews_with_content_df = df[target_columns].dropna(how='all').copy()
+def strip_edge_quotes(text):
+    if not isinstance(text, str):
+        return text
+    return text.strip('"\'' + '"' + '"')  # 양쪽 끝에 있는 일반/홑/쌍따옴표 모두 제거
 
-    for col in target_columns:
-        # 문자열 처리: 소문자화, 특수문자 정리 등
-        reviews_with_content_df[col] = (
-            reviews_with_content_df[col]
-            .str.lower()
-            .str.replace(r'[\r\n]', ' ', regex=True)      # 줄바꿈 문자 → 공백
-            .str.replace(r'\s+', ' ', regex=True)         # 연속된 공백 → 하나로
-            .str.replace(r'\s+\.', '.', regex=True)       # 공백 + 마침표 → 마침표
-            .str.replace(r'[!*]+', '.', regex=True)       # 느낌표/별표 → 마침표
-            .str.replace(r'\.{2,}', '.', regex=True)      # 마침표 여러 개 → 하나로
-            .str.replace(r'[?]+', '?', regex=True)        # 물음표 여러 개 → 하나로
-            .str.strip()                                  # 양쪽 공백 제거
-        )
+def clean_quotes(text):
+    if not isinstance(text, str):
+        return text
+    
+    # 먼저 양끝 큰따옴표 제거
+    text = text.strip('"')
+    
+    # 연속된 큰따옴표를 하나로 변환 (공백 포함/미포함 모두 처리)
+    text = re.sub(r'"\s*"+', '"', text)  # "" 또는 " " 등을 "로 변환
+    text = re.sub(r'"+', '"', text)      # 남은 연속 따옴표 처리
+    
+    return text
 
-        # 의미 없는 값들(None 처리): 공백/마침표/쉼표만 있는 경우 등
-        reviews_with_content_df[col] = reviews_with_content_df[col].replace(
-            r'^[\s.,]+$', None, regex=True
-        )
-        reviews_with_content_df[col] = reviews_with_content_df[col].replace(
-            r'^\.$', None, regex=True
-        )
-        reviews_with_content_df[col] = reviews_with_content_df[col].replace(
-            r'^$', None, regex=True
-        )
+def convert_all_quotes_to_single(text):
+    if not isinstance(text, str):
+        return text
+    # 모든 종류의 따옴표를 작은따옴표(')로 치환
+    return re.sub(r'[\"“”\']', "'", text)
 
-    reviews_with_content_df = reviews_with_content_df.dropna(how='all')
-    reviews_with_content_df['review_id'] = df.loc[reviews_with_content_df.index, 'review_id']
-    reviews_with_content_df = reviews_with_content_df[['review_id'] + target_columns]
 
-    # ✅ 결과 저장 경로: 전처리 artifact 디렉토리
-    dst_path = Path(PREPROCESS_ARTIFACTS_DIR) / Path(config.dst_path).name
-    reviews_with_content_df.to_csv(dst_path, index=False)
 
-    print(f"Before preprocessing: {df.shape}")
-    print(f"After preprocessing: {reviews_with_content_df.shape}")
-    print(f"Saved cleansed reviews to: {dst_path}")
+def reduce_repeated_spaces(text):
+    if not isinstance(text, str):
+        return text
+    # 공백이 여러 개일 경우 하나로 줄임
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()  # 양쪽 여백 제거
+
+def remove_leading_special_except_quote_and_portuguese(text):
+    if not isinstance(text, str):
+        return text
+    # 포르투갈어 특수문자(라틴1 보충) 포함해서 허용 문자 지정
+    allowed_chars = r"a-zA-Z0-9áàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\s'"
+    pattern = rf"^[^{allowed_chars}]+"
+    return re.sub(pattern, "", text)
+
+def replace_exclamation_with_dot(text):
+    if not isinstance(text, str):
+        return text
+    return text.replace('!', '.')
+
+def remove_trailing_special_except_question_and_quote(text):
+    if not isinstance(text, str):
+        return text
+    
+    # 문장 끝에서 괄호 ')', 물음표(?)와 따옴표(", ')를 제외한 특수문자 1개 이상 연속 제거
+    return re.sub(r'[^a-zA-Z0-9\s\?"\')"]+$', '', text)
+
+def reduce_repeated_special_chars(text):
+    if not isinstance(text, str):
+        return text
+    # 특수문자가 연속될 경우 하나로 줄임
+    return re.sub(r'([^\w\s])\1+', r'\1', text)
+
+def remove_space_before_punctuation(text):
+    if not isinstance(text, str):
+        return text
+    # 느낌표, 물음표, 마침표, 쉼표 앞의 공백 제거
+    return re.sub(r'\s+([!?.,])', r'\1', text)
+
+def remove_single_quote(text):
+    if not isinstance(text, str):
+        return text
+    
+    # 홑따옴표 개수 세기
+    count = text.count("'")
+    if count == 1:
+        # 홑따옴표 1개면 모두 제거
+        return text.replace("'", "")
+    else:
+        # 그 외는 그대로 반환
+        return text
+    
+def reduce_repeated_chars(text):
+    if not isinstance(text, str):
+        return text
+    # 같은 문자가 2번 이상 반복되는 부분을 1개로 치환
+    return re.sub(r'(.)\1+', r'\1', text)
+    
+##################
+def remove_special_chars_except_selected(text):
+    if not isinstance(text, str):
+        return text
+    # 허용된 특수문자와 알파벳, 숫자, 공백을 제외한 나머지 특수문자 제거
+    return re.sub(r"[^\w\s\?\!\'.,]", "", text)
+
+
+def strip_spaces_inside_quotes(text):
+    if not isinstance(text, str):
+        return text
+    
+    def replacer(m):
+        return f"'{m.group(1).strip()}'"
+    
+    return re.sub(r"'(.*?)'", replacer, text, flags=re.DOTALL)
+
+def clean_portuguese_text(text):
+    if not isinstance(text, str):
+        return text
+    # 1) 허용 문자 외 모두 제거: 알파벳, 숫자, 공백, 특수문자("?, !, ', ., ,")
+    text = re.sub(r"[^\w\s\?\!\'.,]", "", text, flags=re.UNICODE)
+    # 2) 언더스코어는 제거 (또는 공백으로 대체)
+    text = re.sub(r"_", "", text)
+    return text.strip()
+##################
+
+def remove_if_single_char(text):
+    if not isinstance(text, str):
+        return text
+    if len(text) == 1:
+        return ''
+    return text
+
+
+def clean_text(df:pd.DataFrame, target_col) -> None:
+    df[target_col] = df[target_col].str.replace(r'[\r\n]', ' ', regex=True)
+    df[target_col] = df[target_col].str.lower()
+
+    df[target_col] = df[target_col].apply(remove_emoji)
+    df[target_col] = df[target_col].apply(convert_all_quotes_to_single)
+    df[target_col] = df[target_col].apply(remove_single_quote)
+    df[target_col] = df[target_col].apply(reduce_repeated_special_chars)
+    df[target_col] = df[target_col].apply(reduce_repeated_chars)
+    
+    df[target_col] = df[target_col].apply(remove_space_before_punctuation)
+    df[target_col] = df[target_col].apply(replace_exclamation_with_dot)
+
+    df[target_col] = df[target_col].apply(remove_leading_special_except_quote_and_portuguese)
+    df[target_col] = df[target_col].apply(reduce_repeated_spaces)
+    df[target_col] = df[target_col].apply(remove_trailing_special_except_question_and_quote)
+    df[target_col] = df[target_col].apply(remove_if_single_char)
+
+
+    df[target_col] = df[target_col].str.strip()
+
+    df = df[df[target_col].notna() & (df[target_col].str.strip() != '')]
+
+    # assign()을 사용하여 임시 컬럼 추가 후 정렬
+    df = df.assign(length=df[target_col].str.len()).sort_values(by='length', ascending=False).drop(columns='length')
+
+    save_path = os.path.join(SILVER_DIR, f'{target_col}.tsv')
+    # df.to_csv(save_path, sep='\t', index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
+    df.to_csv(save_path, sep='\t', index=False)
 
 
 def extract_text(config: PreprocessConfig):

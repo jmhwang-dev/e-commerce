@@ -5,6 +5,8 @@ cache/
 backup/
 *.DS_Store
 *.csv
+*.tsv
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

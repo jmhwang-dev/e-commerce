@@ -20,8 +20,7 @@ def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
     with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
         paths_dict = json.load(f)
 
-    df = pd.read_csv(paths_dict[file_name.value])
-    print(df.shape)
+    df = pd.read_csv(paths_dict[file_name.value], quotechar='"', doublequote=True, encoding="utf-8")
     df.drop_duplicates(inplace=True)
     return df
 
