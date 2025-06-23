@@ -4,6 +4,7 @@ import pandas as pd
 from enum import Enum
 from .paths import *
 from typing import List
+from pathlib import Path
 
 class OlistFileName(Enum):
     CUSTOMERS = "customers"
@@ -16,11 +17,15 @@ class OlistFileName(Enum):
     SELLERS = "sellers"
     CATEGORY = "product_category_name_translation"
 
-def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
+def get_bronze_data_path(file_name: OlistFileName) -> str:
     with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
         paths_dict = json.load(f)
+    return paths_dict[file_name.value]
 
-    df = pd.read_csv(paths_dict[file_name.value], quotechar='"', doublequote=True, encoding="utf-8")
+def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
+    bronze_data_path = get_bronze_data_path(file_name)
+
+    df = pd.read_csv(bronze_data_path, quotechar='"', doublequote=True, encoding="utf-8")
     df.drop_duplicates(inplace=True)
     return df
 

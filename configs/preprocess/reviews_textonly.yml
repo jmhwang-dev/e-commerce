@@ -1,2 +1,0 @@
-src_path: ./artifacts/preprocess/reviews_cleaned.csv
-dst_path: ./artifacts/preprocess/reviews_textonly.txt

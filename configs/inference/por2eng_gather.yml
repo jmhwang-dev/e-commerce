@@ -1,4 +1,0 @@
-src_paths:
-- ./artifacts/inference/por2eng_1.txt
-- ./artifacts/inference/por2eng_2.txt
-dst_path: ./artifacts/inference/por2eng_gather.txt
