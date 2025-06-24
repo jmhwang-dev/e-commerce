@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[TranslatePipelineConfig, mp.Process]:
-    dataset = get_dataset(config.dst_path).iloc[:10, 0]
+    dataset = get_dataset(config.dst_path).iloc[:, 0]
     chunk_size = len(dataset) // worker_cnt
 
     worker_dict = {}
