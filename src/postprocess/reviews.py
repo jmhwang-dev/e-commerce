@@ -3,6 +3,26 @@ import pandas as pd
 import re
 from pathlib import Path
 from utils.config import *
+from typing import List
+
+def gather_results(src_paths: List[Path], dst_prefix: str) -> None:
+    gather_config = GatherConfig(
+        src_paths=src_paths,
+        dst_path=os.path.join(INFERENCE_ARTIFACTS_DIR, f'{dst_prefix}_gather.txt'),
+        inplace=True
+    )
+
+    gather_config.save()
+    
+    results = []
+    for src_path in gather_config.src_paths:
+        texts = load_texts(src_path)
+        results += texts
+    
+    # 저장은 수동으로 (이스케이프 방지)
+    with open(gather_config.dst_path, 'w', encoding='utf-8') as f:
+        for text_value in results:
+            f.write(str(text_value) + '\n')
 
 def clean_quotes(text):
     if pd.isna(text):

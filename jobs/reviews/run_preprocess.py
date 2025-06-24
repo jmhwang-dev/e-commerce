@@ -2,19 +2,35 @@ from utils import *
 from preprocess.reviews import *
 
 if __name__ == "__main__":
+    dataset, path = get_bronze_dataset(BronzeDataName.ORDER_REVIEWS)
+    manual_fix_json_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_data.json')
+
     clean_comments_config = PreprocessConfig(
-        src_path=get_bronze_data_path(OlistFileName.ORDER_REVIEWS),
-        dst_path=os.path.join(SILVER_DIR, 'clean_comments.tsv'),
+        src_path=path,
+        dst_path=os.path.join(SILVER_DIR, SilverDataName.CLEAN_REVIEWS.value),
         inplace=True
-        )
-    
+    )
     clean_comments_config.save()
 
-    reviews = get_bronze_df(OlistFileName.ORDER_REVIEWS)
-    reviews_title = reviews[['review_id', 'review_comment_title']].dropna().reset_index(drop=True)
-    reviews_message = reviews[['review_id', 'review_comment_message']].dropna().reset_index(drop=True)
+    preprocessor = ReviewPreprocessor(
+        dataset=dataset,
+        target_cols=['review_id', 'review_comment_title', 'review_comment_message'],
+        manual_fix_json_path=manual_fix_json_path
+    )
 
-    clean_titles = clean_review_comment(reviews_title, 'review_comment_title')
-    clean_messages = clean_review_comment(reviews_message, 'review_comment_message')
-    clean_comments = pd.concat([clean_titles, clean_messages], axis=0)
-    clean_comments.to_csv(clean_comments_config.dst_path, sep='\t', index=False)
+    fixed_df = preprocessor.run(clean_comments_config.dst_path)
+
+    # text only 저장
+    clean_comments_textonly_config = PreprocessConfig(
+        src_path=clean_comments_config.dst_path,
+        dst_path=os.path.join(SILVER_DIR, SilverDataName.CLEAN_REVIEWS_TEXT_ONLY.value),
+        inplace=True
+    )
+    clean_comments_textonly_config.save()
+
+    fixed_df[preprocessor.value_column_name].drop_duplicates().to_csv(
+        clean_comments_textonly_config.dst_path,
+        sep='\t',
+        index=False
+    )
+

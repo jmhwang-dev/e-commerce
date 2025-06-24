@@ -8,7 +8,9 @@ import multiprocessing as mp
 from pathlib import Path
 
 def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[TranslatePipelineConfig, mp.Process]:
-    dataset = load_texts(config.dst_path)
+    dataset = get_silver_dataset(SilverDataName.CLEAN_REVIEWS_TEXT_ONLY)
+    print(dataset.shape)
+    exit()
     chunk_size = len(dataset) // worker_cnt
 
     worker_dict = {}
@@ -46,10 +48,10 @@ def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[Tran
 
 
 if __name__ == "__main__":
-    preprocess_config_path = Path(PREPROCESS_CONFIGS_DIR) / "reviews_textonly.yml"
+    preprocess_config_path = Path(PREPROCESS_CONFIGS_DIR) / "clean_comments.yml"
     preprocess_config = PreprocessConfig.load(preprocess_config_path)
     dst_prefix = 'por2eng'
-    worker_dict = get_workers(preprocess_config, dst_prefix, 2)
+    worker_dict = get_workers(preprocess_config, dst_prefix, 3)
 
     for worker in worker_dict.values():
         worker.start()

@@ -84,4 +84,7 @@ class Translator(BasePipeline):
             for result in results:
                 f.write(result.strip() + "\n")
 
-
+def run_translator(config: TranslatePipelineConfig, dataset):
+    translatore = Translator(config)
+    translatore.set_input(dataset)
+    translatore.run()

@@ -3,10 +3,10 @@ import json
 import pandas as pd
 from enum import Enum
 from .paths import *
-from typing import List
+from typing import List, Union
 from pathlib import Path
 
-class OlistFileName(Enum):
+class BronzeDataName(Enum):
     CUSTOMERS = "customers"
     GEOLOCATION = "geolocation"
     ORDER_ITEMS = "order_items"
@@ -17,30 +17,44 @@ class OlistFileName(Enum):
     SELLERS = "sellers"
     CATEGORY = "product_category_name_translation"
 
-def get_bronze_data_path(file_name: OlistFileName) -> str:
-    with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
-        paths_dict = json.load(f)
-    return paths_dict[file_name.value]
+class SilverDataName(Enum):
+    CLEAN_REVIEWS = "clean_comments.tsv"
+    CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
 
-def get_bronze_df(file_name: OlistFileName) -> pd.DataFrame:
-    bronze_data_path = get_bronze_data_path(file_name)
+def get_bronze_dataset(file: Union[BronzeDataName, Path]) -> Union[pd.DataFrame, Path]:
+    if isinstance(file, BronzeDataName):
+        with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
+            paths_dict = json.load(f)
+        path = paths_dict[file.value]
+    elif isinstance(file, Path):
+        path = file
+    else:
+        raise TypeError(f"Unsupported type: {type(file)}")
 
-    df = pd.read_csv(bronze_data_path, quotechar='"', doublequote=True, encoding="utf-8")
-    df.drop_duplicates(inplace=True)
-    return df
+    dataset = load_file(path)
+    return dataset, path
 
-def get_silver_df(file_name: OlistFileName) -> pd.DataFrame:    
-    path = os.path.join(SILVER_DIR, f'{file_name.value}.csv')
+def get_silver_dataset(file_name: SilverDataName) -> pd.DataFrame:    
+    path = Path(SILVER_DIR) / file_name.value
+    
     if not os.path.exists(path):
         raise FileNotFoundError(f"Check path: {path}")
 
-    df = pd.read_csv(path)
-    return df
+    return load_file(path)
 
-def load_texts(dataset_path:str) -> List[str]:
-    dataset = []
-    with open(dataset_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    for portuguese in lines:
-        dataset.append(portuguese.strip())
-    return dataset
+def load_file(path: Union[str, Path]) -> Union[pd.DataFrame, List[str]]:
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    suffix = path.suffix.lower()
+
+    if suffix == '.tsv':
+        return pd.read_csv(path, sep='\t').drop_duplicates()
+    elif suffix == '.csv':
+        return pd.read_csv(path).drop_duplicates()
+    elif suffix == '.txt':
+        with path.open('r', encoding='utf-8') as f:
+            return [line.strip() for line in f if line.strip()]
+    else:
+        raise ValueError(f"Unsupported file extension: {suffix}")

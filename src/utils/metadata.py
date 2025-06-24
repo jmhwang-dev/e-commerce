@@ -4,8 +4,8 @@ import json
 
 def save_bronze_relationship(save_file_name):
     df_dict = {}
-    for member in OlistFileName:
-        df_dict[member] = get_bronze_df(member)
+    for member in BronzeDataName:
+        df_dict[member] = get_bronze_dataset(member)
 
     columns_by_df = {}
     for enum_name, df in df_dict.items():
