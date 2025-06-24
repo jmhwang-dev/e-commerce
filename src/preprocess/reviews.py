@@ -93,7 +93,6 @@ class ReviewPreprocessor:
         self,
         dataset: pd.DataFrame,
         target_cols: List[str],
-        manual_fix_json_path: Union[str, Path],
         value_column_name: str = 'comment'
     ):
         self.dataset = dataset

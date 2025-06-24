@@ -21,26 +21,28 @@ class SilverDataName(Enum):
     CLEAN_REVIEWS = "clean_comments.tsv"
     CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
 
-def get_bronze_dataset(file: Union[BronzeDataName, Path]) -> Union[pd.DataFrame, Path]:
+def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, Path]) -> Path:
     if isinstance(file, BronzeDataName):
         with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
             paths_dict = json.load(f)
-        path = paths_dict[file.value]
+        return Path(paths_dict[file.value])
+    elif isinstance(file, SilverDataName):
+        return Path(SILVER_DIR) / file.value
     elif isinstance(file, Path):
-        path = file
+        return file
+    elif isinstance(file, str):
+        return Path(file)
     else:
         raise TypeError(f"Unsupported type: {type(file)}")
-
-    dataset = load_file(path)
-    return dataset, path
-
-def get_silver_dataset(file_name: SilverDataName) -> pd.DataFrame:    
-    path = Path(SILVER_DIR) / file_name.value
     
-    if not os.path.exists(path):
+def get_dataset(file: Union[BronzeDataName, SilverDataName, str, Path], return_path=False) -> Union[pd.DataFrame, tuple[pd.DataFrame, Path]]:
+    path = resolve_dataset_path(file)
+
+    if not path.exists():
         raise FileNotFoundError(f"Check path: {path}")
 
-    return load_file(path)
+    dataset = load_file(path)
+    return (dataset, path) if return_path else dataset
 
 def load_file(path: Union[str, Path]) -> Union[pd.DataFrame, List[str]]:
     path = Path(path)

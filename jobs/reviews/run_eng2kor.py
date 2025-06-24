@@ -56,4 +56,4 @@ if __name__ == "__main__":
         worker.join()
 
     src_paths = list(map(lambda x: TranslatePipelineConfig.load(x).dst_path, worker_dict.keys()))
-    gather_results(src_paths, dst_prefix)
+    merge_results(src_paths, dst_prefix)

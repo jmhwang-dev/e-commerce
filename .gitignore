@@ -7,7 +7,7 @@ backup/
 *.csv
 *.tsv
 configs/*/*.yml
-!configs/*/template_preprocess.yml
+!configs/*/template.yml
 
 
 # Byte-compiled / optimized / DLL files

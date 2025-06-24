@@ -2,7 +2,7 @@ from utils import *
 from preprocess.reviews import *
 
 if __name__ == "__main__":
-    dataset, path = get_bronze_dataset(BronzeDataName.ORDER_REVIEWS)
+    dataset, path = get_dataset(BronzeDataName.ORDER_REVIEWS)
     manual_fix_json_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_data.json')
 
     clean_comments_config = PreprocessConfig(
