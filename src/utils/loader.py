@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from enum import Enum
 from .paths import *
-from typing import List, Union
+from typing import List, Union, Tuple
 from pathlib import Path
 
 class BronzeDataName(Enum):
@@ -21,7 +21,8 @@ class SilverDataName(Enum):
     CLEAN_REVIEWS = "clean_comments.tsv"
     CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
 
-def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, Path]) -> Path:
+# def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, Path]) -> Path:
+def resolve_dataset_path(file: BronzeDataName | SilverDataName | str | Path) -> Path:
     if isinstance(file, BronzeDataName):
         with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
             paths_dict = json.load(f)
@@ -35,7 +36,10 @@ def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, Path]) -> P
     else:
         raise TypeError(f"Unsupported type: {type(file)}")
     
-def get_dataset(file: Union[BronzeDataName, SilverDataName, str, Path], return_path=False) -> Union[pd.DataFrame, tuple[pd.DataFrame, Path]]:
+def get_dataset(
+    file: BronzeDataName | SilverDataName | str | Path,
+    return_path: bool = False
+) -> Union[pd.DataFrame, List[str], Tuple[Union[pd.DataFrame, List[str]], Path]]:
     path = resolve_dataset_path(file)
 
     if not path.exists():
