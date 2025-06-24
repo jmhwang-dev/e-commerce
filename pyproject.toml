@@ -15,6 +15,7 @@ dependencies = [
     "transformers (==4.51.3)",
     "torch (==2.6.0)",
     "accelerate (==1.6.0)",
+    "emoji (>=2.14.1,<3.0.0)",
 ]
 
 
@@ -24,8 +25,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 packages = [
-  { include = "common", from = "src" },
+  { include = "*", from = "src" }
 ]
+
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 pytest = "^8.4.1"

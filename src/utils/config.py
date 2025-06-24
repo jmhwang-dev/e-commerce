@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union, Type, TypeVar
 import yaml
-import os
 
-from common.paths import ARTIFACT_INFERENCE_PREPROCESS_DIR, ARTIFACT_INFERENCE_RESULT_DIR
+from utils.paths import *
 
 T = TypeVar("T", bound="BaseConfig")
 
@@ -43,8 +42,6 @@ class BaseConfig(ABC):
                     f"Use `inplace=True` to overwrite."
                 )
 
-        self.config_save_path.parent.mkdir(parents=True, exist_ok=True)
-
         with open(self.config_save_path, 'w') as f:
             yaml.dump(self.config_dict, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
@@ -69,7 +66,7 @@ class PreprocessConfig(BaseConfig):
 
     def __post_init__(self):
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(ARTIFACT_INFERENCE_PREPROCESS_DIR) / f"{stem}_config.yml"
+        self._config_save_path = Path(PREPROCESS_CONFIGS_DIR) / f"{stem}.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dst_path": self.dst_path
@@ -99,7 +96,7 @@ class PipelineConfig(BaseConfig):
             raise ValueError("device should be one of 'auto', 'cpu', or 'cuda'.")
 
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(ARTIFACT_INFERENCE_RESULT_DIR) / f"config_{stem}.yml"
+        self._config_save_path = Path(INFERENCE_CONFIGS_DIR) / f"{stem}.yml"
         self._config_dict = {
             "src_path": self.src_path,
             "dataset_start_index": self.dataset_start_index,
@@ -129,3 +126,25 @@ class TranslatePipelineConfig(PipelineConfig):
             "language_from": self.language_from,
             "language_into": self.language_into
         })
+
+@dataclass(kw_only=True)
+class GatherConfig(BaseConfig):
+    src_paths: list
+    dst_path: str
+    src_path: str = field(init=False)
+
+    @property
+    def config_save_path(self) -> Path:
+        return self._config_save_path
+
+    @property
+    def config_dict(self) -> dict:
+        return self._config_dict
+    
+    def __post_init__(self):
+        stem = Path(self.dst_path).stem
+        self._config_save_path = Path(POSTPROCESS_CONFIGS_DIR) / f"{stem}.yml"
+        self._config_dict = {
+            "src_paths": self.src_paths,
+            "dst_path": self.dst_path,
+        }

@@ -1,5 +1,5 @@
 from .base import *
-from common.config import *
+from utils.config import *
 
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from transformers.pipelines import pipeline
@@ -72,7 +72,7 @@ class Translator(BasePipeline):
             new_size = max(1, self.batch_size + delta)
         else:
             # Limit maximum batch size for CPU inference
-            new_size = min(80, self.batch_size + delta)
+            new_size = min(200, self.batch_size + delta)
         print(f"[{self.config.device}] Batch size {'increased' if delta > 0 else 'decreased'}: {self.batch_size} → {new_size}")
         self.batch_size = new_size
 
@@ -80,8 +80,23 @@ class Translator(BasePipeline):
         results = [
             out[0]['generated_text'][-1]['content'] for out in outputs
         ]
-        with open(self.config.dst_path, 'a', encoding='utf-8') as f:
-            for result in results:
-                f.write(result.strip() + "\n")
+        results = list(map(lambda x: x.strip(), results))
 
+        tmp_df = pd.DataFrame(
+            results,
+            columns=[f"{self.config.dataset_start_index}:{self.config.dataset_end_index}"]
+        )
 
+        try:
+            existing_df = pd.read_csv(self.config.dst_path, sep='\t')
+        except FileNotFoundError:
+            df = tmp_df
+        else:
+            df = pd.concat([existing_df, tmp_df], ignore_index=True)
+
+        df.to_csv(self.config.dst_path, sep='\t', index=False)
+
+def run_translator(config: TranslatePipelineConfig, dataset):
+    translatore = Translator(config)
+    translatore.set_input(dataset)
+    translatore.run()

@@ -1,0 +1,178 @@
+import pandas as pd
+from utils import *
+from pipelines import *
+from pathlib import Path
+import re
+import emoji
+import pandas as pd
+import os
+
+def remove_emoji(text):
+    if not isinstance(text, str):
+        return text
+    text = emoji.replace_emoji(text, replace=' ')
+    return text
+
+def convert_emphasis_to_single_quote(text):
+    if not isinstance(text, str):
+        return text
+    return re.sub(r'[`´"“”‘’\'*^]', "'", text)
+
+def replace_exclamation_with_dot(text):
+    if not isinstance(text, str):
+        return text
+    return text.replace('!', '.')
+
+def remove_trailing_punctuation(text):
+    if not isinstance(text, str):
+        return text
+    return re.sub(r'[.,+]+$', '', text)
+
+def reduce_repeated_special_chars(text):
+    if not isinstance(text, str):
+        return text
+    # 특수문자가 연속될 경우 하나로 줄임
+    return re.sub(r'([^\w\s])\1+', r'\1', text)
+
+def reduce_repeated_spaces(text):
+    if not isinstance(text, str):
+        return text
+    # 공백이 여러 개일 경우 하나로 줄임
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()  # 양쪽 여백 제거
+
+def remove_space_before_punctuation(text):
+    if not isinstance(text, str):
+        return text
+    # 느낌표, 물음표, 마침표, 쉼표 앞의 공백 제거
+    return re.sub(r'\s+([!?.,])', r'\1', text)
+
+def remove_single_quote(text):
+    if not isinstance(text, str):
+        return text
+    
+    # 홑따옴표 개수 세기
+    count = text.count("'")
+    if count == 1:
+        # 홑따옴표 1개면 모두 제거
+        return text.replace("'", "")
+    else:
+        # 그 외는 그대로 반환
+        return text
+    
+def reduce_repeated_chars(text):
+    if not isinstance(text, str):
+        return text
+    # 같은 문자가 3번 이상 반복되면 하나로 치환
+    return re.sub(r'(.)\1{2,}', r'\1', text)
+
+
+def strip_spaces_inside_quotes(text):
+    if not isinstance(text, str):
+        return text
+    
+    def replacer(m):
+        return f"'{m.group(1).strip()}'"
+    
+    return re.sub(r"'(.*?)'", replacer, text, flags=re.DOTALL)
+
+def remove_if_short(text):
+    if not isinstance(text, str):
+        return text
+    if len(text) <= 2:
+        return ''
+    return text
+
+def remove_empty_or_whitespace_single_quotes(text):
+    if not isinstance(text, str):
+        return text
+    return re.sub(r"'\s*'", '', text)
+
+class ReviewPreprocessor:
+    def __init__(
+        self,
+        dataset: pd.DataFrame,
+        target_cols: List[str],
+        value_column_name: str = 'comment'
+    ):
+        self.dataset = dataset
+        self.target_cols = target_cols
+        self.value_column_name = value_column_name
+        self.manual_fix_json_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_reviews.json')
+        self.manual_fix_data = self._load_manual_fix_data()
+        self.processed_df = None
+
+    def _load_manual_fix_data(self) -> dict:
+        with open(self.manual_fix_json_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def melt_reviews(self) -> pd.DataFrame:
+        if 'review_id' not in self.dataset.columns:
+            raise ValueError("Column 'review_id' must exist in dataset")
+        melted_df = self.dataset[self.target_cols].melt(
+            id_vars='review_id',
+            var_name='column_name',
+            value_name=self.value_column_name
+        )
+        melted_df.dropna(subset=[self.value_column_name], inplace=True)
+        melted_df.reset_index(drop=True, inplace=True)
+        return melted_df
+
+    def clean_review_comment(self, df: pd.DataFrame) -> pd.DataFrame:
+        df[self.value_column_name] = df[self.value_column_name].str.lower()
+        df[self.value_column_name] = df[self.value_column_name].str.replace(r'[\r\n]', ' ', regex=True)
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_emoji)
+
+        df[self.value_column_name] = df[self.value_column_name].apply(convert_emphasis_to_single_quote)
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_empty_or_whitespace_single_quotes)
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_single_quote)
+
+        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_special_chars)
+        df[self.value_column_name] = df[self.value_column_name].apply(replace_exclamation_with_dot)
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_space_before_punctuation)
+
+        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_chars)
+        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_spaces)
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_trailing_punctuation)
+        
+        df[self.value_column_name] = df[self.value_column_name].apply(remove_if_short)
+        df[self.value_column_name] = df[self.value_column_name].apply(strip_spaces_inside_quotes)
+        
+        df[self.value_column_name] = df[self.value_column_name].str.strip()
+
+        df = df[df[self.value_column_name].notna() & (df[self.value_column_name].str.strip() != '')]
+        df = df.reset_index(drop=True)
+        return df
+
+    def manual_fix(self, df: pd.DataFrame, target_col: str) -> pd.DataFrame:
+        fixed_contents = self.manual_fix_data.get(target_col, {})
+        log_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, f"before_fix_{target_col}.tsv")
+        df[df['review_id'].isin(fixed_contents.keys())].to_csv(log_path, sep='\t', index=False)
+
+        for review_id, fixed_content in fixed_contents.items():
+            df.loc[df['review_id'] == review_id, self.value_column_name] = fixed_content
+
+        df = df[df[self.value_column_name].str.strip() != ''].reset_index(drop=True)
+        return df
+
+    def fix_reviews(self, df: pd.DataFrame) -> pd.DataFrame:
+        target_types = [col for col in self.target_cols if col != 'review_id']
+        for col_name in target_types:
+            df = self.manual_fix(df, col_name)
+        return df
+
+    def run(self, dst_path: Union[str, Path]) -> pd.DataFrame:
+        melted_df = self.melt_reviews()
+        cleaned_df = self.clean_review_comment(melted_df)
+        fixed_df = self.fix_reviews(cleaned_df)
+
+        fixed_df['comment_length'] = fixed_df[self.value_column_name].str.len()
+        fixed_df = fixed_df.sort_values(by='comment_length', ascending=False)
+        fixed_df.drop(columns=['comment_length'], inplace=True)
+
+        dst_path = Path(dst_path)
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        fixed_df.to_csv(dst_path, sep='\t', index=False)
+
+        self.processed_df = fixed_df
+        return fixed_df

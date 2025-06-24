@@ -1,5 +1,5 @@
 from .base import *
-from common.config import *
+from utils.config import *
 
 from transformers.pipelines import pipeline
 
