@@ -1,2 +1,0 @@
-src_path: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/data/silver/clean_comments.tsv
-dst_path: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/data/silver/clean_comments_text_only.tsv

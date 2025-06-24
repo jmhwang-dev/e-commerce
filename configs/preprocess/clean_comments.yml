@@ -1,2 +1,0 @@
-src_path: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/data/bronze/olist_order_reviews_dataset.csv
-dst_path: /home/jmhwang/Documents/github/jmhwang-dev/e-commerce/data/silver/clean_comments.tsv
