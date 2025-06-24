@@ -6,7 +6,8 @@ backup/
 *.DS_Store
 *.csv
 *.tsv
-!**/template*.yml
+!configs/*/template_preprocess.yml
+
 
 
 # Byte-compiled / optimized / DLL files
