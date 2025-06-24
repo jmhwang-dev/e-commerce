@@ -6,3 +6,8 @@
 bash scripts/etc/download_olist.sh
 python src/utils/metadata.py 
 ```
+
+2. silver
+```bash
+python src/features/product.py 
+```
