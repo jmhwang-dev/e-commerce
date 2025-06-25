@@ -17,7 +17,7 @@ def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[Tran
         dst_file_name = f'{dst_prefix}_{datetime.now().strftime("%Y%m%d_%H%M%S")}_{i+1}.tsv'
 
         device = 'auto' if i == 0 else 'cpu'
-        initial_batch_size = 10 if i == 0 else 100
+        initial_batch_size = 30 if i == 0 else 150
 
         config_p2e = TranslatePipelineConfig(
             src_path=config.dst_path,

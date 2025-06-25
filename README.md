@@ -1,6 +1,9 @@
 # e-commerce
 
-1. setup
+## setup
 ```bash
-source hadoop-3.4.1/setup.sh
+# bronze
+bash ./scripts/etc/download_olist.sh
+cd local/minio
+docker compose up -d
 ```
