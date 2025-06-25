@@ -1,5 +1,5 @@
 from .utils import *
 from .features import *
-from .pipelines import *
+from .inference import *
 from .preprocess import *
 from .postprocess import *
