@@ -21,30 +21,28 @@ class SilverDataName(Enum):
     CLEAN_REVIEWS = "clean_comments.tsv"
     CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
 
-def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, Path]) -> Path:
+def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, str]) -> Path:
     if isinstance(file, BronzeDataName):
         with open(os.path.join(METADATA_ARTIFACT_DIR, 'bronze_paths.json'), 'r') as f:
             paths_dict = json.load(f)
         return Path(paths_dict[file.value])
     elif isinstance(file, SilverDataName):
         return Path(SILVER_DIR) / file.value
-    elif isinstance(file, Path):
-        return file
     elif isinstance(file, str):
         return Path(file)
     else:
         raise TypeError(f"Unsupported type: {type(file)}")
     
-def get_dataset(file: Union[BronzeDataName, SilverDataName, str, Path], return_path=False) -> Union[pd.DataFrame, tuple[pd.DataFrame, Path]]:
+def get_dataset(file: Union[BronzeDataName, SilverDataName, str]) -> tuple[pd.DataFrame, str]:
     path = resolve_dataset_path(file)
 
     if not path.exists():
         raise FileNotFoundError(f"Check path: {path}")
 
     dataset = load_file(path)
-    return (dataset, path) if return_path else dataset
+    return dataset, str(path)
 
-def load_file(path: Union[str, Path]) -> Union[pd.DataFrame, List[str]]:
+def load_file(path: Union[str, Path]) -> pd.DataFrame:
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -52,11 +50,8 @@ def load_file(path: Union[str, Path]) -> Union[pd.DataFrame, List[str]]:
     suffix = path.suffix.lower()
 
     if suffix == '.tsv':
-        return pd.read_csv(path, sep='\t').drop_duplicates()
+        return pd.read_csv(path, sep='\t', keep_default_na=False).drop_duplicates()
     elif suffix == '.csv':
-        return pd.read_csv(path).drop_duplicates()
-    elif suffix == '.txt':
-        with path.open('r', encoding='utf-8') as f:
-            return [line.strip() for line in f if line.strip()]
+        return pd.read_csv(path, keep_default_na=False).drop_duplicates()
     else:
         raise ValueError(f"Unsupported file extension: {suffix}")

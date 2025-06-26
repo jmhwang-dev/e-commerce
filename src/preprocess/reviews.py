@@ -7,11 +7,32 @@ import emoji
 import pandas as pd
 import os
 
-def remove_emoji(text):
+def replace_emoji_with_dot(text):
     if not isinstance(text, str):
         return text
-    text = emoji.replace_emoji(text, replace=' ')
+    text = emoji.replace_emoji(text, replace='.')
     return text
+
+def replace_emoticon_with_dot(text):
+    if not isinstance(text, str):
+        return text
+    
+    pattern = r'(:\)|;\)|:-\)|:\(|:\\|:/|\^_+\^|\*__*\*)'
+    
+    def replacer(match):
+        matched = match.group(0)
+        if matched == ':/':
+            start = match.start()
+            # Check up to 8 chars before ':/' for 'http://' or 'https://'
+            context = text[max(0, start - 8):start].lower()
+            if 'http' in context and context.endswith('http'):
+                return matched  # Keep ':/' as part of URL
+            else:
+                return '.'
+        else:
+            return '.'
+    
+    return re.sub(pattern, replacer, text)
 
 def convert_emphasis_to_single_quote(text):
     if not isinstance(text, str):
@@ -29,10 +50,23 @@ def remove_trailing_punctuation(text):
     return re.sub(r'[.,+]+$', '', text)
 
 def reduce_repeated_special_chars(text):
-    if not isinstance(text, str):
-        return text
-    # 특수문자가 연속될 경우 하나로 줄임
-    return re.sub(r'([^\w\s])\1+', r'\1', text)
+    # Avoid reducing '//' after 'http:' or 'https:'
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith('//'):
+            start = match.start()
+            # Check if '//' comes after 'http:' or 'https:'
+            if start >= 6:  # minimum length for 'https:'
+                before = text[start-6:start]
+                if before.endswith('https:'):
+                    return s  # keep '//' after https:
+            if start >= 5:  # minimum length for 'http:'
+                before = text[start-5:start]
+                if before.endswith('http:'):
+                    return s  # keep '//' after http:
+        return s[0]  # reduce to single character
+    
+    return re.sub(r'([^\w\s])\1+', replacer, text)
 
 def reduce_repeated_spaces(text):
     if not isinstance(text, str):
@@ -93,12 +127,13 @@ class ReviewPreprocessor:
         self,
         dataset: pd.DataFrame,
         target_cols: List[str],
+        manual_fix_json_path: str,
         value_column_name: str = 'comment'
     ):
         self.dataset = dataset
         self.target_cols = target_cols
         self.value_column_name = value_column_name
-        self.manual_fix_json_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_reviews.json')
+        self.manual_fix_json_path = manual_fix_json_path
         self.manual_fix_data = self._load_manual_fix_data()
         self.processed_df = None
 
@@ -121,7 +156,8 @@ class ReviewPreprocessor:
     def clean_review_comment(self, df: pd.DataFrame) -> pd.DataFrame:
         df[self.value_column_name] = df[self.value_column_name].str.lower()
         df[self.value_column_name] = df[self.value_column_name].str.replace(r'[\r\n]', ' ', regex=True)
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_emoji)
+        df[self.value_column_name] = df[self.value_column_name].apply(replace_emoji_with_dot)
+        df[self.value_column_name] = df[self.value_column_name].apply(replace_emoticon_with_dot)
 
         df[self.value_column_name] = df[self.value_column_name].apply(convert_emphasis_to_single_quote)
         df[self.value_column_name] = df[self.value_column_name].apply(remove_empty_or_whitespace_single_quotes)
@@ -169,6 +205,7 @@ class ReviewPreprocessor:
         fixed_df['comment_length'] = fixed_df[self.value_column_name].str.len()
         fixed_df = fixed_df.sort_values(by='comment_length', ascending=False)
         fixed_df.drop(columns=['comment_length'], inplace=True)
+        fixed_df = fixed_df.drop_duplicates()
 
         dst_path = Path(dst_path)
         dst_path.parent.mkdir(parents=True, exist_ok=True)

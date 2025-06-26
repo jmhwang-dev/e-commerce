@@ -3,7 +3,6 @@ from preprocess.reviews import *
 
 if __name__ == "__main__":
     dataset, path = get_dataset(BronzeDataName.ORDER_REVIEWS)
-    manual_fix_json_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_data.json')
 
     clean_comments_config = PreprocessConfig(
         src_path=path,
@@ -15,7 +14,7 @@ if __name__ == "__main__":
     preprocessor = ReviewPreprocessor(
         dataset=dataset,
         target_cols=['review_id', 'review_comment_title', 'review_comment_message'],
-        manual_fix_json_path=manual_fix_json_path
+        manual_fix_json_path=os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_reviews.json')
     )
 
     fixed_df = preprocessor.run(clean_comments_config.dst_path)
