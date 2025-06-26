@@ -75,3 +75,13 @@
     name: docker
     enabled: yes
     state: started
+
+
+- name: Add user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+      
+- name: Reset ssh connection to allow user changes to affect ansible user
+  meta: reset_connection
