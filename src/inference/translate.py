@@ -27,22 +27,24 @@ class Translator(BasePipeline):
             device_map=self.config.device
         )
 
-    def set_input(self, dataset: Iterable[Any]):
+    def set_input(self, dataset: pd.DataFrame):
+        self.dataset = dataset
         self.prompts = [
             [{
                 "role": "user",
-                "content": f"Translate the following text from {self.config.language_from} into {self.config.language_into}.\n{self.config.language_from}: {text}\n{self.config.language_into}:"
+                "content": f"Translate the following text from {self.config.language_from} into {self.config.language_into}.\n{self.config.language_from}: {text.values[0]}\n{self.config.language_into}:"
             }]
-            for text in dataset
+            for _, text in self.dataset.iterrows()
         ]
 
     def run(self):
-        start_index = 0
-        total = len(self.prompts)
+        self.start_index = 0
+        self.end_index = 0
+        dataset_size = len(self.prompts)
 
-        while start_index < total:
-            end_index = min(start_index + self.batch_size, total)
-            chunk = self.prompts[start_index:end_index]
+        while self.start_index < dataset_size:
+            self.end_index = min(self.start_index + self.batch_size, dataset_size)
+            chunk = self.prompts[self.start_index:self.end_index]
 
             try:
                 start_time = time.time()
@@ -54,11 +56,10 @@ class Translator(BasePipeline):
                 )
 
                 duration = time.time() - start_time
-
-                print(f"[{self.config.device}] Processing batch: {end_index}/{total} - Time: {duration:.2f}s. Saved at {self.config.dst_path}")
+                print(f"[{self.config.device}] Processing batch: {self.end_index}/{dataset_size} - Time: {duration:.2f}s.")
 
                 self.save_results(outputs)
-                start_index = end_index
+                self.start_index = self.end_index
                 self.adjust_batch_size(+1)
 
             except torch.cuda.OutOfMemoryError:
@@ -82,17 +83,21 @@ class Translator(BasePipeline):
         ]
         results = list(map(lambda x: x.strip(), results))
 
-        tmp_df = pd.DataFrame(
+        results_df = pd.DataFrame(
             results,
-            columns=[f"{self.config.dataset_start_index}:{self.config.dataset_end_index}"]
+            columns=['por2eng']
         )
 
+        current_dataset = self.dataset[self.start_index:self.end_index]
+        current_dataset.reset_index(inplace=True, drop=True)
+        merged_df = pd.concat([current_dataset, results_df], axis=1)
+    
         try:
             existing_df = pd.read_csv(self.config.dst_path, sep='\t')
         except FileNotFoundError:
-            df = tmp_df
+            df = merged_df
         else:
-            df = pd.concat([existing_df, tmp_df], ignore_index=True)
+            df = pd.concat([existing_df, merged_df], ignore_index=True)
 
         df.to_csv(self.config.dst_path, sep='\t', index=False)
 

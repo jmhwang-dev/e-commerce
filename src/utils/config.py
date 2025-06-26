@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Type, TypeVar
+from typing import Union, Type, TypeVar, List
 import yaml
 
 from utils.paths import *
@@ -129,7 +129,7 @@ class TranslatePipelineConfig(PipelineConfig):
 
 @dataclass(kw_only=True)
 class GatherConfig(BaseConfig):
-    src_paths: list
+    src_paths: List[str]
     dst_path: str
     src_path: str = field(init=False)
 
