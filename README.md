@@ -1,6 +1,13 @@
 # e-commerce
 
-1. setup
+## setup
+1. bronze
 ```bash
-source hadoop-3.4.1/setup.sh
+bash scripts/etc/download_olist.sh
+python src/utils/metadata.py 
+```
+
+2. silver
+```bash
+python src/features/product.py 
 ```

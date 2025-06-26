@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from enum import Enum
 from .paths import *
-from typing import List, Union
+from typing import List, Union, Tuple
 from pathlib import Path
 
 class BronzeDataName(Enum):
@@ -20,6 +20,8 @@ class BronzeDataName(Enum):
 class SilverDataName(Enum):
     CLEAN_REVIEWS = "clean_comments.tsv"
     CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
+    CATEGORY = "product_categories.tsv"
+    PRODUCTS = "products.tsv"
 
 def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, str]) -> Path:
     if isinstance(file, BronzeDataName):
