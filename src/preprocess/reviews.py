@@ -1,6 +1,6 @@
 import pandas as pd
 from utils import *
-from pipelines import *
+from inference import *
 from pathlib import Path
 import re
 import emoji

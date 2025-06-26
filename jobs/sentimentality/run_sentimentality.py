@@ -2,7 +2,7 @@ from utils.config import *
 from utils.paths import *
 from utils.loader import *
 
-from pipelines.sentiment import SentimentAnalyzer
+from inference.sentiment import SentimentAnalyzer
 
 import multiprocessing as mp
 from pathlib import Path

@@ -1,13 +1,9 @@
 # e-commerce
 
 ## setup
-1. bronze
 ```bash
-bash scripts/etc/download_olist.sh
-python src/utils/metadata.py 
-```
-
-2. silver
-```bash
-python src/features/product.py 
+# bronze
+bash ./scripts/etc/download_olist.sh
+cd local/minio
+docker compose up -d
 ```
