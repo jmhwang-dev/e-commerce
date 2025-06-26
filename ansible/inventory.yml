@@ -23,3 +23,13 @@ all:
           hosts:
             worker1: {}
             worker2: {}
+
+    cluster_spark:
+      children:
+        master:
+          hosts:
+            master: {}
+        workers:
+          hosts:
+            worker1: {}
+            worker2: {}
