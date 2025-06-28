@@ -22,6 +22,7 @@ class SilverDataName(Enum):
     CLEAN_REVIEWS_TEXT_ONLY = "clean_comments_text_only.tsv"
     CATEGORY = "product_categories.tsv"
     PRODUCTS = "products.tsv"
+    ENG_REVIEWS_WITH_SENTI = "eng_reviews_with_senti.tsv"
 
 def resolve_dataset_path(file: Union[BronzeDataName, SilverDataName, str]) -> Path:
     if isinstance(file, BronzeDataName):
