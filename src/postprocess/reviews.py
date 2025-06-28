@@ -21,7 +21,7 @@ def gather_inference(sent_config_file_name: str, trans_config_file_name: str) ->
     senti_df, _ = get_dataset(senticonfig.dst_path)
 
     trans_config_path = Path(INFERENCE_CONFIGS_DIR) / trans_config_file_name
-    trans_config = GatherConfig.load(trans_config_path)
+    trans_config = PostProcessConfig.load(trans_config_path)
     trans_df, _ = get_dataset(trans_config.dst_path)
 
     gather_df = trans_df.copy()

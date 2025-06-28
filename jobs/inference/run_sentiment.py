@@ -41,7 +41,7 @@ def get_workers(config: BaseConfig, dst_prefix, worker_cnt=2) -> dict[str, mp.Pr
 
 if __name__ == "__main__":
     translation_config_path = Path(INFERENCE_CONFIGS_DIR) / "por2eng_20250626_172543.yml"
-    translation_config = GatherConfig.load(translation_config_path)
+    translation_config = PostProcessConfig.load(translation_config_path)
     dst_prefix = f'sentiment_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
 
     worker_dict = get_workers(translation_config, dst_prefix, 1)

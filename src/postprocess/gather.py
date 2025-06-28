@@ -6,7 +6,7 @@ def merge_results(src_paths: List[str], dst_prefix: str) -> None:
     if len(src_paths) == 1:
         return 
 
-    gather_config = GatherConfig(
+    gather_config = PostProcessConfig(
         src_paths=src_paths,
         dst_path=os.path.join(INFERENCE_ARTIFACTS_DIR, f'{dst_prefix}.tsv'),
         inplace=True

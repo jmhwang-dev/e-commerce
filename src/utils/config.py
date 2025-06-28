@@ -128,7 +128,7 @@ class TranslatePipelineConfig(PipelineConfig):
         })
 
 @dataclass(kw_only=True)
-class GatherConfig(BaseConfig):
+class PostProcessConfig(BaseConfig):
     src_paths: List[str]
     dst_path: str
     src_path: str = field(init=False)

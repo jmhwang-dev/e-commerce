@@ -1,7 +1,4 @@
 import os
-import glob
-import re
-import json
 
 HOME_DIR = os.path.expanduser('~')
 REPOSITORY_DIR = os.path.join(HOME_DIR, 'Documents', 'github', 'jmhwang-dev' ,'e-commerce')

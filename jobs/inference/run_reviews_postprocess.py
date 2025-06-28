@@ -9,7 +9,7 @@ if __name__=="__main__":
     if is_conflict(gather_df):
         exit()
     
-    dst_path = Path(SILVER_DIR) / SilverDataName.ENG_REVIEWS_WITH_SENTI.value
+    dst_path = Path(POSTPROCESS_ARTIFACTS_DIR) / SilverDataName.ENG_REVIEWS_WITH_SENTI.value
     clean_comments_df, _ = get_dataset(SilverDataName.CLEAN_REVIEWS)
     result = pd.merge(clean_comments_df, gather_df, left_on='comment', right_on='comment', how='left')
     result = result.drop(columns='comment')
