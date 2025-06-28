@@ -1,11 +1,16 @@
 ---
+git_clone_path: "{{ ansible_env.HOME }}/Documents/github/jmhwang-dev/e-commerce"
+
+java_package: openjdk-8-jdk
+jdk_dir_name_pattern: java-8-openjdk*
+
 framework_name: 'hadoop'
-version: 3.4.1
-dist_name: "{{framework_name}}-{{ version }}"
+hadoop_version: 3.4.1
+dist_name: "{{framework_name}}-{{ hadoop_version }}"
 
 home_env_name: "HADOOP_HOME"
-home_dir: "{{ base_install_dir }}/{{ dist_name }}"
-base_url: "{{ base_apache_url }}/hadoop/common"
+home_dir: "/opt/{{ dist_name }}"
+base_url: "https://dlcdn.apache.org/hadoop/common"
 
 targz_name: "{{ dist_name }}.tar.gz"
 asc_name: "{{ targz_name }}.asc"

@@ -1,19 +1,9 @@
 ---
-- name: Create namenode directory
-  ansible.builtin.file:
-    path: "{{ namenode_dir }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0755'
-  when: "'namenodes' in group_names"
-
-- name: Create datanode directory
-  ansible.builtin.file:
-    path: "{{ datanode_dir }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0755'
-  when: "'datanodes' in group_names"
-  
+- import_tasks: git_clone.yml
+- import_tasks: mkdirs.yml
+- import_tasks: apt.yml
+- import_tasks: java.yml
+- import_tasks: download.yml
+- import_tasks: verify.yml
+- import_tasks: extract.yml
+- import_tasks: profile.yml

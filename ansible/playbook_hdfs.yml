@@ -1,17 +1,5 @@
 ---
-- name: INSTALL common packages on all nodes
+- name: Setup HDFS cluster
   hosts: cluster_hdfs
-  roles:
-    - common
-
-- name: Setup HDFS on namenode(s)
-  hosts: namenodes
-  become: true
-  roles:
-    - hdfs
-
-- name: Setup HDFS on datanode(s)
-  hosts: datanodes
-  become: true
   roles:
     - hdfs

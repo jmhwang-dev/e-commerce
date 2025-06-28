@@ -1,0 +1,13 @@
+---
+- name: Install apt
+  become: true
+  apt:
+    name:
+      - wget
+      - gnupg
+      - coreutils
+    state: latest
+    update_cache: yes
+
+  tags: 
+    - install
