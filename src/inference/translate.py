@@ -69,7 +69,7 @@ class Translator(BasePipeline):
                 gc.collect()
 
     def adjust_batch_size(self, delta: int):
-        if self.config.device == 'auto':
+        if self.config.device != 'cpu':
             new_size = max(1, self.batch_size + delta)
         else:
             # Limit maximum batch size for CPU inference

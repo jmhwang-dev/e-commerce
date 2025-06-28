@@ -1,11 +1,13 @@
 import pandas as pd
 from utils import *
 import json
+import pandas as pd
 
 def save_bronze_relationship(save_file_name):
-    df_dict = {}
+    df_dict: dict[BronzeDataName, pd.DataFrame] = {}
     for member in BronzeDataName:
-        df_dict[member] = get_dataset(member)
+        df_dict[member], _ = get_dataset(member)
+        df_dict[member] = df_dict[member].drop_duplicates()
 
     columns_by_df = {}
     for enum_name, df in df_dict.items():

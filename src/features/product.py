@@ -4,8 +4,11 @@ import pandas as pd
 import os
 
 # Load datasets
-products_df, _ = get_dataset(BronzeDataName.PRODUCTS, return_path=True)
-category_df, _ = get_dataset(BronzeDataName.CATEGORY, return_path=True)
+products_df, _ = get_dataset(BronzeDataName.PRODUCTS)
+products_df = products_df.drop_duplicates()
+category_df, _ = get_dataset(BronzeDataName.CATEGORY)
+category_df = category_df.drop_duplicates()
+
 
 def translate_categories(products_df: pd.DataFrame, category_df: pd.DataFrame) -> pd.DataFrame:
     # 1. 고유 카테고리 추출

@@ -3,6 +3,7 @@ from preprocess.reviews import *
 
 if __name__ == "__main__":
     dataset, path = get_dataset(BronzeDataName.ORDER_REVIEWS)
+    dataset = dataset.drop_duplicates()
 
     clean_comments_config = PreprocessConfig(
         src_path=path,

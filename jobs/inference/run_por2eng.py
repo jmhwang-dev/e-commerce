@@ -1,6 +1,5 @@
 from utils import *
 from preprocess import *
-from postprocess import *
 
 import multiprocessing as mp
 from pathlib import Path
@@ -14,7 +13,7 @@ def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[str,
     for i in range(worker_cnt):
         start_index = i * chunk_size
         end_index = (i + 1) * chunk_size if i < worker_cnt - 1 else len(dataset)
-        dst_file_name = f'{dst_prefix}_{i+1}.tsv'
+        dst_file_name = f'{dst_prefix}_{i+1}.tsv' if worker_cnt > 1 else f'{dst_prefix}.tsv'
 
         device = 'auto' if i == 0 else 'cpu'
         initial_batch_size = 30 if i == 0 else 120

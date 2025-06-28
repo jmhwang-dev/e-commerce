@@ -143,7 +143,7 @@ class GatherConfig(BaseConfig):
     
     def __post_init__(self):
         stem = Path(self.dst_path).stem
-        self._config_save_path = Path(POSTPROCESS_CONFIGS_DIR) / f"{stem}.yml"
+        self._config_save_path = Path(INFERENCE_CONFIGS_DIR) / f"{stem}.yml"
         self._config_dict = {
             "src_paths": self.src_paths,
             "dst_path": self.dst_path,

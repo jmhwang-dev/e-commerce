@@ -52,8 +52,8 @@ def load_file(path: Union[str, Path]) -> pd.DataFrame:
     suffix = path.suffix.lower()
 
     if suffix == '.tsv':
-        return pd.read_csv(path, sep='\t', keep_default_na=False).drop_duplicates()
+        return pd.read_csv(path, sep='\t', keep_default_na=False)
     elif suffix == '.csv':
-        return pd.read_csv(path, keep_default_na=False).drop_duplicates()
+        return pd.read_csv(path, keep_default_na=False)
     else:
         raise ValueError(f"Unsupported file extension: {suffix}")
