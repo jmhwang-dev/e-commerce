@@ -48,7 +48,7 @@ services:
    depends_on:
      - spark-master
    volumes:
-     - ./jobs:/opt/spark/work-dir/jobs
+     - ../../jobs/spark:/opt/spark/work-dir
    working_dir: /opt/spark/work-dir
    environment:
      <<: *minio-config
