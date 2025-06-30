@@ -28,3 +28,8 @@ services:
         mc mb local/bronze || true &&
         mc cp /mnt/bronze/*.csv local/bronze/
       '
+  spark:
+    image: apache/spark:3.5.6-python3
+    volumes:
+      - ./test:/mnt
+    command: tail -f /dev/null
