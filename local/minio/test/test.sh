@@ -15,3 +15,9 @@ curl -fSL https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.
   --master local[*] \
   --jars /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.9.1.jar,/opt/spark/jars/iceberg-aws-bundle-1.9.1.jar,/opt/spark/jars/hadoop-aws-3.3.4.jar,opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
   load_olist_customers.py
+
+
+/opt/spark/bin/spark-submit \
+  --master local[*] \
+  --jars /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.9.1.jar,/opt/spark/jars/iceberg-aws-bundle-1.9.1.jar,/opt/spark/jars/hadoop-aws-3.3.4.jar,opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
+  iceberge.py
