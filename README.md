@@ -24,3 +24,5 @@ poetry run python jobs/inference/run_reviews_postprocess.py
 ```bash
 poetry run pytest
 ```
+Spark-related tests require `pyspark` to be installed. Configuration tests rely on
+the `yaml` module provided by the `pyyaml` package.
