@@ -1,10 +1,19 @@
-from ecommerce.utils import *
-from ecommerce.preprocess import *
-from ecommerce.postprocess.gather import merge_results
-
+import os
 import multiprocessing as mp
 from pathlib import Path
 from datetime import datetime
+
+from ecommerce.utils import (
+    ensure_directories,
+    get_dataset,
+    BaseConfig,
+    PipelineConfig,
+    PostProcessConfig,
+    INFERENCE_ARTIFACTS_DIR,
+    INFERENCE_CONFIGS_DIR,
+)
+from ecommerce.inference import run_sentiment
+from ecommerce.postprocess.gather import merge_results
 
 def get_workers(config: BaseConfig, dst_prefix, worker_cnt=2) -> dict[str, mp.Process]:
     dataset, _ = get_dataset(config.dst_path)
@@ -56,3 +65,4 @@ if __name__ == "__main__":
 
     src_paths = list(worker_dict.keys())
     merge_results(src_paths, dst_prefix)
+

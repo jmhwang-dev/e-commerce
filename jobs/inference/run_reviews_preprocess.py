@@ -1,5 +1,15 @@
-from ecommerce.utils import *
-from ecommerce.preprocess.reviews import *
+import os
+
+from ecommerce.utils import (
+    ensure_directories,
+    get_dataset,
+    BronzeDataName,
+    PreprocessConfig,
+    SilverDataName,
+    PREPROCESS_ARTIFACTS_DIR,
+    SILVER_DIR,
+)
+from ecommerce.preprocess.reviews import ReviewPreprocessor
 
 if __name__ == "__main__":
     ensure_directories()

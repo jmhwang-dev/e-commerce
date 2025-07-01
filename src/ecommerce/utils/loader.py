@@ -2,8 +2,8 @@ import os
 import json
 import pandas as pd
 from enum import Enum
-from .paths import *
-from typing import List, Union, Tuple
+from .paths import METADATA_ARTIFACT_DIR, SILVER_DIR
+from typing import Union
 from pathlib import Path
 
 class BronzeDataName(Enum):
