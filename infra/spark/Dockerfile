@@ -39,7 +39,7 @@ RUN apt-get update && \
 
 # 2) 기본 Spark/Iceberg/MinIO 설정
 RUN mkdir -p ${SPARK_HOME}/conf
-COPY spark-defaults.conf ${SPARK_HOME}/conf/
+COPY ../configs/spark-defaults.conf ${SPARK_HOME}/conf/
 
 # 3) PATH·작업 디렉터리
 ENV PATH="$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH"
