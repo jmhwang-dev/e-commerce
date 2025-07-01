@@ -11,7 +11,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends python3-pip curl && \
     mkdir -p /opt/spark/jars && \
     \
-    # ────── JAR 의존성 (v1/v2 SDK 모두 포함) ──────
+    # ────── JAR 의존성 (v1 SDK) ──────
     curl -fsSL -o /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
         https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar & \
     curl -fsSL -o /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.9.1.jar \
@@ -39,7 +39,7 @@ RUN apt-get update && \
 
 # 2) 기본 Spark/Iceberg/MinIO 설정
 RUN mkdir -p ${SPARK_HOME}/conf
-COPY ../configs/spark-defaults.conf ${SPARK_HOME}/conf/
+COPY ./spark-defaults.conf ${SPARK_HOME}/conf/
 
 # 3) PATH·작업 디렉터리
 ENV PATH="$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH"

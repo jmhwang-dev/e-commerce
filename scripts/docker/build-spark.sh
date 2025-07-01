@@ -1,4 +1,4 @@
-docker build -t spark-minio:4.0.0 .
+docker build -t ecommerce-lakehouse:sp3.5.6-ice1.9.1 ./infra/spark
 
 # echo $GHCR_TOKEN | docker login ghcr.io -u jmhwang-dev --password-stdin
 
