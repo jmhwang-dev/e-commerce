@@ -1,6 +1,7 @@
 from ecommerce.postprocess import *
 
 if __name__=="__main__":
+    ensure_directories()
     sent_config_file_name = "sentiment_20250628_160638.yml"
     trans_config_file_name = "por2eng_20250626_172543.yml"
 

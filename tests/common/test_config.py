@@ -7,6 +7,7 @@ import yaml
 import shutil
 
 from ecommerce.utils.config import PreprocessConfig, TranslatePipelineConfig
+from ecommerce.utils.paths import ensure_directories
 
 ARTIFACT_PATH = Path("./tests/tmp_config_test/")
 ARTIFACT_PATH.mkdir(parents=True, exist_ok=True)
@@ -55,6 +56,10 @@ def test_translate_config_save_and_load():
     loaded = TranslatePipelineConfig.load(config.config_save_path)
     assert loaded.language_from == "English"
     assert loaded.language_into == "Korean"
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_dirs():
+    ensure_directories()
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_tmp_config_dir():
