@@ -1,4 +1,4 @@
-from postprocess import *
+from ecommerce.postprocess import *
 
 if __name__=="__main__":
     sent_config_file_name = "sentiment_20250628_160638.yml"

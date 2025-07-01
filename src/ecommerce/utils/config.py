@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union, Type, TypeVar, List
 import yaml
 
-from utils.paths import *
+from ecommerce.utils.paths import *
 
 T = TypeVar("T", bound="BaseConfig")
 
