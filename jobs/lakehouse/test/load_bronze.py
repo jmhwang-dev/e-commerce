@@ -1,25 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[2]:
-
-
-
-
-# In[4]:
-
-
-import pyspark
-pyspark.__version__
-
-
-# In[11]:
-
-
+# jobs/simple_test.py
 from pyspark.sql import SparkSession
 
 spark = SparkSession.builder \
-    .appName("Simple S3A Test") \
+    .appName("MinIOExample") \
     .getOrCreate()
 
 try:
@@ -30,10 +13,3 @@ except Exception as e:
     print(f"❌ 오류: {e}")
 finally:
     spark.stop()
-
-
-# In[12]:
-
-
-df.printSchema()
-

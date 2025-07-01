@@ -29,12 +29,12 @@ services:
         mc cp /mnt/bronze/*.csv local/bronze/
       '
   spark-master:
-    image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
-    hostname: spark-master
-    ports:
-      - "8080:8080"
-      - "7077:7077"
-    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+      image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
+      hostname: spark-master
+      ports:
+        - "8080:8080"
+        - "7077:7077"
+      command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
   spark-worker:
     image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
     hostname: spark-worker
@@ -56,6 +56,8 @@ services:
     depends_on:
       - spark-master
     volumes:
-      - ../jobs/spark:/opt/spark/work-dir
+      - ../jobs/lakehouse:/opt/spark/work-dir
+      - ./spark/conf/:/opt/spark/conf
+
     working_dir: /opt/spark/work-dir
     command: tail -f /dev/null
