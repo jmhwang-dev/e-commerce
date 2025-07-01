@@ -106,8 +106,8 @@ product_category_name_translation,product_category_name_english,상품 카테고
 
 
 def save_bronze_paths(save_filename):
-    regex_target_file_pahts = os.path.join(BRONZE_DIR, '*.csv')
-    csv_paths = glob.glob(regex_target_file_pahts)
+    regex_target_file_paths = os.path.join(BRONZE_DIR, '*.csv')
+    csv_paths = glob.glob(regex_target_file_paths)
     csv_paths.sort()
     abs_csv_paths = list(map(os.path.abspath, csv_paths))
 
