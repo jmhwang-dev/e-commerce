@@ -3,12 +3,6 @@ from ecommerce.utils.paths import SILVER_DIR
 import pandas as pd
 import os
 
-# Load datasets
-products_df, _ = get_dataset(BronzeDataName.PRODUCTS)
-products_df = products_df.drop_duplicates()
-category_df, _ = get_dataset(BronzeDataName.CATEGORY)
-category_df = category_df.drop_duplicates()
-
 
 def translate_categories(products_df: pd.DataFrame, category_df: pd.DataFrame) -> pd.DataFrame:
     # 1. 고유 카테고리 추출
@@ -55,7 +49,17 @@ def translate_products(products_df: pd.DataFrame, category_mapping_df: pd.DataFr
         index=False
     )
 
-if __name__ == "__main__":
+
+def main() -> None:
+    products_df, _ = get_dataset(BronzeDataName.PRODUCTS)
+    products_df = products_df.drop_duplicates()
+    category_df, _ = get_dataset(BronzeDataName.CATEGORY)
+    category_df = category_df.drop_duplicates()
+
     category_mapping_df = translate_categories(products_df, category_df)
     translate_products(products_df, category_mapping_df)
+
+
+if __name__ == "__main__":
+    main()
 
