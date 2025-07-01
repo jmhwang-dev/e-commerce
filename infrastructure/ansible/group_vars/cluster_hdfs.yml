@@ -17,7 +17,7 @@ asc_name: "{{ targz_name }}.asc"
 sha512_name: "{{ targz_name }}.sha512"
 
 conf_dir_env_name: "HADOOP_CONF_DIR"
-conf_dir: "{{ git_clone_path }}/hadoop/conf"
+conf_dir: "{{ git_clone_path }}/infrastructure/hadoop/conf"
 
 # HDFS 데이터 디렉토리
 namenode_dir: /mnt/hadoop/dfs/name

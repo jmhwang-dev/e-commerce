@@ -4,6 +4,6 @@
 ```bash
 # bronze
 bash ./scripts/etc/download_olist.sh
-cd local/minio
+cd infrastructure/local/minio
 docker compose up -d
 ```
