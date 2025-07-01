@@ -1,1 +1,3 @@
-from .reviews import *
+from .reviews import ReviewPreprocessor
+
+__all__ = ["ReviewPreprocessor"]

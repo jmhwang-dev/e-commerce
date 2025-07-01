@@ -1,5 +1,5 @@
-from .base import *
-from ecommerce.utils.config import *
+from .base import BasePipeline
+from ecommerce.utils.config import TranslatePipelineConfig
 
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from transformers.pipelines import pipeline
