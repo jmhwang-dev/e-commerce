@@ -1,5 +1,5 @@
-from utils import *
-from preprocess import *
+from ecommerce.utils import *
+from ecommerce.preprocess import *
 
 import multiprocessing as mp
 from pathlib import Path

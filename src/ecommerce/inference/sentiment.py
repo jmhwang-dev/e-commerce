@@ -1,5 +1,5 @@
 from .base import *
-from utils.config import *
+from ecommerce.utils.config import *
 
 from transformers.pipelines import pipeline
 

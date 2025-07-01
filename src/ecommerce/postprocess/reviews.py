@@ -1,4 +1,4 @@
-from utils import *
+from ecommerce.utils import *
 from pathlib import Path
 
 def is_conflict(df:pd.DataFrame):

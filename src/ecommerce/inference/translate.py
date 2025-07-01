@@ -1,5 +1,5 @@
 from .base import *
-from utils.config import *
+from ecommerce.utils.config import *
 
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from transformers.pipelines import pipeline

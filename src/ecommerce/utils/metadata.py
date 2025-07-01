@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import *
+from ecommerce.utils import *
 import json
 import pandas as pd
 
