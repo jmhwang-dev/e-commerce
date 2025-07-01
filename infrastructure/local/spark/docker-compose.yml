@@ -8,7 +8,7 @@ x-minio-config: &minio-config
 
 services:
  spark-master:
-   image: spark-minio:4.0.0
+   image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
    hostname: spark-master
    ports:
      - "8080:8080"
@@ -22,7 +22,7 @@ services:
      - spark-network
 
  spark-worker:
-   image: spark-minio:4.0.0
+   image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
    hostname: spark-worker
    depends_on:
      - spark-master
@@ -43,7 +43,7 @@ services:
      - spark-network
 
  spark-client:
-   image: spark-minio:4.0.0
+   image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
    hostname: spark-client
    depends_on:
      - spark-master
