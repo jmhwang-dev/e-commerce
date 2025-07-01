@@ -1,5 +1,5 @@
-from utils import *
-from preprocess import *
+from ecommerce.utils import *
+from ecommerce.preprocess import *
 
 import multiprocessing as mp
 from pathlib import Path
@@ -44,6 +44,7 @@ def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[str,
 
 
 if __name__ == "__main__":
+    ensure_directories()
     preprocess_config_path = Path(PREPROCESS_CONFIGS_DIR) / "clean_comments_text_only.yml"
     preprocess_config = PreprocessConfig.load(preprocess_config_path)
     dst_prefix = f'por2eng_{datetime.now().strftime("%Y%m%d_%H%M%S")}'

@@ -1,7 +1,8 @@
-from utils import *
-from preprocess.reviews import *
+from ecommerce.utils import *
+from ecommerce.preprocess.reviews import *
 
 if __name__ == "__main__":
+    ensure_directories()
     dataset, path = get_dataset(BronzeDataName.ORDER_REVIEWS)
     dataset = dataset.drop_duplicates()
 

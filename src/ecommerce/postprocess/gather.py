@@ -1,4 +1,4 @@
-from utils import *
+from ecommerce.utils import *
 import pandas as pd
 from typing import List
 

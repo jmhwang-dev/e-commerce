@@ -1,6 +1,6 @@
 import pandas as pd
-from utils import *
-from inference import *
+from ecommerce.utils import *
+from ecommerce.inference import *
 from pathlib import Path
 import re
 import emoji

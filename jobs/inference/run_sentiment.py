@@ -1,5 +1,5 @@
-from utils import *
-from preprocess import *
+from ecommerce.utils import *
+from ecommerce.preprocess import *
 
 import multiprocessing as mp
 from pathlib import Path
@@ -40,6 +40,7 @@ def get_workers(config: BaseConfig, dst_prefix, worker_cnt=2) -> dict[str, mp.Pr
     return worker_dict
 
 if __name__ == "__main__":
+    ensure_directories()
     translation_config_path = Path(INFERENCE_CONFIGS_DIR) / "por2eng_20250626_172543.yml"
     translation_config = PostProcessConfig.load(translation_config_path)
     dst_prefix = f'sentiment_{datetime.now().strftime("%Y%m%d_%H%M%S")}'

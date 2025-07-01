@@ -1,5 +1,5 @@
-from utils import get_dataset, BronzeDataName, SilverDataName
-from utils.paths import SILVER_DIR
+from ecommerce.utils import get_dataset, BronzeDataName, SilverDataName
+from ecommerce.utils.paths import SILVER_DIR
 import pandas as pd
 import os
 
