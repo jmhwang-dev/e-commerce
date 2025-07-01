@@ -4,7 +4,6 @@
 # In[2]:
 
 
-from pyspark.sql import SparkSession
 
 
 # In[4]:

@@ -1,6 +1,10 @@
-from ecommerce.utils import *
-import pandas as pd
+import os
 from typing import List
+
+import pandas as pd
+
+from ecommerce.utils import PostProcessConfig, get_dataset
+from ecommerce.utils.paths import INFERENCE_ARTIFACTS_DIR
 
 def merge_results(src_paths: List[str], dst_prefix: str) -> None:
     if len(src_paths) == 1:

@@ -1,7 +1,12 @@
-import pandas as pd
-from ecommerce.utils import *
 import json
+import os
+import glob
+import re
+
 import pandas as pd
+
+from ecommerce.utils.loader import BronzeDataName, get_dataset
+from ecommerce.utils.paths import METADATA_ARTIFACT_DIR, BRONZE_DIR
 
 def save_bronze_relationship(save_file_name):
     df_dict: dict[BronzeDataName, pd.DataFrame] = {}
@@ -124,3 +129,4 @@ if __name__=="__main__":
     save_bronze_paths('bronze_paths.json')
     save_bronze_relationship("bronze_relationship.json")
     save_bronze_column_description("bronze_column_description.csv")
+
