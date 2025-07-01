@@ -38,20 +38,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # 2) 기본 Spark/Iceberg/MinIO 설정
-RUN mkdir -p ${SPARK_HOME}/conf && \
-    cat <<'EOF' > ${SPARK_HOME}/conf/spark-defaults.conf
-spark.sql.extensions              org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-spark.sql.catalog.lake            org.apache.iceberg.spark.SparkCatalog
-spark.sql.catalog.lake.type       hadoop
-spark.sql.catalog.lake.warehouse  s3a://lakehouse
-
-# MinIO S3A
-spark.hadoop.fs.s3a.endpoint                 http://minio:9000
-spark.hadoop.fs.s3a.access.key               minioadmin
-spark.hadoop.fs.s3a.secret.key               minioadmin
-spark.hadoop.fs.s3a.path.style.access        true
-spark.hadoop.fs.s3a.connection.ssl.enabled   false
-EOF
+RUN mkdir -p ${SPARK_HOME}/conf
+COPY spark-defaults.conf ${SPARK_HOME}/conf/
 
 # 3) PATH·작업 디렉터리
 ENV PATH="$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH"
