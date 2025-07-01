@@ -1,4 +1,13 @@
-from ecommerce.postprocess import *
+import pandas as pd
+from pathlib import Path
+
+from ecommerce.utils import (
+    ensure_directories,
+    get_dataset,
+    SilverDataName,
+    POSTPROCESS_ARTIFACTS_DIR,
+)
+from ecommerce.postprocess.reviews import gather_inference, is_conflict
 
 if __name__=="__main__":
     ensure_directories()
@@ -16,3 +25,4 @@ if __name__=="__main__":
     result = result.drop(columns='comment')
     result = result[['review_id', 'column_name', 'sentimentality', 'por2eng']]
     result.to_csv(dst_path, sep='\t', index=False)
+

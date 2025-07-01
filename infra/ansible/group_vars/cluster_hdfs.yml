@@ -1,0 +1,24 @@
+---
+git_clone_path: "{{ ansible_env.HOME }}/Documents/github/jmhwang-dev/e-commerce"
+
+java_package: openjdk-8-jdk
+jdk_dir_name_pattern: java-8-openjdk*
+
+framework_name: 'hadoop'
+hadoop_version: 3.4.1
+dist_name: "{{framework_name}}-{{ hadoop_version }}"
+
+home_env_name: "HADOOP_HOME"
+home_dir: "/opt/{{ dist_name }}"
+base_url: "https://dlcdn.apache.org/hadoop/common"
+
+targz_name: "{{ dist_name }}.tar.gz"
+asc_name: "{{ targz_name }}.asc"
+sha512_name: "{{ targz_name }}.sha512"
+
+conf_dir_env_name: "HADOOP_CONF_DIR"
+conf_dir: "{{ git_clone_path }}/infrastructure/hadoop/conf"
+
+# HDFS 데이터 디렉토리
+namenode_dir: /mnt/hadoop/dfs/name
+datanode_dir: /mnt/hadoop/dfs/data

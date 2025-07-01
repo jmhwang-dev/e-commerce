@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union, Type, TypeVar, List
 import yaml
 
-from ecommerce.utils.paths import *
+from ecommerce.utils.paths import PREPROCESS_CONFIGS_DIR, INFERENCE_CONFIGS_DIR
 
 T = TypeVar("T", bound="BaseConfig")
 

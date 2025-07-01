@@ -1,7 +1,12 @@
-import pandas as pd
-from ecommerce.utils import *
 import json
+import os
+import glob
+import re
+
 import pandas as pd
+
+from ecommerce.utils.loader import BronzeDataName, get_dataset
+from ecommerce.utils.paths import METADATA_ARTIFACT_DIR, BRONZE_DIR
 
 def save_bronze_relationship(save_file_name):
     df_dict: dict[BronzeDataName, pd.DataFrame] = {}
@@ -101,8 +106,8 @@ product_category_name_translation,product_category_name_english,상품 카테고
 
 
 def save_bronze_paths(save_filename):
-    regex_target_file_pahts = os.path.join(BRONZE_DIR, '*.csv')
-    csv_paths = glob.glob(regex_target_file_pahts)
+    regex_target_file_paths = os.path.join(BRONZE_DIR, '*.csv')
+    csv_paths = glob.glob(regex_target_file_paths)
     csv_paths.sort()
     abs_csv_paths = list(map(os.path.abspath, csv_paths))
 
@@ -124,3 +129,4 @@ if __name__=="__main__":
     save_bronze_paths('bronze_paths.json')
     save_bronze_relationship("bronze_relationship.json")
     save_bronze_column_description("bronze_column_description.csv")
+

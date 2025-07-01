@@ -1,5 +1,10 @@
-from ecommerce.utils import *
 from pathlib import Path
+
+import pandas as pd
+
+from ecommerce.utils.config import PipelineConfig, PostProcessConfig
+from ecommerce.utils.loader import get_dataset
+from ecommerce.utils.paths import INFERENCE_CONFIGS_DIR
 
 def is_conflict(df:pd.DataFrame):
     # p2e별로 max_sentimental 값이 몇 종류 있는지 계산

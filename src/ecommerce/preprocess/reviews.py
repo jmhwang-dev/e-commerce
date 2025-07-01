@@ -1,11 +1,13 @@
-import pandas as pd
-from ecommerce.utils import *
-from ecommerce.inference import *
+import os
+import json
 from pathlib import Path
 import re
+from typing import List, Union
+
 import emoji
 import pandas as pd
-import os
+
+from ecommerce.utils.paths import PREPROCESS_ARTIFACTS_DIR
 
 def replace_emoji_with_dot(text):
     if not isinstance(text, str):
