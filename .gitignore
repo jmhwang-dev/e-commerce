@@ -8,6 +8,7 @@ backup/
 *.tsv
 configs/*/*.yml
 !configs/*/template.yml
+*.pdf
 
 
 # Byte-compiled / optimized / DLL files

@@ -25,8 +25,8 @@ services:
     entrypoint: >
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
-        mc mb local/bronze || true &&
-        mc cp /mnt/bronze/*.csv local/bronze/
+        mc mb local/bronze || true && mc cp /mnt/bronze/*.csv local/bronze/ &&
+        mc mb local/silver || true && mc cp /mnt/silver/*.csv local/silver/
       '
   spark-master:
       image: ecommerce-lakehouse:sp3.5.6-ice1.9.1
