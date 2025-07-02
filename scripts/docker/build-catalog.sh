@@ -1,0 +1,1 @@
+docker build -t catalog:ice1.9.1-psql16 ./infra/iceberg-rest
