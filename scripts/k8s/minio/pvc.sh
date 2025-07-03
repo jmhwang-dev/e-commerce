@@ -3,7 +3,7 @@
 kubectl get storageclass    # 결과 없음
 
 # 직접 pv용 디렉토리 생성 후 pod 생성
-kubectl apply -f infrastructure/k8s/minio-hostpath-pv.yaml
+kubectl apply -f infra/k8s/minio-hostpath-pv.yaml
 
 # 확인
 kubectl get pvc -n minio

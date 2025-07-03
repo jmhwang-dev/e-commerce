@@ -16,7 +16,7 @@ pipx install --include-deps ansible
 
 ## Frameworks
 ```bash
- cd ./infrastructure/ansible
+ cd ./infra/ansible
  ansible-playbook -i inventory.yml {}.yml -K     # sudo 권한
 ```
 

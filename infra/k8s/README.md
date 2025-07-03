@@ -43,7 +43,7 @@ kubectl get sparkapplications -n spark
 ## 📁 디렉토리 구조
 
 ```
-infrastructure/k8s/
+infra/k8s/
 ├── minio/              # MinIO 설정
 │   ├── namespace.yaml  # MinIO 전용 네임스페이스 정의
 │   ├── pv.yaml         # 영구 저장소 볼륨 정의

@@ -8,7 +8,7 @@ poetry install
 
 # download dataset
 bash ./scripts/etc/download_olist.sh
-cd infrastructure/local/minio
+cd infra/local/minio
 docker compose up -d
 ```
 
