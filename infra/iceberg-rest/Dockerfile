@@ -1,21 +1,22 @@
-FROM apache/iceberg-rest-fixture:1.9.1
+# syntax=docker/dockerfile:1
+
+# 1) FROM 태그 치환용
+ARG ICEBERG_VERSION=1.9.1
+ARG PG_JDBC_VERSION=42.7.3
+
+FROM apache/iceberg-rest-fixture:${ICEBERG_VERSION}
+
+# 2) 스테이지 내부에서 다시 선언해야 ADD·RUN 등에서 사용 가능
+ARG ICEBERG_VERSION
+ARG PG_JDBC_VERSION
 
 USER root
+WORKDIR /usr/lib/iceberg-rest
 
-# PostgreSQL JDBC 드라이버 추가
-ADD https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar \
-    /usr/lib/iceberg-rest/
+ADD https://repo1.maven.org/maven2/org/postgresql/postgresql/${PG_JDBC_VERSION}/postgresql-${PG_JDBC_VERSION}.jar .
+ADD https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/iceberg-aws-bundle-${ICEBERG_VERSION}.jar .
 
-ADD https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/2.31.77/bundle-2.31.77.jar \
-    /usr/lib/iceberg-rest/
+RUN chmod 644 postgresql-${PG_JDBC_VERSION}.jar \
+               iceberg-aws-bundle-${ICEBERG_VERSION}.jar
 
-ADD https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar \
-    /usr/lib/iceberg-rest/
-
-RUN chmod 644 /usr/lib/iceberg-rest/postgresql-42.7.3.jar
-RUN chmod 644 /usr/lib/iceberg-rest/hadoop-aws-3.4.1.jar
-RUN chmod 644 /usr/lib/iceberg-rest/bundle-2.31.77.jar
-
-
-# ENTRYPOINT에서 -jar 대신 -cp 방식 사용
-ENTRYPOINT ["java", "-cp", "/usr/lib/iceberg-rest/*", "org.apache.iceberg.rest.RESTCatalogServer"]
+ENTRYPOINT ["java","-cp","/usr/lib/iceberg-rest/*","org.apache.iceberg.rest.RESTCatalogServer"]
