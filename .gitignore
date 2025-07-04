@@ -9,7 +9,7 @@ backup/
 configs/*/*.yml
 !configs/*/template.yml
 *.pdf
-
+metastore_db/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
