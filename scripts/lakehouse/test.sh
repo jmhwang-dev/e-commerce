@@ -3,5 +3,4 @@ docker exec infra-spark-client-1 \
   spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \
-  --jars /opt/spark/jars/hadoop-aws-3.3.4.jar,/opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
-  bronze2silver/test.py
+  test/rest_catalog.py

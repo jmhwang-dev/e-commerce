@@ -1,4 +1,5 @@
-docker build -t ecommerce-lakehouse:sp3.5.6-ice1.9.1 ./infra/spark
+docker build --no-cache -t ecommerce-lakehouse:sp3.5.6-ice1.9.1 ./infra/spark && docker image prune -f
+
 
 # echo $GHCR_TOKEN | docker login ghcr.io -u jmhwang-dev --password-stdin
 
