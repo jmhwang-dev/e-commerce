@@ -1,11 +1,6 @@
 from pyspark.sql import SparkSession
 import os
 
-# 환경변수 설정 (AWS SDK용)
-os.environ['AWS_REGION'] = 'us-east-1'
-os.environ['AWS_ACCESS_KEY_ID'] = 'minioadmin'
-os.environ['AWS_SECRET_ACCESS_KEY'] = 'minioadmin'
-
 # Spark 세션 생성 시 Iceberg 설정 추가
 spark = SparkSession.builder \
     .appName("IcebergTest") \
