@@ -1,0 +1,1 @@
+chmod +x ./utils/notebook_to_script.sh
