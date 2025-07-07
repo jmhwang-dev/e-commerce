@@ -11,6 +11,7 @@ configs/*/*.yml
 *.pdf
 metastore_db/
 pgdata/
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

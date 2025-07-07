@@ -23,3 +23,6 @@ ADD https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-${IC
 # Iceberg AWS bundle
 ADD https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/iceberg-aws-bundle-${ICEBERG_VERSION}.jar \
     $SPARK_HOME/jars/
+
+COPY requirements.txt /tmp/
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
