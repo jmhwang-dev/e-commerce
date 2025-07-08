@@ -8,7 +8,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ../data:/data
+      - ../s3:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
@@ -33,14 +33,14 @@ services:
         tail -f /dev/null
       '
   spark-master:
-      image: lakehouse:sp3.5.6-ice1.9.1
+      image: warehouse:sp3.5.6-ice1.9.1
       hostname: spark-master
       ports:
         - "8080:8080"
         - "7077:7077"
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
   spark-worker:
-    image: lakehouse:sp3.5.6-ice1.9.1
+    image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-worker
     depends_on:
       - spark-master
@@ -55,13 +55,13 @@ services:
         /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
       "
   spark-client:
-    image: lakehouse:sp3.5.6-ice1.9.1
+    image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-client
     depends_on:
       - spark-master
     volumes:
-      - ../jobs/lakehouse:/opt/spark/work-dir
-      - ../configs/spark/:/opt/spark/conf
+      - ../notebooks/spark:/opt/spark/work-dir
+      - ../configs/spark:/opt/spark/conf
 
     working_dir: /opt/spark/work-dir
     command: tail -f /dev/null
@@ -72,7 +72,6 @@ services:
       POSTGRES_USER: iceberg
       POSTGRES_PASSWORD: iceberg
       POSTGRES_DB: iceberg
-    volumes: ["./postgres/pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U iceberg"]
       interval: 5s
