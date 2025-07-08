@@ -61,7 +61,7 @@ services:
       - spark-master
     volumes:
       - ../jobs/lakehouse:/opt/spark/work-dir
-      - ./spark/conf/:/opt/spark/conf
+      - ../configs/spark/:/opt/spark/conf
 
     working_dir: /opt/spark/work-dir
     command: tail -f /dev/null
