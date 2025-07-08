@@ -60,7 +60,8 @@ services:
     depends_on:
       - spark-master
     volumes:
-      - ../notebooks/spark:/opt/spark/work-dir
+      - ../notebooks/spark:/opt/spark/work-dir/notebooks
+      - ../src/jobs/spark/:/opt/spark/work-dir/jobs
       - ../configs/spark:/opt/spark/conf
 
     working_dir: /opt/spark/work-dir
