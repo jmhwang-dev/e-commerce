@@ -8,7 +8,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ../s3:/data
+      - ../data/minio:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
@@ -73,6 +73,7 @@ services:
       POSTGRES_USER: iceberg
       POSTGRES_PASSWORD: iceberg
       POSTGRES_DB: iceberg
+    volumes: ["../data/postgres:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U iceberg"]
       interval: 5s

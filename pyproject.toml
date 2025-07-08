@@ -20,6 +20,8 @@ dependencies = [
     "seaborn (>=0.13.2,<0.14.0)",
     "wordcloud (>=1.9.4,<2.0.0)",
     "nltk (>=3.9.1,<4.0.0)",
+    "nbformat (>=5.10.4,<6.0.0)",
+    "notebook (>=7.4.4,<8.0.0)",
 ]
 
 
@@ -36,4 +38,5 @@ packages = [
 ipykernel = "^6.29.5"
 pytest = "^8.4.1"
 pyspark = "^3.5"
+notebook = "^7.4.4"
 
