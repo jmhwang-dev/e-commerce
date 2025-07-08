@@ -1,3 +1,3 @@
-# pip install kaggle
-kaggle datasets download -d olistbr/brazilian-ecommerce -p ./data/bronze --unzip
-# kaggle datasets download -d olistbr/marketing-funnel-olist -p ./medallion/bronze --unzip
+poetry add kaggle
+poetry run kaggle datasets download -d olistbr/brazilian-ecommerce -p ./downloads/olist --unzip
+# poetry kaggle datasets download -d olistbr/marketing-funnel-olist -p ./medallion/bronze --unzip

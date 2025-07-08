@@ -8,7 +8,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ./minio/data:/data
+      - ../data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
@@ -23,14 +23,12 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ../data:/mnt
+      - ../downloads/olist/:/mnt/downloads/olist/
     entrypoint: >
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
-        for b in bronze silver warehouse; do
-          mc mb --ignore-existing local/$$b;
-        done &&
-        mc cp /mnt/bronze/*.csv local/bronze/ || true &&
+        mc mb --ignore-existing local/warehouse-dev/bronze &&
+        mc cp /mnt/downloads/olist/*.csv local/warehouse-dev/bronze || true &&
         echo "init-minio ready; keeping container alive" &&
         tail -f /dev/null
       '
@@ -92,7 +90,7 @@ services:
       CATALOG_URI: jdbc:postgresql://postgres:5432/iceberg
       CATALOG_JDBC_USER: iceberg
       CATALOG_JDBC_PASSWORD: iceberg
-      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_WAREHOUSE: s3://warehouse-dev/
       CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
 
       CATALOG_S3_ENDPOINT: http://minio:9000
