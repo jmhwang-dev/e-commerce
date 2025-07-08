@@ -3,7 +3,7 @@ from pyspark.sql.functions import datediff, col
 
 spark = SparkSession.builder.getOrCreate()
 
-orders = spark.read.table("dev.silver.olist_orders_dataset")
+orders = spark.read.table("warehouse_dev.silver.dedup.olist_orders_dataset")
 
 diff_delivery = orders.select(
     "order_id", "customer_id",
@@ -11,7 +11,7 @@ diff_delivery = orders.select(
 ).filter(col("diff_delivery").isNotNull()) \
  .withColumn("is_late", col("diff_delivery") < 0)
 
-full_table_name = "dev.silver.diff_delivery"
+full_table_name = "warehouse_dev.silver.features.diff_delivery"
 
 diff_delivery.writeTo(full_table_name) \
     .using("iceberg") \
