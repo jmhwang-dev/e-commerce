@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: silver_features
+    description: "Silver layer features schema"
+    tables:
+      - name: diff_delivery
+        description: "Delivery difference data"
+        columns:
+          - name: id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null

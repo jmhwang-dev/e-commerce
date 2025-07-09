@@ -101,6 +101,16 @@ services:
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_REGION: us-east-1
 
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-spark:1.9.0
+    depends_on:
+      - spark-client
+    volumes: 
+      - ./dbt:/usr/app/dbt
+      - ./dbt/profiles.yml:/root/.dbt/profiles.yml
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+
   # nessie-catalog:
   #   image: ghcr.io/projectnessie/nessie:0.104.2
   #   ports:
