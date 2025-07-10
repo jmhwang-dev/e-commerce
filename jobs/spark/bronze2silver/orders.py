@@ -1,22 +1,25 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import datediff, col
 
-spark = SparkSession.builder.getOrCreate()
 
-orders = spark.read.table("warehouse_dev.silver.dedup.olist_orders_dataset")
+if __name__=="__main__":
+        spark = SparkSession.builder.appName('translate_product_categories').getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")  # "ERROR"도 가능
 
-diff_delivery = orders.select(
-    "order_id", "customer_id",
-    datediff(col("order_estimated_delivery_date"), col("order_delivered_customer_date")).alias("diff_delivery")
-).filter(col("diff_delivery").isNotNull()) \
- .withColumn("is_late", col("diff_delivery") < 0)
+    orders = spark.read.table("warehouse_dev.silver.dedup.olist_orders_dataset")
 
-full_table_name = "warehouse_dev.silver.orders.diff_delivery"
+    diff_delivery = orders.select(
+        "order_id", "customer_id",
+        datediff(col("order_estimated_delivery_date"), col("order_delivered_customer_date")).alias("diff_delivery")
+    ).filter(col("diff_delivery").isNotNull()) \
+    .withColumn("is_late", col("diff_delivery") < 0)
 
-diff_delivery.writeTo(full_table_name) \
-    .using("iceberg") \
-    .tableProperty("comment", "Difference between estimated and delivered dates. Positive means early delivery. `is_late` means delivery is late.") \
-    .tableProperty("layer", "silver") \
-    .createOrReplace()
+    full_table_name = "warehouse_dev.silver.orders.diff_delivery"
 
-spark.stop()
+    diff_delivery.writeTo(full_table_name) \
+        .using("iceberg") \
+        .tableProperty("comment", "Difference between estimated and delivered dates. Positive means early delivery. `is_late` means delivery is late.") \
+        .tableProperty("layer", "silver") \
+        .createOrReplace()
+
+    spark.stop()
