@@ -11,7 +11,7 @@ diff_delivery = orders.select(
 ).filter(col("diff_delivery").isNotNull()) \
  .withColumn("is_late", col("diff_delivery") < 0)
 
-full_table_name = "warehouse_dev.silver.features.diff_delivery"
+full_table_name = "warehouse_dev.silver.orders.diff_delivery"
 
 diff_delivery.writeTo(full_table_name) \
     .using("iceberg") \
@@ -19,5 +19,4 @@ diff_delivery.writeTo(full_table_name) \
     .tableProperty("layer", "silver") \
     .createOrReplace()
 
-# ALTER TABLE silver.features.diff_delivery
-# RENAME TO silver.orders.diff_delivery;
+spark.stop()
