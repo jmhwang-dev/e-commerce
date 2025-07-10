@@ -102,3 +102,5 @@ if __name__ == "__main__":
 
     print(f"[INFO] {full_table_name} 테이블 저장 완료")
     product_spec.show(n=5)
+    
+    spark.stop()

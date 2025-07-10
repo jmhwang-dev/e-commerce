@@ -1,25 +1,51 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import datediff, col
 
+def get_diff_delivery_date(orders: DataFrame) -> DataFrame:
+    """
+    주문 데이터로부터 실제/예상 배송일 차이 및 지연여부 컬럼 추가
+    """
+    return (
+        orders
+        .select(
+            "order_id", "customer_id",
+            datediff(
+                col("order_estimated_delivery_date"),
+                col("order_delivered_customer_date")
+            ).alias("diff_delivery_date")
+        )
+        .filter(col("diff_delivery_date").isNotNull())
+        .withColumn("is_late", col("diff_delivery_date") < 0)
+    )
 
-if __name__=="__main__":
-        spark = SparkSession.builder.appName('translate_product_categories').getOrCreate()
-    spark.sparkContext.setLogLevel("WARN")  # "ERROR"도 가능
+if __name__ == "__main__":
+    spark = SparkSession.builder.appName('diff_delivery_date').getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
 
-    orders = spark.read.table("warehouse_dev.silver.dedup.olist_orders_dataset")
+    ORDERS_TABLE_NAME = "warehouse_dev.silver.dedup.olist_orders_dataset"
+    orders = spark.read.table(ORDERS_TABLE_NAME)
+    diff_delivery_date = get_diff_delivery_date(orders)
 
-    diff_delivery = orders.select(
-        "order_id", "customer_id",
-        datediff(col("order_estimated_delivery_date"), col("order_delivered_customer_date")).alias("diff_delivery")
-    ).filter(col("diff_delivery").isNotNull()) \
-    .withColumn("is_late", col("diff_delivery") < 0)
+    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.orders"
+    DST_TABLE_NAME = "diff_delivery_date"
+    spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
+    full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"
 
-    full_table_name = "warehouse_dev.silver.orders.diff_delivery"
+    writer = (
+        diff_delivery_date.writeTo(full_table_name)
+        .tableProperty(
+            "comment",
+            "Difference between estimated and delivered dates. "
+            "Positive means early delivery. `is_late` means delivery is late."
+        )
+    )
 
-    diff_delivery.writeTo(full_table_name) \
-        .using("iceberg") \
-        .tableProperty("comment", "Difference between estimated and delivered dates. Positive means early delivery. `is_late` means delivery is late.") \
-        .tableProperty("layer", "silver") \
-        .createOrReplace()
+    if not spark.catalog.tableExists(full_table_name):
+        writer.create()
+    else:
+        writer.overwritePartitions()
+
+    print(f"[INFO] {full_table_name} 테이블 저장 완료")
+    diff_delivery_date.show(n=5)
 
     spark.stop()
