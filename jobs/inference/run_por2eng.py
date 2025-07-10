@@ -12,7 +12,7 @@ from ecommerce.utils import (
     PREPROCESS_CONFIGS_DIR,
 )
 from ecommerce.inference import run_translator
-from ecommerce.postprocess.gather import merge_results
+from ecommerce.inference.gather import merge_results
 
 def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[str, mp.Process]:
     dataset, _ = get_dataset(config.dst_path)

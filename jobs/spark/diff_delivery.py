@@ -18,3 +18,6 @@ diff_delivery.writeTo(full_table_name) \
     .tableProperty("comment", "Difference between estimated and delivered dates. Positive means early delivery. `is_late` means delivery is late.") \
     .tableProperty("layer", "silver") \
     .createOrReplace()
+
+# ALTER TABLE silver.features.diff_delivery
+# RENAME TO silver.orders.diff_delivery;

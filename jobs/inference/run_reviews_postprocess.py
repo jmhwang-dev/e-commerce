@@ -7,7 +7,7 @@ from ecommerce.utils import (
     SilverDataName,
     POSTPROCESS_ARTIFACTS_DIR,
 )
-from ecommerce.postprocess.reviews import gather_inference, is_conflict
+from ecommerce.pipelines.bronze2silver.reviews_post import gather_inference, is_conflict
 
 if __name__=="__main__":
     ensure_directories()

@@ -9,7 +9,7 @@ from ecommerce.utils import (
     PREPROCESS_ARTIFACTS_DIR,
     SILVER_DIR,
 )
-from ecommerce.preprocess.reviews import ReviewPreprocessor
+from ecommerce.pipelines.bronze2silver.reviews import ReviewPreprocessor
 
 if __name__ == "__main__":
     ensure_directories()
