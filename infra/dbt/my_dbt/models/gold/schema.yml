@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: is_late
+    description: 지연 여부만 담은 골드 뷰
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: is_late
+        tests:
+          - accepted_values:
+              values: [true, false]      # ← Boolean 리터럴
+              quote: false               # ← Spark에서는 true/false 를 따옴표 없이

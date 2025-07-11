@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: silver_orders
+    schema: silver.orders    # 카탈로그 + 네임스페이스
+    tables:
+      - name: diff_delivery_date
+        description: |
+          배송 실제·예상 날짜 차이와 지연 여부가 포함된 실버 테이블
