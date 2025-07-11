@@ -12,4 +12,4 @@ docker compose -f infra/docker-compose.yml exec spark-client \
 spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \
-  "./jobs/$PYTHON_SCRIPT"
+  "$PYTHON_SCRIPT"
