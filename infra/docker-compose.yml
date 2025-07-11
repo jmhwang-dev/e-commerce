@@ -47,7 +47,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_MEMORY: 4g
       SPARK_WORKER_CORES: 2
     command: >
       bash -c "
@@ -59,14 +59,26 @@ services:
     hostname: spark-client
     depends_on:
       - spark-master
+    ports:
+      - "10000:10000"
+      - "4041:4041"
     volumes:
       - ../notebooks/spark:/opt/spark/work-dir/notebooks
-      - ../src/jobs/spark/:/opt/spark/work-dir/jobs
+      - ../jobs/spark/:/opt/spark/work-dir/jobs
       - ../configs/spark:/opt/spark/conf
+      - ./spark/logs:/opt/spark/logs
 
     working_dir: /opt/spark/work-dir
-    command: tail -f /dev/null
+    environment:
+      - SPARK_NO_DAEMONIZE=1  # run foreground
 
+    # command: tail -f /dev/null
+    command: >
+      /opt/spark/sbin/start-thriftserver.sh \
+        --master spark://spark-master:7077 --executor-memory 3g \
+        --executor-cores 1 \
+        --driver-memory 2g
+      
   postgres:
     image: postgres:16
     environment:
@@ -107,7 +119,7 @@ services:
       - spark-client
     volumes: 
       - ./dbt:/usr/app/dbt
-      - ./dbt/profiles.yml:/root/.dbt/profiles.yml
+      - ./dbt/.dbt/profiles.yml:/root/.dbt/profiles.yml
     entrypoint: ["tail", "-f", "/dev/null"]
 
 
