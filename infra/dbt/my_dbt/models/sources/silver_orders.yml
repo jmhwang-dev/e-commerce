@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: silver_orders
-    schema: silver.orders    # 카탈로그 + 네임스페이스
+    schema: warehouse_dev.silver.orders
     tables:
       - name: diff_delivery_date
         description: |
