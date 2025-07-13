@@ -83,7 +83,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes: 
-      - "../data/postgres:/var/lib/postgresql/data"
+      # - "../data/postgres:/var/lib/postgresql/data"
       - "./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
@@ -120,6 +120,31 @@ services:
       - ./dbt:/usr/app/dbt
       - ./dbt/.dbt/profiles.yml:/root/.dbt/profiles.yml
     entrypoint: ["tail", "-f", "/dev/null"]
+  
+  superset:
+    image: apache/superset:5.0.0-dev
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_DIALECT=postgresql+psycopg2
+      - DATABASE_USER=superset
+      - DATABASE_PASSWORD=superset
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_DB=superset
+      - SUPERSET_SECRET_KEY=dev
+      # - SUPERSET_CONFIG_PATH=/app/superset_config.py
+
+    # volumes:
+      # - "./superset/superset_config.py:/app/superset_config.py"
+    # command: >
+    #   bash -c "superset db upgrade && \
+    #   superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@superset.com && \
+    #   superset init && \
+    #   superset run -h 0.0.0.0 -p 8088"
 
   # nessie-catalog:
   #   image: ghcr.io/projectnessie/nessie:0.104.2
