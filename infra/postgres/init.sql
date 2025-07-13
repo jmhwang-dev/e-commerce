@@ -1,0 +1,3 @@
+CREATE USER iceberg WITH ENCRYPTED PASSWORD 'iceberg';
+CREATE DATABASE iceberg;
+ALTER DATABASE iceberg OWNER TO iceberg;

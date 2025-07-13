@@ -16,7 +16,6 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
-
   init-minio:
     image: minio/mc:RELEASE.2025-05-21T01-59-54Z
     depends_on:
@@ -64,7 +63,7 @@ services:
       - "4041:4041"
     volumes:
       - ../notebooks/spark:/opt/spark/work-dir/notebooks
-      - ../jobs/spark/:/opt/spark/work-dir/jobs
+      - ../jobs:/opt/spark/work-dir/jobs
       - ../configs/spark:/opt/spark/conf
       - ./spark/logs:/opt/spark/logs
 
@@ -78,16 +77,16 @@ services:
         --master spark://spark-master:7077 --executor-memory 3g \
         --executor-cores 1 \
         --driver-memory 2g
-      
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: iceberg
-      POSTGRES_PASSWORD: iceberg
-      POSTGRES_DB: iceberg
-    volumes: ["../data/postgres:/var/lib/postgresql/data"]
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes: 
+      - "../data/postgres:/var/lib/postgresql/data"
+      - "./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U iceberg"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -121,7 +120,6 @@ services:
       - ./dbt:/usr/app/dbt
       - ./dbt/.dbt/profiles.yml:/root/.dbt/profiles.yml
     entrypoint: ["tail", "-f", "/dev/null"]
-
 
   # nessie-catalog:
   #   image: ghcr.io/projectnessie/nessie:0.104.2
