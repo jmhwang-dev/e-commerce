@@ -37,7 +37,10 @@ services:
       ports:
         - "8080:8080"
         - "7077:7077"
+      volumes:
+        - ../configs/spark:/opt/spark/conf
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+      
   spark-worker:
     image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-worker
@@ -48,6 +51,8 @@ services:
     environment:
       SPARK_WORKER_MEMORY: 4g
       SPARK_WORKER_CORES: 2
+    volumes:
+      - ../configs/spark:/opt/spark/conf
     command: >
       bash -c "
         sleep 10 &&
@@ -62,9 +67,9 @@ services:
       - "10000:10000"
       - "4041:4041"
     volumes:
+      - ../configs/spark:/opt/spark/conf
       - ../notebooks/spark:/opt/spark/work-dir/notebooks
       - ../jobs:/opt/spark/work-dir/jobs
-      - ../configs/spark:/opt/spark/conf
       - ./spark/logs:/opt/spark/logs
 
     working_dir: /opt/spark/work-dir
