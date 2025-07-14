@@ -122,9 +122,7 @@ services:
     entrypoint: ["tail", "-f", "/dev/null"]
   
   superset-init:
-    image: apache/superset:5.0.0-dev
-    ports:
-      - "8088:8088"
+    image: superset:thrift-0.7.0-psql16
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,12 +142,15 @@ services:
     command: ["/app/docker/docker-init.sh"]
 
   superset:
-    image: apache/superset:5.0.0-dev
+    image: superset:thrift-0.7.0-psql16
     ports:
       - "8088:8088"
     depends_on:
       superset-init:
         condition: service_completed_successfully
+        
     volumes:
       - "./superset/superset_config.py:/app/pythonpath/superset_config.py"
+      - "./superset/requirements-local.txt:/app/docker/requirements-local.txt"
+
     environment: *superset-env
