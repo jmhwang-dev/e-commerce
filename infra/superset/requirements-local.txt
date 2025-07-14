@@ -1,0 +1,25 @@
+# requirements-local.txt 가이드
+#
+# 목적
+# - Dockerfile 없이 lean 이미지에 패키지 추가
+#
+# 메커니즘
+# - 컨테이너 시작 시 `/app/docker/requirements-local.txt` 확인
+# - 존재하면 venv(`/app/.venv`)에서 명령 실행
+#   - `uv pip install -r /app/docker/requirements-local.txt`
+#
+# 사용 위치
+# - 로컬:  ./superset/requirements-local.txt
+# - 컨테이너: /app/docker/requirements-local.txt (볼륨 마운트 또는 COPY)
+#   
+# 대표 패키지
+# - psycopg2-binary      # Postgres
+# - pyhive[hive]==0.7.0  # Spark/Hive Thrift
+# - thrift_sasl==0.4.3   # SASL 인증
+# - Authlib              # OAuth / OIDC
+# - playwright           # 스크린샷 엔진
+# - Pillow               # PDF 이미지
+#
+# 운영 이미지에 bake
+# - 파일 COPY 후 실행
+#   - `/app/.venv/bin/uv pip install -r /app/docker/requirements-local.txt`
