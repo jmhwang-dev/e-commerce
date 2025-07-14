@@ -81,7 +81,23 @@ services:
       /opt/spark/sbin/start-thriftserver.sh \
         --master spark://spark-master:7077 --executor-memory 3g \
         --executor-cores 1 \
-        --driver-memory 2g
+        --driver-memory 2g &&
+      spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
+
+  spark-init:
+    image: warehouse:sp3.5.6-ice1.9.1
+    depends_on:
+      - spark-master
+      - rest-catalog
+    volumes:
+      - ../configs/spark:/opt/spark/conf
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for master/catalog…';
+        sleep 10;
+        spark-sql -e \"CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;\"
+      "
+      
   postgres:
     image: postgres:16
     environment:
