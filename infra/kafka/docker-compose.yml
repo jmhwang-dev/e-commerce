@@ -1,0 +1,123 @@
+services:
+  kafka1-init:
+    image: apache/kafka:3.9.1
+    env_file:
+      - .env
+    user: root
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /var/lib/kafka/data && \
+        chown -R appuser:appuser /var/lib/kafka/data && \
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          echo "Formatting kafka1 storage with Cluster ID: ${CLUSTER_ID}";
+          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
+            --cluster-id ${CLUSTER_ID} \
+            --config /etc/kafka/server.properties;
+        fi
+    volumes:
+      - ../../data/kafka/node1:/var/lib/kafka/data
+
+  kafka1:
+    image: apache/kafka:3.9.1
+    depends_on:
+      - kafka1-init
+    env_file:
+      - .env
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://kafka1:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka1:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    volumes:
+      - ../../data/kafka/node1:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+
+  kafka2-init:
+    image: apache/kafka:3.9.1
+    env_file:
+      - .env
+    user: root
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /var/lib/kafka/data && \
+        chown -R appuser:appuser /var/lib/kafka/data && \
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          echo "Formatting kafka2 storage with Cluster ID: ${CLUSTER_ID}";
+          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
+            --cluster-id ${CLUSTER_ID} \
+            --config /etc/kafka/server.properties;
+        fi
+    volumes:
+      - ../../data/kafka/node2:/var/lib/kafka/data
+
+  kafka2:
+    image: apache/kafka:3.9.1
+    depends_on:
+      - kafka2-init
+    env_file:
+      - .env
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://kafka2:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka2:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    volumes:
+      - ../../data/kafka/node2:/var/lib/kafka/data
+    ports:
+      - "9094:9092"
+      - "9095:9093"
+
+  kafka3-init:
+    image: apache/kafka:3.9.1
+    env_file:
+      - .env
+    user: root
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /var/lib/kafka/data && \
+        chown -R appuser:appuser /var/lib/kafka/data && \
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          echo "Formatting kafka3 storage with Cluster ID: ${CLUSTER_ID}";
+          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
+            --cluster-id ${CLUSTER_ID} \
+            --config /etc/kafka/server.properties;
+        fi
+    volumes:
+      - ../../data/kafka/node3:/var/lib/kafka/data
+
+  kafka3:
+    image: apache/kafka:3.9.1
+    depends_on:
+      - kafka3-init
+    env_file:
+      - .env
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://kafka3:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka3:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    volumes:
+      - ../../data/kafka/node3:/var/lib/kafka/data
+    ports:
+      - "9096:9092"
+      - "9097:9093"
