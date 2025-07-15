@@ -62,40 +62,48 @@ REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
+# 캐시 설정 - Redis 대신 NullCache 사용
 CACHE_CONFIG = {
-    "CACHE_TYPE": "RedisCache",
-    "CACHE_DEFAULT_TIMEOUT": 300,
-    "CACHE_KEY_PREFIX": "superset_",
-    "CACHE_REDIS_HOST": REDIS_HOST,
-    "CACHE_REDIS_PORT": REDIS_PORT,
-    "CACHE_REDIS_DB": REDIS_RESULTS_DB,
+    'CACHE_TYPE': 'NullCache'
 }
+# CACHE_CONFIG = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_DEFAULT_TIMEOUT": 300,
+#     "CACHE_KEY_PREFIX": "superset_",
+#     "CACHE_REDIS_HOST": REDIS_HOST,
+#     "CACHE_REDIS_PORT": REDIS_PORT,
+#     "CACHE_REDIS_DB": REDIS_RESULTS_DB,
+# }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 
-class CeleryConfig:
-    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = (
-        "superset.sql_lab",
-        "superset.tasks.scheduler",
-        "superset.tasks.thumbnails",
-        "superset.tasks.cache",
-    )
-    result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
-    worker_prefetch_multiplier = 1
-    task_acks_late = False
-    beat_schedule = {
-        "reports.scheduler": {
-            "task": "reports.scheduler",
-            "schedule": crontab(minute="*", hour="*"),
-        },
-        "reports.prune_log": {
-            "task": "reports.prune_log",
-            "schedule": crontab(minute=10, hour=0),
-        },
-    }
+# class CeleryConfig:
+#     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+#     imports = (
+#         "superset.sql_lab",
+#         "superset.tasks.scheduler",
+#         "superset.tasks.thumbnails",
+#         "superset.tasks.cache",
+#     )
+#     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
+#     worker_prefetch_multiplier = 1
+#     task_acks_late = False
+#     beat_schedule = {
+#         "reports.scheduler": {
+#             "task": "reports.scheduler",
+#             "schedule": crontab(minute="*", hour="*"),
+#         },
+#         "reports.prune_log": {
+#             "task": "reports.prune_log",
+#             "schedule": crontab(minute=10, hour=0),
+#         },
+#     }
 
+class CeleryConfig:
+    broker_url = None
+    result_backend = None
+    task_always_eager = True  # 모든 작업을 동기적으로 실행
 
 CELERY_CONFIG = CeleryConfig
 
