@@ -4,7 +4,7 @@
 # 사용법: chmod +x kafka_test_commands.sh && ./kafka_test_commands.sh
 
 COMPOSE_FILE="infra/kafka/docker-compose.yml"
-BOOTSTRAP="kafka1:9092"
+BOOTSTRAP="kafka1:9092,kafka2:9092,kafka3:9092"
 CONTROLLER="kafka1:9093"
 TOPIC="test-topic"
 GROUP="my-test-group"
@@ -18,7 +18,8 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
 echo -e "\n2. 컨트롤러 쿼럼 상태 확인"
 docker compose -f "$COMPOSE_FILE" exec kafka1 \
     /opt/kafka/bin/kafka-metadata-quorum.sh \
-    --bootstrap-controller "$CONTROLLER" describe \
+    describe \
+    --bootstrap-controller "$CONTROLLER" \
     --status
 
 echo -e "\n3. 테스트 토픽 생성"
@@ -46,11 +47,11 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
 # 2. 메시지 송신 (kafka1에서 실행, STDIN 파이프 사용)
 # -T 옵션은 TTY 없이 STDIN 파이프를 동작시키기 위해 사용
 echo -e "\n6. 메시지 송신: Hello from script!"
-docker compose -f "$COMPOSE_FILE" exec -T kafka1 bash -c "\
-echo 'Hello from script!' | \
-/opt/kafka/bin/kafka-console-producer.sh \
-  --bootstrap-server "$BOOTSTRAP" \
-  --topic "$TOPIC""
+docker compose -f "$COMPOSE_FILE" exec -T kafka1 bash -c \
+  "echo 'Hello from script!' | \
+   /opt/kafka/bin/kafka-console-producer.sh \
+     --bootstrap-server '$BOOTSTRAP' \
+     --topic '$TOPIC'"
 
 # 3. 메시지 수신 및 로그 확인 (kafka2에서 실행)
 echo -e "\n7. 메시지 수신 (콘솔 소비자)"
@@ -82,3 +83,5 @@ docker compose -f "$COMPOSE_FILE" exec kafka2 \
     --bootstrap-server "$BOOTSTRAP" \
     --describe \
     --group "$GROUP"
+
+echo -e "\n Kafka 테스트 스크립트 완료"
