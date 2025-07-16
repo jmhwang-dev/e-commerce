@@ -1,4 +1,22 @@
 services:
+  fastapi-producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:9092
+      KAFKA_TOPIC: test-topic
+    ports:
+      - "8000:8000"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+    # command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+
   kafka1-init:
     image: apache/kafka:3.9.1
     env_file:
@@ -39,6 +57,11 @@ services:
     ports:
       - "9092:9092"
       - "9093:9093"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   kafka2-init:
     image: apache/kafka:3.9.1
