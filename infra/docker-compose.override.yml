@@ -4,9 +4,6 @@ services:
       context: ./producer
       dockerfile: Dockerfile
     container_name: fastapi-producer
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka1:9092
-      KAFKA_TOPIC: test-topic
     ports:
       - "8000:8000"
     depends_on:
@@ -15,7 +12,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./producer/app:/app
-      - ./shared/sample_messages:/mnt/samples:ro
+      - ./shared/schemas:/mnt/schemas:ro
 
   kafka1-init:
     image: apache/kafka:3.9.1
