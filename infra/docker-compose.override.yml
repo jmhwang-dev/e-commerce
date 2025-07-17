@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./producer/app:/app
+      - ./shared/sample_messages:/mnt/samples:ro
 
   kafka1-init:
     image: apache/kafka:3.9.1
@@ -43,6 +44,7 @@ services:
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
       - ../data/kafka/node1:/var/lib/kafka/data
+      - ./shared/sample_messages:/mnt/samples:ro
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -79,6 +81,7 @@ services:
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
       - ../data/kafka/node2:/var/lib/kafka/data
+      - ./shared/sample_messages:/mnt/samples:ro
     ports:
       - "9094:9092"
       - "9095:9093"
@@ -110,6 +113,7 @@ services:
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
       - ../data/kafka/node3:/var/lib/kafka/data
+      - ./shared/sample_messages:/mnt/samples:ro
     ports:
       - "9096:9092"
       - "9097:9093"
