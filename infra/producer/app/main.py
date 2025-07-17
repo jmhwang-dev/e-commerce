@@ -33,3 +33,9 @@ async def publish_message(msg: Message):
         return {"status": "sent", "topic": KAFKA_TOPIC}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# @app.post("/send_review")
+# async def send_review(data: ReviewModel):  # Pydantic 기반
+#     # 1. Avro 스키마 로드
+#     # 2. data.dict() → Avro 직렬화
+#     # 3. KafkaProducer.send('review_raw', value=encoded_avro)

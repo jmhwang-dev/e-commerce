@@ -1,7 +1,7 @@
 services:
   fastapi-producer:
     build:
-      context: .
+      context: ./producer
       dockerfile: Dockerfile
     container_name: fastapi-producer
     environment:
@@ -12,37 +12,26 @@ services:
     depends_on:
       kafka1:
         condition: service_healthy
-    # command: tail -f /dev/null
     restart: unless-stopped
     volumes:
-      - ./app:/app
+      - ./producer/app:/app
 
   kafka1-init:
     image: apache/kafka:3.9.1
     env_file:
-      - .env
+      - ../configs/kafka/.env
     user: root
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        mkdir -p /var/lib/kafka/data && \
-        chown -R appuser:appuser /var/lib/kafka/data && \
-        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
-          echo "Formatting kafka1 storage with Cluster ID: ${CLUSTER_ID}";
-          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
-            --cluster-id ${CLUSTER_ID} \
-            --config /etc/kafka/server.properties;
-        fi
+    entrypoint: [bash, /init/format.sh]
     volumes:
-      - ../../data/kafka/node1:/var/lib/kafka/data
+      - ./kafka/init:/init
+      - ../data/kafka/node1:/var/lib/kafka/data
 
   kafka1:
     image: apache/kafka:3.9.1
     depends_on:
       - kafka1-init
     env_file:
-      - .env
+      - ../configs/kafka/.env
     environment:
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_NODE_ID: 1
@@ -53,7 +42,7 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
-      - ../../data/kafka/node1:/var/lib/kafka/data
+      - ../data/kafka/node1:/var/lib/kafka/data
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -66,29 +55,19 @@ services:
   kafka2-init:
     image: apache/kafka:3.9.1
     env_file:
-      - .env
+      - ../configs/kafka/.env
     user: root
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        mkdir -p /var/lib/kafka/data && \
-        chown -R appuser:appuser /var/lib/kafka/data && \
-        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
-          echo "Formatting kafka2 storage with Cluster ID: ${CLUSTER_ID}";
-          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
-            --cluster-id ${CLUSTER_ID} \
-            --config /etc/kafka/server.properties;
-        fi
+    entrypoint: [bash, /init/format.sh]
     volumes:
-      - ../../data/kafka/node2:/var/lib/kafka/data
+      - ./kafka/init:/init
+      - ../data/kafka/node2:/var/lib/kafka/data
 
   kafka2:
     image: apache/kafka:3.9.1
     depends_on:
       - kafka2-init
     env_file:
-      - .env
+      - ../configs/kafka/.env
     environment:
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_NODE_ID: 2
@@ -99,7 +78,7 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
-      - ../../data/kafka/node2:/var/lib/kafka/data
+      - ../data/kafka/node2:/var/lib/kafka/data
     ports:
       - "9094:9092"
       - "9095:9093"
@@ -107,29 +86,19 @@ services:
   kafka3-init:
     image: apache/kafka:3.9.1
     env_file:
-      - .env
+      - ../configs/kafka/.env
     user: root
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        mkdir -p /var/lib/kafka/data && \
-        chown -R appuser:appuser /var/lib/kafka/data && \
-        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
-          echo "Formatting kafka3 storage with Cluster ID: ${CLUSTER_ID}";
-          exec gosu appuser /opt/kafka/bin/kafka-storage.sh format \
-            --cluster-id ${CLUSTER_ID} \
-            --config /etc/kafka/server.properties;
-        fi
+    entrypoint: [bash, /init/format.sh]
     volumes:
-      - ../../data/kafka/node3:/var/lib/kafka/data
+      - ./kafka/init:/init
+      - ../data/kafka/node3:/var/lib/kafka/data
 
   kafka3:
     image: apache/kafka:3.9.1
     depends_on:
       - kafka3-init
     env_file:
-      - .env
+      - ../configs/kafka/.env
     environment:
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_NODE_ID: 3
@@ -140,7 +109,7 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     volumes:
-      - ../../data/kafka/node3:/var/lib/kafka/data
+      - ../data/kafka/node3:/var/lib/kafka/data
     ports:
       - "9096:9092"
       - "9097:9093"
