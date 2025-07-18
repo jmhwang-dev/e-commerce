@@ -13,6 +13,8 @@ metastore_db/
 pgdata/
 data/
 s3/
+*.properties
+!default.properties
 
 
 # Byte-compiled / optimized / DLL files
