@@ -1,51 +1,49 @@
-x-common: &kafka-common
+x-health-kafka: &kafka-healthcheck
+  test: ["CMD-SHELL",
+         "/opt/kafka/bin/kafka-broker-api-versions.sh \
+          --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+  interval: 10s
+  timeout: 5s
+  retries: 10
+
+# - entrypoint는 root(UID 0)로 시작했다가 gosu로 appuser(UID 1000)로 권한을 내려감
+# - 컨테이너를 애초에 non-root로 시작하려면
+#   1) 호스트 바인드 디렉터리를 **컨테이너 UID/GID(예: 1000:1000)** 로 미리 chown
+#      - host 사용자 ID와 같을 수도 있지만 ‘항상’ 같지는 않음
+#   2) compose에 `user: "1000:1000"` 또는 `user: appuser` 지정
+#      - userns-remap·rootless-Docker 환경이라면 매핑된 고유 UID로 맞춰야 함
+
+x-kafka-common: &kafka-common
   image: apache/kafka:3.9.1
-  # - entrypoint는 root(UID 0)로 시작했다가 gosu로 appuser(UID 1000)로 권한을 내려감
-  # - 컨테이너를 애초에 non-root로 시작하려면
-  #   1) 호스트 바인드 디렉터리를 **컨테이너 UID/GID(예: 1000:1000)** 로 미리 chown
-  #      - host 사용자 ID와 같을 수도 있지만 ‘항상’ 같지는 않음
-  #   2) compose에 `user: "1000:1000"` 또는 `user: appuser` 지정
-  #      - userns-remap·rootless-Docker 환경이라면 매핑된 고유 UID로 맞춰야 함
   user: root
   env_file:
     - ../configs/kafka/.env
   volumes:
     - ./shared/sample_messages:/mnt/samples:ro
+  healthcheck: *kafka-healthcheck
 
 services:
   kafka1:
     <<: *kafka-common
+    ports: ["9092:9092", "9093:9093"]
     volumes:
       - ../configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node1:/var/lib/kafka/data
 
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   kafka2:
     <<: *kafka-common
-    ports:
-      - "9094:9092"
-      - "9095:9093"
+    ports: ["9094:9092", "9095:9093"]
     volumes:
       - ../configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node2:/var/lib/kafka/data
-  
+
   kafka3:
     <<: *kafka-common
-    ports:
-      - "9096:9092"
-      - "9097:9093"
+    ports: ["9096:9092", "9097:9093"]
     volumes:
       - ../configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node3:/var/lib/kafka/data
+
   fastapi-producer:
     build:
       context: ./producer
@@ -54,8 +52,9 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      kafka1:
-        condition: service_healthy
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
     restart: unless-stopped
     volumes:
       - ./producer/app:/app
