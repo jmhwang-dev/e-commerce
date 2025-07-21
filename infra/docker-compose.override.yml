@@ -18,8 +18,6 @@ x-kafka-common: &kafka-common
   user: root
   env_file:
     - ../configs/kafka/.env
-  volumes:
-    - ./shared/sample_messages:/mnt/samples:ro
   healthcheck: *kafka-healthcheck
 
 services:
@@ -27,6 +25,7 @@ services:
     <<: *kafka-common
     ports: ["9092:9092", "9093:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node1:/var/lib/kafka/data
 
@@ -34,6 +33,7 @@ services:
     <<: *kafka-common
     ports: ["9094:9092", "9095:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node2:/var/lib/kafka/data
 
@@ -41,13 +41,14 @@ services:
     <<: *kafka-common
     ports: ["9096:9092", "9097:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node3:/var/lib/kafka/data
 
   fastapi-producer:
     build:
       context: ./producer
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: fastapi-producer
     ports:
       - "8000:8000"
@@ -58,4 +59,30 @@ services:
     restart: unless-stopped
     volumes:
       - ./producer/app:/app
-      - ./shared/schemas:/mnt/schemas:ro
+      - ./shared:/mnt/shared
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    container_name: schema-registry
+    depends_on:
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
+    environment:
+      # Kafka 클러스터 연결
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
+        PLAINTEXT://kafka1:9092,PLAINTEXT://kafka2:9092,PLAINTEXT://kafka3:9092
+      # REST 엔드포인트 설정
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      # _schemas 토픽 복제계수 (브로커 3대 → 3)
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 3
+      # 기본 호환성(BACKWARD 권장)
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: BACKWARD
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://schema-registry:8081/subjects"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "8082:8081"
