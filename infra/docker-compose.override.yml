@@ -48,8 +48,11 @@ services:
   fastapi-producer:
     build:
       context: ./producer
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: fastapi-producer
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      PYTHONPATH: /app
     ports:
       - "8000:8000"
     depends_on:
@@ -57,9 +60,17 @@ services:
       kafka2: { condition: service_healthy }
       kafka3: { condition: service_healthy }
     restart: unless-stopped
+    command: 
+      [ "uvicorn", "main:app",
+        "--host", "0.0.0.0", "--port", "8000",
+         "--reload-dir", "/app" ]
+
     volumes:
-      - ./producer/app:/app
+      - ../jobs/server/producer_api.py:/app/main.py
+      - ../src/domain:/app/domain
+      - ../src/services/producer:/app/services/producer
       - ./shared:/mnt/shared
+
 
   schema-registry:
     image: confluentinc/cp-schema-registry:latest
