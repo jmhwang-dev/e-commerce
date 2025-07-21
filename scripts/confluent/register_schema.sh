@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SCHEMA_FILE="./infra/shared/schemas/event.review_received.avsc"
+SCHEMA_FILE="./infra/shared/schemas/event-review-received.avsc"
 SUBJECT="event-review-received-value"
 REGISTRY_URL="${SCHEMA_REGISTRY_URL:-http://localhost:8082}"
 
