@@ -5,7 +5,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 
 BOOTSTRAP  = os.getenv("KAFKA_BOOTSTRAP", "kafka1:9092")
-TOPIC      = os.getenv("REVIEW_TOPIC",  "event-review-received")
+TOPIC      = os.getenv("REVIEW_TOPIC",  "review")
 SR_URL     = os.getenv("SCHEMA_REGISTRY_URL")
 
 _sr          = None

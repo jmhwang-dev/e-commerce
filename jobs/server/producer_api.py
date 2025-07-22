@@ -4,7 +4,7 @@ from services.producer.review import publish_review
 import json, pathlib
 
 app = FastAPI(title="Review Producer API")
-SAMPLE_PATH = pathlib.Path("/mnt/shared/sample_messages/review_raw.json")
+SAMPLE_PATH = pathlib.Path("/mnt/shared/sample_messages/review.json")
 
 @app.post("/produce")
 def produce_review(review: Review):
