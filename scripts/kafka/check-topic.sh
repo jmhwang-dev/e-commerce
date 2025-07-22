@@ -18,3 +18,12 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
   /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka1:9092 \
   --list
+
+echo -e "\n📌 현재 존재하는 Kafka 토픽"
+docker compose -f "$COMPOSE_FILE" exec kafka1 \
+  /opt/kafka/bin/kafka-console-consumer.sh \
+    --bootstrap-server kafka1:9092 \
+    --topic $TOPIC \
+    --from-beginning \
+    --max-messages 1 \
+    --property print.value=true

@@ -9,7 +9,7 @@ SAMPLE_PATH = pathlib.Path("/mnt/shared/sample_messages/review.json")
 @app.post("/produce")
 def produce_review(review: Review):
     try:
-        publish_review(review.model_dump())
+        publish_review([review.model_dump()])
         return {"status": "queued"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -17,6 +17,5 @@ def produce_review(review: Review):
 @app.post("/produce/sample")
 def produce_sample():
     record = json.loads(SAMPLE_PATH.read_text())
-    print(record)
-    publish_review(record)
+    publish_review([record])
     return {"status": "sample queued", "review_id": record["review_id"]}
