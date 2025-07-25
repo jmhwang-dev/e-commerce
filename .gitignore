@@ -15,6 +15,7 @@ data/
 s3/
 *.properties
 !default.properties
+.vscode/
 
 
 # Byte-compiled / optimized / DLL files

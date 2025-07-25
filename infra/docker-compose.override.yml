@@ -71,7 +71,6 @@ services:
       - ../src/services/producer:/app/services/producer
       - ./shared:/mnt/shared
 
-
   schema-registry:
     image: confluentinc/cp-schema-registry:latest
     container_name: schema-registry
@@ -112,3 +111,40 @@ services:
     volumes:
       - ./kafka/init:/mnt/init
     command: ["bash", "/mnt/init/create-topics.sh"]
+
+  fastapi-consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: fastapi-consumer
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      PYTHONPATH: /app
+    ports:
+      - "8003:8000"
+    depends_on:
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+    # -it 대응 (터미널 디버깅용)
+    tty: true
+    stdin_open: true
+
+    command: 
+      [ "uvicorn", "main:app",
+        "--host", "0.0.0.0", "--port", "8000",
+         "--reload-dir", "/app" ]
+
+    volumes:
+      - ../jobs/server/consumer_api.py:/app/main.py
+      - ../src/domain:/app/domain
+      - ../src/services/consumer:/app/services/consumer
+      - ./shared:/mnt/shared
