@@ -1,3 +1,7 @@
+x-spark-common: &spark-common
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
 services:
   minio:
     image: minio/minio:RELEASE.2025-06-13T11-33-47Z
@@ -32,7 +36,8 @@ services:
         tail -f /dev/null
       '
   spark-master:
-      image: warehouse:sp3.5.6-ice1.9.1
+      <<: *spark-common
+      # image: warehouse:sp3.5.6-ice1.9.1
       hostname: spark-master
       ports:
         - "8080:8080"
@@ -42,7 +47,8 @@ services:
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
       
   spark-worker:
-    image: warehouse:sp3.5.6-ice1.9.1
+    <<: *spark-common
+    # image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-worker
     depends_on:
       - spark-master
@@ -59,7 +65,8 @@ services:
         /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
       "
   spark-client:
-    image: warehouse:sp3.5.6-ice1.9.1
+    <<: *spark-common
+    # image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-client
     depends_on:
       - spark-master
@@ -83,7 +90,6 @@ services:
         --executor-cores 1 \
         --driver-memory 2g &&
       spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
-
   spark-init:
     image: warehouse:sp3.5.6-ice1.9.1
     depends_on:

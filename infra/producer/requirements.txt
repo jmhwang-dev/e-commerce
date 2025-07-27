@@ -3,4 +3,6 @@ uvicorn==0.35.0
 kafka-python==2.2.15
 pydantic==2.11.7
 fastavro
-confluent_kafka
+confluent_kafka[avro]
+urllib3
+requests

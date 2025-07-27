@@ -18,8 +18,6 @@ x-kafka-common: &kafka-common
   user: root
   env_file:
     - ../configs/kafka/.env
-  volumes:
-    - ./shared/sample_messages:/mnt/samples:ro
   healthcheck: *kafka-healthcheck
 
 services:
@@ -27,6 +25,7 @@ services:
     <<: *kafka-common
     ports: ["9092:9092", "9093:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node1:/var/lib/kafka/data
 
@@ -34,6 +33,7 @@ services:
     <<: *kafka-common
     ports: ["9094:9092", "9095:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node2:/var/lib/kafka/data
 
@@ -41,6 +41,7 @@ services:
     <<: *kafka-common
     ports: ["9096:9092", "9097:9093"]
     volumes:
+      - ./shared:/mnt/shared
       - ../configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node3:/var/lib/kafka/data
 
@@ -49,6 +50,9 @@ services:
       context: ./producer
       dockerfile: Dockerfile
     container_name: fastapi-producer
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      PYTHONPATH: /app
     ports:
       - "8000:8000"
     depends_on:
@@ -56,6 +60,91 @@ services:
       kafka2: { condition: service_healthy }
       kafka3: { condition: service_healthy }
     restart: unless-stopped
+    command: 
+      [ "uvicorn", "main:app",
+        "--host", "0.0.0.0", "--port", "8000",
+         "--reload-dir", "/app" ]
+
     volumes:
-      - ./producer/app:/app
-      - ./shared/schemas:/mnt/schemas:ro
+      - ../jobs/server/producer_api.py:/app/main.py
+      - ../src/domain:/app/domain
+      - ../src/services/producer:/app/services/producer
+      - ./shared:/mnt/shared
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    container_name: schema-registry
+    depends_on:
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
+    environment:
+      # Kafka 클러스터 연결
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
+        PLAINTEXT://kafka1:9092,PLAINTEXT://kafka2:9092,PLAINTEXT://kafka3:9092
+      # REST 엔드포인트 설정
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      # _schemas 토픽 복제계수 (브로커 3대 → 3)
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 3
+      # 기본 호환성(BACKWARD 권장)
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: BACKWARD
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://schema-registry:8081/subjects"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "8082:8081"
+
+  topic-init:
+    <<: *kafka-common
+    container_name: topic-init
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ./kafka/init:/mnt/init
+    command: ["bash", "/mnt/init/create-topics.sh"]
+
+  fastapi-consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: fastapi-consumer
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      PYTHONPATH: /app
+    ports:
+      - "8003:8000"
+    depends_on:
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+    # -it 대응 (터미널 디버깅용)
+    tty: true
+    stdin_open: true
+
+    command: 
+      [ "uvicorn", "main:app",
+        "--host", "0.0.0.0", "--port", "8000",
+         "--reload-dir", "/app" ]
+
+    volumes:
+      - ../jobs/server/consumer_api.py:/app/main.py
+      - ../src/domain:/app/domain
+      - ../src/services/consumer:/app/services/consumer
+      - ./shared:/mnt/shared
