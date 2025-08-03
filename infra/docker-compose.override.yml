@@ -91,10 +91,29 @@ services:
       context: ./producer
       dockerfile: Dockerfile
     command: >
-      sh -c "python /app/review_prompt.py"
+      sh -c "tail -f /dev/null"
     volumes:
-      - ./producer/review_prompt.py:/app/review_prompt.py
+      - ../jobs/producer/:/jobs/
     depends_on:
       - kafka1
       - kafka2
       - kafka3
+  consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python /jobs/inference.py"
+    volumes:
+      - ../jobs/consumer/:/jobs/
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # 또는 1, 2 등
+              capabilities: [gpu]

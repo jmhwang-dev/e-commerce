@@ -11,11 +11,11 @@ producer = Producer(producer_conf)
 
 # JSON 데이터 예시 (prompt를 dict로 수정; 리스트 필요 시 되돌림)
 message_value = {
-    'review_id': 'e64fb393e7b32834bb789ff8bb30750e',
+    'review_id': 'f7c4243c7fe1938f181bec41a392bdeb',
     'comment_type': 'comment',
     'prompt': [{
         'role': 'user',
-        'content': 'Translate the following text from Portuguese into English.\nPortuguese: recebi bem antes do prazo estipulado.\nEnglish:'
+        'content': 'Translate the following text from Portuguese into English.\nPortuguese: parabéns lojas lannister adorei comprar pela internet seguro e prático parabéns a todos feliz páscoa\nEnglish:'
     }]
 }
 

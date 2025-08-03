@@ -25,5 +25,5 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
     --bootstrap-server kafka1:9092 \
     --topic $TOPIC \
     --from-beginning \
-    --max-messages 1 \
     --property print.value=true | jq .
+    # --max-messages 1 \
