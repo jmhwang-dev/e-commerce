@@ -93,7 +93,7 @@ services:
     command: >
       sh -c "tail -f /dev/null"
     volumes:
-      - ../jobs/producer/:/jobs/
+      - ../jobs/producer/:/app/
     depends_on:
       - kafka1
       - kafka2
@@ -103,9 +103,9 @@ services:
       context: ./consumer
       dockerfile: Dockerfile
     command: >
-      sh -c "python /jobs/inference.py"
+      sh -c "python /app/inference.py"
     volumes:
-      - ../jobs/consumer/:/jobs/
+      - ../jobs/consumer/:/app/
     depends_on:
       - kafka1
       - kafka2
