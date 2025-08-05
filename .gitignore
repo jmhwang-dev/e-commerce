@@ -16,6 +16,8 @@ s3/
 *.properties
 !default.properties
 .vscode/
+infra/consumer/models/
+!infra/consumer/models/.gitkeep
 
 
 # Byte-compiled / optimized / DLL files
