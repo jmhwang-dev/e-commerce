@@ -35,13 +35,12 @@ RUN set -e; \
     workers=$(( workers < 1 ? 1 : workers )); \
     echo "Using $workers download workers (${CPU_RATIO}% of $(nproc) cores)"; \
     for i in {1..3}; do \
-        huggingface-cli download "$MODEL2" \
+        hf download "$MODEL2" \
             --local-dir /models/sentiment \
             --max-workers "$workers" && break || sleep 5; \
     done && \
     for i in {1..3}; do \
-        huggingface-cli download "$MODEL1" \
-            --include "*.safetensors" \
+        hf download "$MODEL1" \
             --local-dir /models/tower \
             --max-workers "$workers" && break || sleep 5; \
     done

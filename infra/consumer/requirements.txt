@@ -6,3 +6,4 @@ torch
 transformers
 accelerate
 huggingface_hub[cli,hf_transfer]
+pandas

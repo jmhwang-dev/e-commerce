@@ -45,32 +45,6 @@ services:
       - ../configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ../data/kafka/node3:/var/lib/kafka/data
 
-  fastapi-producer:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
-    container_name: fastapi-producer
-    environment:
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      PYTHONPATH: /app
-    ports:
-      - "8000:8000"
-    depends_on:
-      kafka1: { condition: service_healthy }
-      kafka2: { condition: service_healthy }
-      kafka3: { condition: service_healthy }
-    restart: unless-stopped
-    command: 
-      [ "uvicorn", "main:app",
-        "--host", "0.0.0.0", "--port", "8000",
-         "--reload-dir", "/app" ]
-
-    volumes:
-      - ../jobs/server/producer_api.py:/app/main.py
-      - ../src/domain:/app/domain
-      - ../src/services/producer:/app/services/producer
-      - ./shared:/mnt/shared
-
   schema-registry:
     image: confluentinc/cp-schema-registry:latest
     container_name: schema-registry
@@ -112,39 +86,34 @@ services:
       - ./kafka/init:/mnt/init
     command: ["bash", "/mnt/init/create-topics.sh"]
 
-  fastapi-consumer:
+  producer:
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
+    command: >
+      sh -c "tail -f /dev/null"
+    volumes:
+      - ../jobs/producer/:/app/
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+  consumer:
     build:
       context: ./consumer
       dockerfile: Dockerfile
-    container_name: fastapi-consumer
-    environment:
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      PYTHONPATH: /app
-    ports:
-      - "8003:8000"
+    command: >
+      sh -c "python /app/inference.py"
+    volumes:
+      - ../jobs/consumer/:/app/
     depends_on:
-      kafka1: { condition: service_healthy }
-      kafka2: { condition: service_healthy }
-      kafka3: { condition: service_healthy }
-    restart: unless-stopped
-
+      - kafka1
+      - kafka2
+      - kafka3
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: [gpu]
-
-    # -it 대응 (터미널 디버깅용)
-    tty: true
-    stdin_open: true
-
-    command: 
-      [ "uvicorn", "main:app",
-        "--host", "0.0.0.0", "--port", "8000",
-         "--reload-dir", "/app" ]
-
-    volumes:
-      - ../jobs/server/consumer_api.py:/app/main.py
-      - ../src/domain:/app/domain
-      - ../src/services/consumer:/app/services/consumer
-      - ./shared:/mnt/shared
+            - driver: nvidia
+              count: all  # 또는 1, 2 등
+              capabilities: [gpu]

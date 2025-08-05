@@ -2,6 +2,7 @@ x-spark-common: &spark-common
     build:
       context: ./spark
       dockerfile: Dockerfile
+
 services:
   minio:
     image: minio/minio:RELEASE.2025-06-13T11-33-47Z
@@ -37,7 +38,6 @@ services:
       '
   spark-master:
       <<: *spark-common
-      # image: warehouse:sp3.5.6-ice1.9.1
       hostname: spark-master
       ports:
         - "8080:8080"
@@ -48,7 +48,6 @@ services:
       
   spark-worker:
     <<: *spark-common
-    # image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-worker
     depends_on:
       - spark-master
@@ -66,7 +65,6 @@ services:
       "
   spark-client:
     <<: *spark-common
-    # image: warehouse:sp3.5.6-ice1.9.1
     hostname: spark-client
     depends_on:
       - spark-master
@@ -91,7 +89,7 @@ services:
         --driver-memory 2g &&
       spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
   spark-init:
-    image: warehouse:sp3.5.6-ice1.9.1
+    <<: *spark-common
     depends_on:
       - spark-master
       - rest-catalog
@@ -119,7 +117,10 @@ services:
       retries: 5
 
   rest-catalog:
-    image: catalog:ice1.9.1-psql16
+    # image: catalog:ice1.9.1-psql16
+    build:
+      context: ./iceberg-rest
+      dockerfile: Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,46 +139,3 @@ services:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_REGION: us-east-1
-
-  dbt:
-    image: ghcr.io/dbt-labs/dbt-spark:1.9.0
-    depends_on:
-      - spark-client
-    volumes: 
-      - ./dbt:/usr/app/dbt
-      - ./dbt/.dbt/profiles.yml:/root/.dbt/profiles.yml
-    entrypoint: ["tail", "-f", "/dev/null"]
-  
-  superset-init:
-    image: superset:thrift-0.7.0-psql16
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - "./superset/superset_config.py:/app/pythonpath/superset_config.py"
-
-    environment: &superset-env
-      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
-      DATABASE_DIALECT: postgresql+psycopg2
-      DATABASE_USER: superset
-      DATABASE_PASSWORD: superset
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_DB: superset
-      SUPERSET_SECRET_KEY: dev
-      ADMIN_PASSWORD: admin  # id: admin
-    command: ["/app/docker/docker-init.sh"]
-
-  superset:
-    image: superset:thrift-0.7.0-psql16
-    ports:
-      - "8088:8088"
-    depends_on:
-      superset-init:
-        condition: service_completed_successfully
-        
-    volumes:
-      - "./superset/superset_config.py:/app/pythonpath/superset_config.py"
-      - "./superset/requirements-local.txt:/app/docker/requirements-local.txt"
-
-    environment: *superset-env
