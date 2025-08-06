@@ -1,7 +1,15 @@
-from transformers import pipeline
-import torch
-
+from confluent_kafka import Consumer
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
+import torch
+import os
+import time
+
+TOPIC = 'reviews.translation-prompts'
+CONSUMER_CONFIG = {
+    'bootstrap.servers': 'kafka1:9092,kafka2:9092,kafka3:9092',
+    'group.id': 'translation-consumer-group',
+    'auto.offset.reset': 'earliest'
+}
 
 def get_sentiment_analyzer():
     model_path = "/models/sentiment"
@@ -50,5 +58,14 @@ def get_translator():
         )
     return trasnlator
 
-if __name__=="__main__":
-    get_sentiment_analyzer()
+def wait_for_partition_assignment():
+    consumer = Consumer(CONSUMER_CONFIG)
+    consumer.subscribe([TOPIC])
+    max_attempts = 10
+    for _ in range(max_attempts):  # 초기 할당 대기 루프
+        if not consumer.assignment():    
+            consumer.poll(2)
+            time.sleep(5)
+        return consumer
+
+    raise TimeoutError("Consumer 파티션 할당 실패") 

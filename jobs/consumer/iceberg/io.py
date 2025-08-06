@@ -1,4 +1,4 @@
-from init import *
+from init.iceberg import *
 from pyiceberg.exceptions import NoSuchTableError
 from typing import Iterable
 import pandas as pd

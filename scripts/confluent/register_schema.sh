@@ -2,7 +2,7 @@
 set -e
 SCHEMA_FILE="./infra/shared/schemas/review.avsc"
 SUBJECT="review-value"
-REGISTRY_URL="${SCHEMA_REGISTRY_URL:-http://localhost:8082}"
+REGISTRY_URL="${SCHEMA_REGISTRY_URL:-http://localhost:8081}"
 
 echo "▶ Registering $SUBJECT"
 

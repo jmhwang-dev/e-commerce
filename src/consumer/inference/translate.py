@@ -22,7 +22,6 @@ def create_translator():
     from transformers.pipelines import pipeline
     import torch
 
-
     checkpoint = "Unbabel/TowerInstruct-7B-v0.2"
     device = "auto" if torch.cuda.is_available() else "cpu"
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)

@@ -1,5 +1,5 @@
 
-from init import *
+from init.iceberg import *
 from iceberg.io import *
 
 data_dict = {
