@@ -98,14 +98,15 @@ services:
       - kafka1
       - kafka2
       - kafka3
+
   consumer:
     build:
       context: ./consumer
       dockerfile: Dockerfile
-    command: >
-      sh -c "python /app/inference.py"
+    command: python inference.py
     volumes:
       - ../jobs/consumer/:/app/
+      - ./consumer/models/:/models/
     depends_on:
       - kafka1
       - kafka2

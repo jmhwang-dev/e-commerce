@@ -1,7 +1,6 @@
 from transformers import pipeline
 import torch
 
-# from transformers.models.auto.tokenization_auto import AutoTokenizer, AutoModelForCausalLM
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
 
 def get_sentiment_analyzer():
@@ -25,20 +24,11 @@ def get_sentiment_analyzer():
         top_k=3,
         max_length=512,
         truncation=True,  # 입력 초과 시 자르기 (권장)
-        return_all_scores=True  # 모든 클래스 확률 반환 (권장)
     )
-    # analyzer = pipeline(
-    #     "text-classification",
-    #     model=model,
-    #     device='cpu',
-    #     top_k=3,
-    #     max_length=512,
-    #     truncation=False,
-    #     )
     return analyzer
 
 def get_translator():
-    model_path = "/models/tower"  # 샤딩된 체크포인트 디렉토리
+    model_path = "/models/translate"  # 샤딩된 체크포인트 디렉토리
 
     # 샤딩된 모델 로드
     model = AutoModelForCausalLM.from_pretrained(

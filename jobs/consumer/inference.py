@@ -3,14 +3,16 @@ import time
 from pprint import pformat
 from confluent_kafka import Consumer
 import logging
+import os
 
 from load_model import get_translator, get_sentiment_analyzer
 
+os.makedirs("/app/logs", exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/app/p2e.log'),  # 로그를 저장할 파일
+        logging.FileHandler('/app/logs/p2e.log'),  # 로그를 저장할 파일
         logging.StreamHandler()  # 콘솔 출력 (선택적)
     ])
 
@@ -46,7 +48,7 @@ try:
             break
 
         value = json.loads(msg.value().decode('utf-8'))
-        with open("/app/output.json", 'w') as f:
+        with open("/app/logs/output.json", 'w') as f:
             json.dump(value, f)
         # logging.info(f"\n{pformat(value, indent=2)}")
         logging.info("메시지 수신 완료")
@@ -64,7 +66,6 @@ try:
         end = time.time()
         logging.info(f"완료 - por2eng: {end-start}")
 
-
         por2eng_results = [
             out[0]['generated_text'][-1]['content'] for out in por2eng_outputs
         ]
@@ -79,10 +80,7 @@ try:
         logging.info(senti_results)
 
 
-
-
-        
 except KeyboardInterrupt:
-    pass
+    consumer.close()
 finally:
     consumer.close()
