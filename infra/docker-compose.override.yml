@@ -103,7 +103,7 @@ services:
     build:
       context: ./consumer
       dockerfile: Dockerfile
-    command: python inference.py
+    command: bash -c "tail -f /dev/null"
     volumes:
       - ../jobs/consumer/:/app/
       - ./consumer/models/:/models/

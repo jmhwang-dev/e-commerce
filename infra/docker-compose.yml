@@ -36,6 +36,7 @@ services:
         echo "init-minio ready; keeping container alive" &&
         tail -f /dev/null
       '
+  
   spark-master:
       <<: *spark-common
       hostname: spark-master
@@ -45,7 +46,7 @@ services:
       volumes:
         - ../configs/spark:/opt/spark/conf
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
-      
+    
   spark-worker:
     <<: *spark-common
     hostname: spark-worker

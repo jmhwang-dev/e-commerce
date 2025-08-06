@@ -1,0 +1,72 @@
+from init import *
+from pyiceberg.exceptions import NoSuchTableError
+from typing import Iterable
+import pandas as pd
+
+def get_table():
+    try:
+        table = catalog.load_table(TABLE_IDENTIFIER)
+        print(f"Table {TABLE_IDENTIFIER} loaded.")
+        return table
+    except NoSuchTableError:
+        try:
+            table = catalog.create_table(
+                identifier=TABLE_IDENTIFIER,
+                schema=table_schema,
+                location=DST_LOCATION,
+                partition_spec=partition_spec
+            )
+            print(f"Table {TABLE_IDENTIFIER} created at {DST_LOCATION}.")
+            return table
+        except Exception as e:
+            print(f"Failed to create table {TABLE_IDENTIFIER}: {str(e)}")
+            raise
+    except Exception as e:
+        print(f"Failed to load table {TABLE_IDENTIFIER}: {str(e)}")
+        raise
+
+def delete_s3_objects(bucket, prefix):
+    """S3 버킷에서 지정된 prefix의 모든 객체를 삭제"""
+    response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
+    if "Contents" in response:
+        for obj in response["Contents"]:
+            s3_client.delete_object(Bucket=bucket, Key=obj["Key"])
+        print(f"Deleted objects in s3://{bucket}/{prefix}")
+
+def delete_table(tables_to_delete: Iterable[Iterable]):
+    """
+    삭제할 테이블 목록 예시
+    tables_to_delete = [
+        ("default", "example_table", "s3://warehouse-dev/silver/test/example_table/"),
+        ("gold", "example_table", "s3://warehouse-dev/gold/test/example_table/")
+    ]
+    """
+    # 테이블 삭제 및 S3 객체 정리
+    for namespace, table_name, location in tables_to_delete:
+        try:
+            # Iceberg 테이블 삭제
+            catalog.drop_table((namespace, table_name))
+            print(f"Dropped table {namespace}.{table_name}")
+
+            # S3에서 메타데이터 및 데이터 파일 삭제
+            bucket = BUCKET_NAME
+            prefix = location.replace(f"s3://{bucket}/", "")
+            delete_s3_objects(bucket, prefix)
+            print("All specified tables and their data have been deleted.")
+        except Exception as e:
+            print(f"Failed to drop table {namespace}.{table_name}: {str(e)}")
+
+def get_table_data(data:dict):
+    df = pd.DataFrame(data)
+    table_data = pa.Table.from_pandas(df, schema=arrow_schema, preserve_index=False)
+    return table_data
+
+def insert(data):
+    try:
+        table = get_table()
+        with table.transaction() as txn:
+            txn.append(data)
+        print(f"Data appended to {TABLE_IDENTIFIER} successfully.")
+    except Exception as e:
+        print(f"Failed to append data to {TABLE_IDENTIFIER}: {str(e)}")
+        raise
