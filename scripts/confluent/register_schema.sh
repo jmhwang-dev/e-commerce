@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-SCHEMA_FILE="./infra/shared/schemas/review.avsc"
+SCHEMA_FILE="./infra/confluent/schemas/reviews.avsc"
 SUBJECT="review-value"
 REGISTRY_URL="${SCHEMA_REGISTRY_URL:-http://localhost:8081}"
 
