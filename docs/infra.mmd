@@ -5,10 +5,10 @@ graph LR
         direction LR
           RAW_TOPIC[(review_raw)]
           DLQ_TOPIC[(review_dlq)]
-          INF_TOPIC[(inference)]
-          GOLD_TOPIC[(gold-topic)]
+          INFERENCE_TOPIC[(review_inference)]
+          GOLD_TOPIC[(review_cdc_gold)]
       end
-      CONNECTOR[Kafka Connect: Iceberg Source Connector]
+      KAFKA_CONNECT[Kafka Connect]
   end
   subgraph FastAPI ["FastAPI"]
     API_ENDPOINT[FastAPI Endpoint]
@@ -42,37 +42,37 @@ graph LR
     DATAHUB[DataHub: Metadata & Lineage]
     SUPERSET[Superset Dashboard: Complaint Trends]
   end
-  START((Start)) -->|POST:Review_Data| PAYLOAD[/Payload/]
-  PAYLOAD -->|Receive:Payload| API_ENDPOINT
-  API_ENDPOINT -->|GET:Schema| SCHEMA_REG[Confluent Schema Registry]
-  API_ENDPOINT -->|Serialize:Payload| SERIALIZER
+  START((Start)) -->|Post:Review_Data| PAYLOAD[/Payload/]
+  PAYLOAD -->|Receive:Review_Data| API_ENDPOINT
+  API_ENDPOINT -->|Fetch:Schema| SCHEMA_REG[Confluent Schema Registry]
+  API_ENDPOINT -->|Start:Avro_Serialization| SERIALIZER
   SCHEMA_REG -->|Provide:Schema| SCHEMA[/Schema/]
-  SCHEMA -->|Use:Schema| SERIALIZER
-  SCHEMA -->|Use:Schema| REPROCESS
-  SERIALIZER -->|Validate:Serialized_Msg| VALIDATOR
-  VALIDATOR -->|Yes:Valid_Avro_Msg| VALID_MSG[/Avro Message/]
-  VALIDATOR -->|No:Error| ERR_HANDLER
-  ERR_HANDLER -->|Generate:Error_Avro_Msg| ERROR_MSG[/Avro Error Message/]
-  ERROR_MSG -->|Publish:Error_Msg| DLQ_TOPIC
-  DLQ_TOPIC -->|Consume:Error_Msg| REPROCESS
+  SCHEMA -->|Apply:Avro_Schema| SERIALIZER
+  SCHEMA -->|Apply:Avro_Schema| REPROCESS
+  SERIALIZER -->|Validate:Avro_Data| VALIDATOR
+  VALIDATOR -->|Publish:Valid_Avro_Data| VALID_MSG[/Avro Message/]
+  VALIDATOR -->|Generate:Error_Data| ERR_HANDLER
+  ERR_HANDLER -->|Generate:Error_Avro_Data| ERROR_MSG[/Avro Error Message/]
+  ERROR_MSG -->|Publish:Error_Avro_Data| DLQ_TOPIC
+  DLQ_TOPIC -->|Consume:Error_Avro_Data| REPROCESS
   REPROCESS --> AUTO_RETRY
-  AUTO_RETRY -->|Retry:Backoff| RAW_TOPIC
-  VALID_MSG -->|Publish:Valid_Msg| RAW_TOPIC
-  RAW_TOPIC -->|Consume:Raw_Msg| PREPROCESS
-  PREPROCESS -->|Output:Processed_JSON| PROC_JSON[/Processed JSON for Inference/]
-  PREPROCESS -->|Store:Bronze_Data| BRONZE
-  PREPROCESS -->|Upsert:Processed_Data| SILVER
-  PROC_JSON -->|Publish:Inference_Msg| INF_TOPIC
-  INF_TOPIC -->|Consume:Inference_Msg| INFERENCE
-  INFERENCE -->|Upsert:Analyzed_Data| SILVER
-  SILVER -->|CDC_Publish:Events| CONNECTOR
-  CONNECTOR -->|Publish:CDC_Events| GOLD_TOPIC
+  AUTO_RETRY -->|Retry:Valid_Avro_Data| RAW_TOPIC
+  VALID_MSG -->|Publish:Valid_Avro_Data| RAW_TOPIC
+  RAW_TOPIC -->|Consume:Raw_Avro_Data| PREPROCESS
+  PREPROCESS -->|Generate:Inference_JSON| PROC_JSON[/Processed JSON for Inference/]
+  PREPROCESS -->|Write:Bronze_Data| BRONZE
+  PREPROCESS -->|Upsert:Cleaned_Data| SILVER
+  PROC_JSON -->|Publish:Inference_Data| INFERENCE_TOPIC
+  INFERENCE_TOPIC -->|Consume:Inference_Data| INFERENCE
+  INFERENCE -->|Upsert:Translated_Data| SILVER
+  SILVER -->|Publish:CDC_Events| KAFKA_CONNECT
+  KAFKA_CONNECT -->|Publish:CDC_Events| GOLD_TOPIC
   GOLD_TOPIC -->|Consume:CDC_Events| AGGREGATE
-  AGGREGATE -->|Store:Aggregated_Data| GOLD
+  AGGREGATE -->|Write:Aggregated_Data| GOLD
   GOLD -->|Query:Aggregated_Data| SUPERSET
-  DATAHUB -->|Tracks:Metadata| BRONZE
-  DATAHUB -->|Tracks:Metadata| SILVER
-  DATAHUB -->|Tracks:Metadata| GOLD
+  DATAHUB -->|Track:Metadata| BRONZE
+  DATAHUB -->|Track:Metadata| SILVER
+  DATAHUB -->|Track:Metadata| GOLD
   PROMETHEUS -->|Collect:Metrics| RAW_TOPIC
   PROMETHEUS -->|Collect:Metrics| PREPROCESS
   PROMETHEUS -->|Collect:Metrics| INFERENCE
@@ -91,7 +91,7 @@ graph LR
   style ERR_HANDLER fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style PREPROCESS fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style PROC_JSON fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style INF_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
+  style INFERENCE_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style BRONZE fill:#CD7F32,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style SILVER fill:#C0C0C0,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style GOLD fill:#FFD700,stroke:#FFFFFF,stroke-width:1px,color:#000000
@@ -107,10 +107,10 @@ graph LR
   style Monitoring fill:#FFF3E0,stroke:#E6522C,stroke-width:2px
   style AnalyticsGovernance fill:#E6EEFF,stroke:#0052CC,stroke-width:2px
   style FastAPI fill:#B2DFDB,stroke:#009688,stroke-width:2px
-  style CONNECTOR fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
+  style KAFKA_CONNECT fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style GOLD_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style REPROCESS fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style AUTO_RETRY fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style INFERENCE fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style AGGREGATE fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style ReprocessingPipeline fill:#FFE0B2,stroke:#E25A1C,stroke-width:1px
+  style ReprocessingPipeline fill:#FFFFFF,stroke:#E25A1C,stroke-width:1px
