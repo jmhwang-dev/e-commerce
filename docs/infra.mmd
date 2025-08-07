@@ -19,15 +19,10 @@ graph LR
   subgraph SparkProcessing ["Spark Processing"]
     direction LR
       PREPROCESS[Spark Job: Preprocessing]
-      subgraph ReprocessingPipeline ["Reprocessing Pipeline"]
-        REPROCESS[Spark Job: Reprocessing<br>RocksDB & Schema Validation]
-        AUTO_RETRY[Auto Retry with Backoff]
-      end
+      REPROCESS[Spark Job: Reprocessing<br>RocksDB & Auto Retry]
       AGGREGATE[Spark Job: Aggregation]
   end
-  subgraph InferenceServer ["Inference Server"]
-    INFERENCE[Inference Server: Hugging Face Transformers]
-  end
+  INFERENCE[Inference Server: Hugging Face Transformers]
   subgraph IcebergLakehouse ["Iceberg Lakehouse"]
     direction LR
       BRONZE[(bronze)]
@@ -42,56 +37,45 @@ graph LR
     DATAHUB[DataHub: Metadata & Lineage]
     SUPERSET[Superset Dashboard: Complaint Trends]
   end
-  START((Start)) -->|Post:Review_Data| PAYLOAD[/Payload/]
-  PAYLOAD -->|Receive:Review_Data| API_ENDPOINT
-  API_ENDPOINT -->|Fetch:Schema| SCHEMA_REG[Confluent Schema Registry]
-  API_ENDPOINT -->|Start:Avro_Serialization| SERIALIZER
-  SCHEMA_REG -->|Provide:Schema| SCHEMA[/Schema/]
-  SCHEMA -->|Apply:Avro_Schema| SERIALIZER
-  SCHEMA -->|Apply:Avro_Schema| REPROCESS
+  START((Start)) -->|Post:Review_Data| API_ENDPOINT
+  API_ENDPOINT -->|Serialize:Review_Data| SERIALIZER
+  SCHEMA_REG[Confluent Schema Registry] -->|Fetch:Avro_Schema| SERIALIZER
+  SCHEMA_REG -->|Fetch:Avro_Schema| REPROCESS
   SERIALIZER -->|Validate:Avro_Data| VALIDATOR
-  VALIDATOR -->|Publish:Valid_Avro_Data| VALID_MSG[/Avro Message/]
-  VALIDATOR -->|Generate:Error_Data| ERR_HANDLER
-  ERR_HANDLER -->|Generate:Error_Avro_Data| ERROR_MSG[/Avro Error Message/]
-  ERROR_MSG -->|Publish:Error_Avro_Data| DLQ_TOPIC
+  VALIDATOR -->|Publish:Valid_Avro_Data| RAW_TOPIC
+  VALIDATOR -->|Handle:Error_Data| ERR_HANDLER
+  ERR_HANDLER -->|Produce:Error_Avro_Data| DLQ_TOPIC
   DLQ_TOPIC -->|Consume:Error_Avro_Data| REPROCESS
-  REPROCESS --> AUTO_RETRY
-  AUTO_RETRY -->|Retry:Valid_Avro_Data| RAW_TOPIC
-  VALID_MSG -->|Publish:Valid_Avro_Data| RAW_TOPIC
+  REPROCESS -->|Publish:Valid_Avro_Data| RAW_TOPIC
   RAW_TOPIC -->|Consume:Raw_Avro_Data| PREPROCESS
-  PREPROCESS -->|Generate:Inference_JSON| PROC_JSON[/Processed JSON for Inference/]
-  PREPROCESS -->|Write:Bronze_Data| BRONZE
-  PREPROCESS -->|Upsert:Cleaned_Data| SILVER
-  PROC_JSON -->|Publish:Inference_Data| INFERENCE_TOPIC
+  PREPROCESS -->|Publish:Inference_Data| INFERENCE_TOPIC
+  PREPROCESS -->|Persist:Bronze_Data| BRONZE
+  PREPROCESS -->|Merge:Cleaned_Data| SILVER
   INFERENCE_TOPIC -->|Consume:Inference_Data| INFERENCE
-  INFERENCE -->|Upsert:Translated_Data| SILVER
-  SILVER -->|Publish:CDC_Events| KAFKA_CONNECT
-  KAFKA_CONNECT -->|Publish:CDC_Events| GOLD_TOPIC
+  INFERENCE -->|Merge:Translated_Data| SILVER
+  SILVER -->|Emit:CDC_Events| KAFKA_CONNECT
+  KAFKA_CONNECT -->|Emit:CDC_Events| GOLD_TOPIC
   GOLD_TOPIC -->|Consume:CDC_Events| AGGREGATE
-  AGGREGATE -->|Write:Aggregated_Data| GOLD
+  AGGREGATE -->|Persist:Aggregated_Data| GOLD
   GOLD -->|Query:Aggregated_Data| SUPERSET
-  DATAHUB -->|Track:Metadata| BRONZE
-  DATAHUB -->|Track:Metadata| SILVER
-  DATAHUB -->|Track:Metadata| GOLD
-  PROMETHEUS -->|Collect:Metrics| RAW_TOPIC
-  PROMETHEUS -->|Collect:Metrics| PREPROCESS
-  PROMETHEUS -->|Collect:Metrics| INFERENCE
+  BRONZE -->|Ingest:Metadata| DATAHUB
+  SILVER -->|Ingest:Metadata| DATAHUB
+  GOLD -->|Ingest:Metadata| DATAHUB
+  RAW_TOPIC -->|Collect:Metrics| PROMETHEUS
+  PREPROCESS -->|Collect:Metrics| PROMETHEUS
+  INFERENCE -->|Collect:Metrics| PROMETHEUS
   PROMETHEUS -->|Visualize:Metrics| GRAFANA
   style START fill:#d9d9d9,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style SCHEMA_REG fill:#00A7B5,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style SCHEMA fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style VALIDATOR fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style RAW_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style DLQ_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
-  style ERROR_MSG fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style VALID_MSG fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style PAYLOAD fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
+  style INFERENCE_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
+  style GOLD_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style API_ENDPOINT fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style SERIALIZER fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style ERR_HANDLER fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style PREPROCESS fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style PROC_JSON fill:#f0f0f0,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style INFERENCE_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
   style BRONZE fill:#CD7F32,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style SILVER fill:#C0C0C0,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style GOLD fill:#FFD700,stroke:#FFFFFF,stroke-width:1px,color:#000000
@@ -99,18 +83,14 @@ graph LR
   style GRAFANA fill:#F5A623,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style DATAHUB fill:#0052CC,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style PROMETHEUS fill:#E6522C,stroke:#FFFFFF,stroke-width:1px,color:#000000
+  style KAFKA_CONNECT fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
+  style REPROCESS fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
+  style INFERENCE fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
+  style AGGREGATE fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
   style Kafka fill:#f0f0f0,stroke:#333333,stroke-width:2px
   style SparkProcessing fill:#ffecd6,stroke:#E25A1C,stroke-width:2px
-  style InferenceServer fill:#B2DFDB,stroke:#009688,stroke-width:2px
   style IcebergLakehouse fill:#e6f3ff,stroke:#4A90E2,stroke-width:2px
   style Topics fill:#ffffff,stroke:#333333,stroke-width:1px
   style Monitoring fill:#FFF3E0,stroke:#E6522C,stroke-width:2px
   style AnalyticsGovernance fill:#E6EEFF,stroke:#0052CC,stroke-width:2px
   style FastAPI fill:#B2DFDB,stroke:#009688,stroke-width:2px
-  style KAFKA_CONNECT fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
-  style GOLD_TOPIC fill:#000000,stroke:#FFFFFF,stroke-width:1px,color:#FFFFFF
-  style REPROCESS fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style AUTO_RETRY fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style INFERENCE fill:#009688,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style AGGREGATE fill:#E25A1C,stroke:#FFFFFF,stroke-width:1px,color:#000000
-  style ReprocessingPipeline fill:#FFFFFF,stroke:#E25A1C,stroke-width:1px
