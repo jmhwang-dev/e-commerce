@@ -4999,6 +4999,18 @@ files = [
 ]
 
 [[package]]
+name = "unidecode"
+version = "1.4.0"
+description = "ASCII transliterations of Unicode text"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "Unidecode-1.4.0-py3-none-any.whl", hash = "sha256:c3c7606c27503ad8d501270406e345ddb480a7b5f38827eafe4fa82a137f0021"},
+    {file = "Unidecode-1.4.0.tar.gz", hash = "sha256:ce35985008338b676573023acc382d62c264f307c8f7963733405add37ea2b23"},
+]
+
+[[package]]
 name = "uri-template"
 version = "1.3.0"
 description = "RFC 6570 URI Template Processor"
@@ -5445,4 +5457,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "f3ed25f2c444eb8e0a21404610d91b7c85bddc01b7c8efc1f0964cdbe0a6980b"
+content-hash = "a99638118701f84c1703f79262cc9082e6971e4f7a9656e8f8f0cd731791db7a"
