@@ -58,14 +58,14 @@ def get_translator():
         )
     return trasnlator
 
-def wait_for_partition_assignment():
-    consumer = Consumer(CONSUMER_CONFIG)
-    consumer.subscribe([TOPIC])
-    max_attempts = 10
-    for _ in range(max_attempts):  # 초기 할당 대기 루프
-        if not consumer.assignment():    
-            consumer.poll(2)
-            time.sleep(5)
-        return consumer
+# def wait_for_partition_assignment():
+#     consumer = Consumer(CONSUMER_CONFIG)
+#     consumer.subscribe([TOPIC])
+#     max_attempts = 10
+#     for _ in range(max_attempts):  # 초기 할당 대기 루프
+#         if not consumer.assignment():    
+#             consumer.poll(2)
+#             time.sleep(5)
+#         return consumer
 
-    raise TimeoutError("Consumer 파티션 할당 실패") 
+#     raise TimeoutError("Consumer 파티션 할당 실패") 

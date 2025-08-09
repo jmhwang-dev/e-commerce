@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-COMPOSE_FILE="infra/docker-compose.override.yml"
-TOPIC="reviews.translation-prompts"
+COMPOSE_FILE="docker-compose.override.yml"
+TOPIC="test-topic"
 BOOTSTRAP="kafka1:9092,kafka2:9092,kafka3:9092"
 SCHEMA_REGISTRY="http://schema-registry:8081"
 
