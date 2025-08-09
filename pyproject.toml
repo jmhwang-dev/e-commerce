@@ -41,7 +41,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 packages = [
-  { include = "ecommerce", from = "src" }
+  { include = "ecommerce", from = "src" },
+  { include = "producer", from = "src" }
 ]
 
 [tool.poetry.group.dev.dependencies]

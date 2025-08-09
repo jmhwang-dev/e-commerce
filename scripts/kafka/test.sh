@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-
 # Kafka 테스트 스크립트
-# 사용법: chmod +x kafka_test_commands.sh && ./kafka_test_commands.sh
 
-COMPOSE_FILE="infra/docker-compose.override.yml"
+COMPOSE_FILE="docker-compose.override.yml"
 BOOTSTRAP="kafka1:9092,kafka2:9092,kafka3:9092"
 CONTROLLER="kafka1:9093"
 TOPIC="test-topic"
@@ -18,8 +16,7 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
 echo -e "\n컨트롤러 쿼럼 상태 확인"
 docker compose -f "$COMPOSE_FILE" exec kafka1 \
     /opt/kafka/bin/kafka-metadata-quorum.sh \
-    describe \
-    --bootstrap-controller "$CONTROLLER" \
+    --bootstrap-controller "$CONTROLLER" describe \
     --status
 
 echo -e "\n테스트 토픽 생성"
