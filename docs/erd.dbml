@@ -1,0 +1,67 @@
+Table geolocation {
+ zip_code string [pk]
+ lat float
+ lng float
+ state string
+ city string
+}
+
+Table sellers {
+ seller_id string [pk]
+ zip_code string [ref: > geolocation.zip_code] // FK
+}
+
+Table products {
+ product_id string [pk]
+ weight_g float
+ length_cm float
+ height_cm float
+ width_cm float
+ category string
+}
+
+Table customers {
+ customer_id string [pk]
+ zip_code string [ref: > geolocation.zip_code] // FK
+}
+
+Table order_items {
+ order_id string [pk]
+ order_item_id integer [pk] // 복합 PK (order_id + order_item_id)
+ product_id string [ref: > products.product_id] // FK
+ seller_id string [ref: > sellers.seller_id] // FK
+ shipping_limit_date datetime
+ price float
+ freight_value float
+}
+
+Table delivery_estimated {
+ order_id string [pk, ref: > order_items.order_id] // 수정: 직접 order_items 참조
+ estimated_delivery datetime
+}
+
+Table payment_logs {
+ timestamp datetime [pk]
+ order_id string [pk, ref: > order_items.order_id] // 복합 PK (timestamp + order_id), FK
+ customer_id string [ref: > customers.customer_id] // FK
+ payment_sequential integer
+ payment_type string
+ payment_installments integer [note: 'minimum 1']
+ payment_value float
+}
+
+Table reviews {
+ review_id string [pk]
+ order_id string [ref: > order_items.order_id] // FK
+ review_creation_date datetime
+ review_answer_timestamp datetime
+ review_score integer [note: '1-5 scale']
+ review_comment_title string
+ review_comment_message string
+}
+
+Table order_status {
+ timestamp datetime [pk]
+ order_id string [pk, ref: > order_items.order_id] // 복합 PK (timestamp + order_id), FK
+ current_status string [note: 'pending, processing, shipped, delivered, cancelled']
+}
