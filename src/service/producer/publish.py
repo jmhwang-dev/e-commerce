@@ -10,7 +10,6 @@ def simulate_stream():
 
         status = order_status_log['status']
         order_id = order_status_log['order_id']
-        # order_id = "809a282bbd5dbcabb6f2f724fca862ec"
         
         if status == 'purchase':
             payment_log = PaymentMessage.select('order_id', order_id)
