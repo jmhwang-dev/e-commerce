@@ -53,7 +53,6 @@ def get_client():
 
 def get_consumer(topic_name):
     consumer = KafkaConsumer(
-        topic_name,
         bootstrap_servers=BOOTSTRAP_SERVERS,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
@@ -61,6 +60,8 @@ def get_consumer(topic_name):
         value_deserializer=lambda v: json.loads(v.decode('utf-8')),
         key_deserializer=lambda k: k.decode('utf-8') if k else None
     )
+
+    consumer.subscribe(topic_name)
     wait_for_partition_assignment(consumer)
     return consumer
 

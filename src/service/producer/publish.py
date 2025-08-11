@@ -1,7 +1,3 @@
-import pandas as pd
-import os
-import time
-from pprint import pformat
 from service.init import *
 from service.producer.topic import *
 from service.producer.raw_message import *
@@ -30,6 +26,10 @@ def simulate_stream():
 
             # order_item - cdc
             order_item_log = OrderItemMessage.select('order_id', order_id)
+            if order_item_log.empty:
+                print(f'\nEmpty message: {OrderItemMessage.topic}')
+                continue
+        
             OrderItemMessage.publish(order_item_log)
 
             # product - cdc
