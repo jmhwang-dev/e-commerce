@@ -1,4 +1,3 @@
-from consumer.init import *
 
 def consume_messages(consumer):
     try:

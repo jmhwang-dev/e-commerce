@@ -1,11 +1,11 @@
 from kafka.admin import NewTopic
 from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
-from typing import List
-from producer.init import *
+from typing import List, Iterable
+from service.init import *
 
 ADMIN_CLIENT = get_client()
 
-def delete_topics(topic_names_to_delete: List[str]):
+def delete_topics(topic_names_to_delete: Iterable[str]):
     for topic_name in topic_names_to_delete:
         try:
             ADMIN_CLIENT.delete_topics(topics=[topic_name])
@@ -15,11 +15,11 @@ def delete_topics(topic_names_to_delete: List[str]):
         except Exception as e:  # 기타 예외 (e.g., 지연/연결 문제)
             print(f"Error deleting topic {topic_name}: {e}")
 
-def create_topics(topics_names_to_create: List[str]):
+def create_topics(topics_names_to_create: Iterable[str]):
     for topic_name in topics_names_to_create:
         topic = NewTopic(
             name=topic_name,
-            num_partitions=3,
+            num_partitions=1,
             replication_factor=2
         )
         try:
