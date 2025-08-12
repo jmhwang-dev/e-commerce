@@ -10,8 +10,9 @@ import os
 from enum import Enum
 
 load_dotenv('./configs/kafka/.env')
-BOOTSTRAP_SERVERS = os.getenv("BOOTSTRAP_SERVERS").split(",")
-DATASET_DIR = Path(os.getenv("DATASET_DIR"))
+BOOTSTRAP_SERVERS_INTERNAL = os.getenv("BOOTSTRAP_SERVERS_INTERNAL", "localhost:19092,localhost:19094,localhost:19096").split(",")
+BOOTSTRAP_SERVERS_EXTERNAL = os.getenv("BOOTSTRAP_SERVERS_EXTERNAL", "kafka1:9092,kafka2:19092,kafka3:9092").split(",")
+DATASET_DIR = Path(os.getenv("DATASET_DIR", "./downloads/olist_redefined"))
 
 class IngestionType(Enum):
     CDC = 'cdc'
@@ -39,8 +40,8 @@ class Topic:
             if not attr_name.startswith('__'):
                 yield attr_value
 
-PRODUCER = KafkaProducer(
-    bootstrap_servers=BOOTSTRAP_SERVERS,
+EXTERNAL_PRODUCER = KafkaProducer(
+    bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL,
     value_serializer=lambda v: json.dumps(v).encode('utf-8'),
     key_serializer=lambda k: str(k).encode('utf-8') if k else None,
     acks='all',
@@ -48,14 +49,14 @@ PRODUCER = KafkaProducer(
     max_in_flight_requests_per_connection=1
 )
 
-def get_client():
+def get_external_client():
     return KafkaAdminClient(
-        bootstrap_servers=BOOTSTRAP_SERVERS
+        bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL
     )
 
-def get_consumer(topic_name):
+def get_external_consumer(topic_name):
     consumer = KafkaConsumer(
-        bootstrap_servers=BOOTSTRAP_SERVERS,
+        bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
         group_id=None,

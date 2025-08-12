@@ -3,7 +3,7 @@ from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
 from typing import Iterable
 from service.init.kafka import *
 
-ADMIN_CLIENT = get_client()
+ADMIN_CLIENT = get_external_client()
 
 def delete_topics(topic_names_to_delete: Iterable[str]):
     for topic_name in topic_names_to_delete:

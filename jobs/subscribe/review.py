@@ -29,7 +29,7 @@ if __name__=="__main__":
         # # 전처리한 데이터 silver로 저장
         # # 전처리한 데이터 review_inference 토픽으로 발행
 
-        consumer = get_consumer(['review'])
+        consumer = get_external_consumer(['review'])
         for message in consumer:
             print(message)
             pass

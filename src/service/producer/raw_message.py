@@ -3,7 +3,7 @@ from typing import List, Optional, Iterable
 import pandas as pd
 from pprint import pformat, pprint
 from functools import lru_cache
-from service.init.kafka import DATASET_DIR, IngestionType, Topic, PRODUCER
+from service.init.kafka import DATASET_DIR, IngestionType, Topic, EXTERNAL_PRODUCER
 from copy import deepcopy
 
 class DataMessage:
@@ -60,8 +60,8 @@ class DataMessage:
 
             key = '|'.join(key_str_list)
             value = event   # the key in `pk_column`` is removed
-            PRODUCER.send(cls.topic, key=key, value=value)
-            PRODUCER.flush()
+            EXTERNAL_PRODUCER.send(cls.topic, key=key, value=value)
+            EXTERNAL_PRODUCER.flush()
 
             print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(value)}')
             cls.current_index += 1
