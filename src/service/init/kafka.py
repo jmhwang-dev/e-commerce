@@ -1,12 +1,13 @@
-from typing import Iterator
+from typing import Iterator, Iterable
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
-from pathlib import Path
-from dotenv import load_dotenv
 import json
 import time
+
+from dotenv import load_dotenv
 import os
+from pathlib import Path
 from enum import Enum
 
 load_dotenv('./configs/kafka/.env')
@@ -40,23 +41,24 @@ class Topic:
             if not attr_name.startswith('__'):
                 yield attr_value
 
-EXTERNAL_PRODUCER = KafkaProducer(
-    bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL,
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-    key_serializer=lambda k: str(k).encode('utf-8') if k else None,
-    acks='all',
-    retries=3,
-    max_in_flight_requests_per_connection=1
-)
-
-def get_external_client():
-    return KafkaAdminClient(
-        bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL
+def get_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+    return KafkaProducer(
+        bootstrap_servers=bootstrp_servers,
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        key_serializer=lambda k: str(k).encode('utf-8') if k else None,
+        acks='all',
+        retries=3,
+        max_in_flight_requests_per_connection=1
     )
 
-def get_external_consumer(topic_name):
+def get_client(bootstrp_servers: Iterable[str]) -> KafkaAdminClient:
+    return KafkaAdminClient(
+        bootstrap_servers=bootstrp_servers
+    )
+
+def get_external_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
     consumer = KafkaConsumer(
-        bootstrap_servers=BOOTSTRAP_SERVERS_EXTERNAL,
+        bootstrap_servers=bootstrp_servers,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
         group_id=None,

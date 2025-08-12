@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import List, Optional, Iterable
+from typing import Iterable
 import pandas as pd
-from pprint import pformat, pprint
+from pprint import pformat
 from functools import lru_cache
-from service.init.kafka import DATASET_DIR, IngestionType, Topic, EXTERNAL_PRODUCER
+from service.init.kafka import *
 from copy import deepcopy
 
 class DataMessage:
@@ -12,6 +12,7 @@ class DataMessage:
     ingestion_type: IngestionType
     file_path: Path = Path()
     current_index: int = 0
+    producer: KafkaProducer = get_producer(BOOTSTRAP_SERVERS_EXTERNAL)
 
     @classmethod
     def init_file_path(cls, ) -> None:
@@ -60,8 +61,8 @@ class DataMessage:
 
             key = '|'.join(key_str_list)
             value = event   # the key in `pk_column`` is removed
-            EXTERNAL_PRODUCER.send(cls.topic, key=key, value=value)
-            EXTERNAL_PRODUCER.flush()
+            cls.producer.send(cls.topic, key=key, value=value)
+            cls.producer.flush()
 
             print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(value)}')
             cls.current_index += 1
