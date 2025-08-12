@@ -56,7 +56,7 @@ def get_client(bootstrp_servers: Iterable[str]) -> KafkaAdminClient:
         bootstrap_servers=bootstrp_servers
     )
 
-def get_external_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
+def get_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
     consumer = KafkaConsumer(
         bootstrap_servers=bootstrp_servers,
         auto_offset_reset='earliest',
