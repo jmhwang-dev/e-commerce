@@ -9,7 +9,7 @@ from ecommerce.utils import (
     PREPROCESS_ARTIFACTS_DIR,
     SILVER_DIR,
 )
-from ecommerce.pipelines.bronze2silver.reviews import ReviewPreprocessor
+from ecommerce.pipelines.bronze2silver.reviews import PortuguessPreprocessor
 
 if __name__ == "__main__":
     ensure_directories()
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     )
     clean_comments_config.save()
 
-    preprocessor = ReviewPreprocessor(
+    preprocessor = PortuguessPreprocessor(
         dataset=dataset,
         target_cols=['review_id', 'review_comment_title', 'review_comment_message'],
         manual_fix_json_path=os.path.join(PREPROCESS_ARTIFACTS_DIR, 'manual_fix_reviews.json')

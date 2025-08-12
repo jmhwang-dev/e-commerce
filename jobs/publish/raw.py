@@ -1,9 +1,11 @@
-from service.init import *
+from service.init.kafka import *
 from service.producer.topic import *
 from service.producer.raw_message import *
 
-def simulate_stream():
-
+if __name__=="__main__":
+    delete_topics(Topic())
+    create_topics(Topic())
+    
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()
         OrderStatusMessage.publish(order_status_log)

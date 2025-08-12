@@ -31,6 +31,8 @@ class Topic:
     ESTIMATED_DELIVERY_DATE = 'estimated_delivery_date'
     REVIEW = 'review'
 
+    REVIEW_INFERENCE = 'review_inference'
+
     @classmethod
     def __iter__(cls) -> Iterator[str]:
         for attr_name, attr_value in vars(cls).items():

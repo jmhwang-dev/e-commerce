@@ -124,12 +124,12 @@ def remove_empty_or_whitespace_single_quotes(text):
         return text
     return re.sub(r"'\s*'", '', text)
 
-class ReviewPreprocessor:
+class PortuguessPreprocessor:
     def __init__(
         self,
         dataset: pd.DataFrame,
         target_cols: List[str],
-        manual_fix_json_path: str,
+        manual_fix_json_path: str = '',
         value_column_name: str = 'comment'
     ):
         self.dataset = dataset
@@ -140,49 +140,56 @@ class ReviewPreprocessor:
         self.processed_df = None
 
     def _load_manual_fix_data(self) -> dict:
+        if len(self.manual_fix_json_path) == 0:
+            return {}
         with open(self.manual_fix_json_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def melt_reviews(self) -> pd.DataFrame:
-        if 'review_id' not in self.dataset.columns:
+    @staticmethod
+    def melt_reviews(df:pd.DataFrame) -> pd.DataFrame:
+        if 'review_id' not in df.columns:
             raise ValueError("Column 'review_id' must exist in dataset")
-        melted_df = self.dataset[self.target_cols].melt(
+        melted_df = df.melt(
             id_vars='review_id',
             var_name='column_name',
-            value_name=self.value_column_name
+            value_name='portuguess'
         )
-        melted_df.dropna(subset=[self.value_column_name], inplace=True)
+        melted_df.dropna(inplace=True)
         melted_df.reset_index(drop=True, inplace=True)
         return melted_df
 
-    def clean_review_comment(self, df: pd.DataFrame) -> pd.DataFrame:
-        df[self.value_column_name] = df[self.value_column_name].str.lower()
-        df[self.value_column_name] = df[self.value_column_name].str.replace(r'[\r\n]', ' ', regex=True)
-        df[self.value_column_name] = df[self.value_column_name].apply(replace_emoji_with_dot)
-        df[self.value_column_name] = df[self.value_column_name].apply(replace_emoticon_with_dot)
+    @staticmethod
+    def clean_review_comment(df: pd.DataFrame, value_column_name: str ='portuguess') -> pd.DataFrame:
+        df[value_column_name] = df[value_column_name].str.lower()
+        df[value_column_name] = df[value_column_name].str.replace(r'[\r\n]', ' ', regex=True)
+        df[value_column_name] = df[value_column_name].apply(replace_emoji_with_dot)
+        df[value_column_name] = df[value_column_name].apply(replace_emoticon_with_dot)
 
-        df[self.value_column_name] = df[self.value_column_name].apply(convert_emphasis_to_single_quote)
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_empty_or_whitespace_single_quotes)
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_single_quote)
+        df[value_column_name] = df[value_column_name].apply(convert_emphasis_to_single_quote)
+        df[value_column_name] = df[value_column_name].apply(remove_empty_or_whitespace_single_quotes)
+        df[value_column_name] = df[value_column_name].apply(remove_single_quote)
 
-        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_special_chars)
-        df[self.value_column_name] = df[self.value_column_name].apply(replace_exclamation_with_dot)
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_space_before_punctuation)
+        df[value_column_name] = df[value_column_name].apply(reduce_repeated_special_chars)
+        df[value_column_name] = df[value_column_name].apply(replace_exclamation_with_dot)
+        df[value_column_name] = df[value_column_name].apply(remove_space_before_punctuation)
 
-        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_chars)
-        df[self.value_column_name] = df[self.value_column_name].apply(reduce_repeated_spaces)
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_trailing_punctuation)
+        df[value_column_name] = df[value_column_name].apply(reduce_repeated_chars)
+        df[value_column_name] = df[value_column_name].apply(reduce_repeated_spaces)
+        df[value_column_name] = df[value_column_name].apply(remove_trailing_punctuation)
         
-        df[self.value_column_name] = df[self.value_column_name].apply(remove_if_short)
-        df[self.value_column_name] = df[self.value_column_name].apply(strip_spaces_inside_quotes)
+        df[value_column_name] = df[value_column_name].apply(remove_if_short)
+        df[value_column_name] = df[value_column_name].apply(strip_spaces_inside_quotes)
         
-        df[self.value_column_name] = df[self.value_column_name].str.strip()
+        df[value_column_name] = df[value_column_name].str.strip()
 
-        df = df[df[self.value_column_name].notna() & (df[self.value_column_name].str.strip() != '')]
+        df = df[df[value_column_name].notna() & (df[value_column_name].str.strip() != '')]
         df = df.reset_index(drop=True)
         return df
 
     def manual_fix(self, df: pd.DataFrame, target_col: str) -> pd.DataFrame:
+        if len(self.manual_fix_data) == 0:
+            print('Not setted manual fix param')
+            return df
         fixed_contents = self.manual_fix_data.get(target_col, {})
         log_path = os.path.join(PREPROCESS_ARTIFACTS_DIR, f"before_fix_{target_col}.tsv")
         df[df['review_id'].isin(fixed_contents.keys())].to_csv(log_path, sep='\t', index=False)
@@ -200,10 +207,10 @@ class ReviewPreprocessor:
         return df
 
     def run(self, dst_path: Union[str, Path]) -> pd.DataFrame:
-        melted_df = self.melt_reviews()
-        cleaned_df = self.clean_review_comment(melted_df)
+        melted_df = PortuguessPreprocessor.melt_reviews(self.dataset)
+        cleaned_df = PortuguessPreprocessor.clean_review_comment(melted_df)
         fixed_df = self.fix_reviews(cleaned_df)
-
+    
         fixed_df['comment_length'] = fixed_df[self.value_column_name].str.len()
         fixed_df = fixed_df.sort_values(by='comment_length', ascending=False)
         fixed_df.drop(columns=['comment_length'], inplace=True)

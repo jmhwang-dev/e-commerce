@@ -1,6 +1,5 @@
 
-from init.iceberg import *
-from iceberg.io import *
+from service.io import *
 
 data_dict = {
     "review_id": ["f7c4243c7fe1938f181bec41a392bdeb"],

@@ -3,7 +3,7 @@ from typing import List, Optional, Iterable
 import pandas as pd
 from pprint import pformat, pprint
 from functools import lru_cache
-from service.init import DATASET_DIR, IngestionType, Topic, PRODUCER
+from service.init.kafka import DATASET_DIR, IngestionType, Topic, PRODUCER
 from copy import deepcopy
 
 class DataMessage:

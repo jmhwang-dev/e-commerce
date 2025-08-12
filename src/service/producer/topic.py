@@ -1,7 +1,7 @@
 from kafka.admin import NewTopic
 from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
-from typing import List, Iterable
-from service.init import *
+from typing import Iterable
+from service.init.kafka import *
 
 ADMIN_CLIENT = get_client()
 
