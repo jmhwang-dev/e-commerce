@@ -4,3 +4,9 @@ pyarrow
 seaborn
 matplotlib
 jupyter
+kafka-python
+pyiceberg
+boto3
+unidecode
+python-dotenv
+emoji

@@ -1,8 +1,11 @@
 from service.init.kafka import *
 from service.consumer.review import *
-from ecommerce.pipelines.bronze2silver.reviews import *
+from service.consumer.reviews import *
 
 if __name__=="__main__":
+
+    print("done--------------")
+    exit()
     try:
         # # topic_list = list(Topic().__iter__())
 

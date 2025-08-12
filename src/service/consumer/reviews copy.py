@@ -7,7 +7,7 @@ from typing import List, Union
 import emoji
 import pandas as pd
 
-from ecommerce.utils.paths import PREPROCESS_ARTIFACTS_DIR
+# from ecommerce.utils.paths import PREPROCESS_ARTIFACTS_DIR
 
 def replace_emoji_with_dot(text):
     if not isinstance(text, str):

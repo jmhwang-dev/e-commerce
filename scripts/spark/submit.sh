@@ -8,7 +8,7 @@ if [ -z "$PYTHON_SCRIPT" ]; then
   exit 1
 fi
 
-docker compose -f infra/docker-compose.yml exec spark-client \
+docker compose -f docker-compose.yml exec spark-client \
 spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \

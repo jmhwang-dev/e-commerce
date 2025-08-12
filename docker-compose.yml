@@ -1,12 +1,15 @@
 x-spark-common: &spark-common
-    build:
-      context: ./infra/spark
-      dockerfile: Dockerfile
+  build:
+    context: ./infra/spark
+    dockerfile: Dockerfile
+
+x-minio-common: &minio-common
+  image: minio/minio:RELEASE.2025-06-13T11-33-47Z
 
 services:
   minio:
     container_name: minio
-    image: minio/minio:RELEASE.2025-06-13T11-33-47Z
+    <<: *minio-common
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -25,7 +28,7 @@ services:
 
   init-minio:
     container_name: init-minio
-    image: minio/mc:RELEASE.2025-05-21T01-59-54Z
+    <<: *minio-common
     depends_on:
       minio:
         condition: service_healthy
@@ -39,7 +42,7 @@ services:
         echo "init-minio ready; keeping container alive" &&
         tail -f /dev/null
       '
-  
+
   spark-master:
       <<: *spark-common
       hostname: spark-master
@@ -80,14 +83,21 @@ services:
       - "10000:10000"
       - "4041:4041"
     volumes:
-      - ./configs/spark:/opt/spark/conf/
-      - ./notebooks/spark:/opt/spark/work-dir/notebooks/
-      - ./jobs/:/opt/spark/work-dir/jobs/
+      # - ./configs/:/opt/spark/work-dir/configs/
+      # - ./notebooks/spark:/opt/spark/work-dir/notebooks/
+      # - ./jobs/:/opt/spark/work-dir/jobs/
+      # - ./src/:/opt/spark/work-dir/src/
+      # - ./infra/spark/logs/:/opt/spark/logs/
+      - ./configs/:/configs/
+      - ./notebooks/spark:/notebooks/
+      - ./jobs/:/jobs/
+      - ./src/:/src/
       - ./infra/spark/logs/:/opt/spark/logs/
 
-    working_dir: /opt/spark/work-dir
+    working_dir: /
     environment:
       - SPARK_NO_DAEMONIZE=1  # run foreground
+      - PYTHONPATH=/src
 
     # command: tail -f /dev/null
     command: >
@@ -97,9 +107,9 @@ services:
         --driver-memory 2g &&
       spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
 
-  spark-init:
+  init-spark:
     <<: *spark-common
-    container_name: spark-init
+    container_name: init-spark
     depends_on:
       - spark-master
       - rest-catalog

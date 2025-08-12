@@ -10,3 +10,5 @@ pandas
 pyiceberg
 pyarrow
 boto3
+unidecode
+python-dotenv

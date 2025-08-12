@@ -77,14 +77,14 @@ services:
       - ./infra/confluent/schemas/:/mnt/schemas/
       - ./infra/confluent/register.py/:/mnt/register.py
       
-  consumer:
+  inference:
     build:
-      context: ./consumer
+      context: ./infra/inference
       dockerfile: Dockerfile
     command: bash -c "tail -f /dev/null"
     volumes:
-      - ../jobs/consumer/:/app/
-      - ./consumer/models/:/models/
+      - ./jobs/consumer/:/app/
+      - ./downloads/models/:/models/
     depends_on:
       - kafka1
       - kafka2
