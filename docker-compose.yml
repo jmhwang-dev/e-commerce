@@ -83,11 +83,6 @@ services:
       - "10000:10000"
       - "4041:4041"
     volumes:
-      # - ./configs/:/opt/spark/work-dir/configs/
-      # - ./notebooks/spark:/opt/spark/work-dir/notebooks/
-      # - ./jobs/:/opt/spark/work-dir/jobs/
-      # - ./src/:/opt/spark/work-dir/src/
-      # - ./infra/spark/logs/:/opt/spark/logs/
       - ./configs/:/configs/
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
