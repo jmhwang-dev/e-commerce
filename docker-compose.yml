@@ -1,10 +1,11 @@
 x-spark-common: &spark-common
     build:
-      context: ./spark
+      context: ./infra/spark
       dockerfile: Dockerfile
 
 services:
   minio:
+    container_name: minio
     image: minio/minio:RELEASE.2025-06-13T11-33-47Z
     ports:
       - "9000:9000"
@@ -13,7 +14,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ../data/minio:/data
+      - ./data/minio:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
@@ -21,13 +22,15 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
   init-minio:
+    container_name: init-minio
     image: minio/mc:RELEASE.2025-05-21T01-59-54Z
     depends_on:
       minio:
         condition: service_healthy
     volumes:
-      - ../downloads/olist/:/mnt/downloads/olist/
+      - ./downloads/olist/:/mnt/downloads/olist/
     entrypoint: >
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
@@ -40,16 +43,18 @@ services:
   spark-master:
       <<: *spark-common
       hostname: spark-master
+      container_name: spark-master
       ports:
         - "8080:8080"
         - "7077:7077"
       volumes:
-        - ../configs/spark:/opt/spark/conf
+        - ./configs/spark:/opt/spark/conf
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     
   spark-worker:
     <<: *spark-common
     hostname: spark-worker
+    container_name: spark-worker
     depends_on:
       - spark-master
     ports:
@@ -58,25 +63,27 @@ services:
       SPARK_WORKER_MEMORY: 4g
       SPARK_WORKER_CORES: 2
     volumes:
-      - ../configs/spark:/opt/spark/conf
+      - ./configs/spark:/opt/spark/conf
     command: >
       bash -c "
         sleep 10 &&
         /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
       "
+  
   spark-client:
     <<: *spark-common
     hostname: spark-client
+    container_name: spark-client
     depends_on:
       - spark-master
     ports:
       - "10000:10000"
       - "4041:4041"
     volumes:
-      - ../configs/spark:/opt/spark/conf
-      - ../notebooks/spark:/opt/spark/work-dir/notebooks
-      - ../jobs:/opt/spark/work-dir/jobs
-      - ./spark/logs:/opt/spark/logs
+      - ./configs/spark:/opt/spark/conf/
+      - ./notebooks/spark:/opt/spark/work-dir/notebooks/
+      - ./jobs/:/opt/spark/work-dir/jobs/
+      - ./infra/spark/logs/:/opt/spark/logs/
 
     working_dir: /opt/spark/work-dir
     environment:
@@ -89,13 +96,15 @@ services:
         --executor-cores 1 \
         --driver-memory 2g &&
       spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
+
   spark-init:
     <<: *spark-common
+    container_name: spark-init
     depends_on:
       - spark-master
       - rest-catalog
     volumes:
-      - ../configs/spark:/opt/spark/conf
+      - ./configs/spark:/opt/spark/conf
     entrypoint: >
       bash -c "
         echo 'Waiting for master/catalog…';
@@ -104,13 +113,14 @@ services:
       "
       
   postgres:
+    container_name: iceberg-metastore
     image: postgres:16
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes: 
-      # - "../data/postgres:/var/lib/postgresql/data"
-      - "./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql"
+      - "./data/iceberg:/var/lib/postgresql/data"
+      - "./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
@@ -118,10 +128,10 @@ services:
       retries: 5
 
   rest-catalog:
-    # image: catalog:ice1.9.1-psql16
     build:
-      context: ./iceberg-rest
+      context: ./infra/iceberg-rest
       dockerfile: Dockerfile
+    container_name: rest-catalog
     depends_on:
       postgres:
         condition: service_healthy

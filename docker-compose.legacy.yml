@@ -76,35 +76,7 @@ services:
     volumes:
       - ./infra/confluent/schemas/:/mnt/schemas/
       - ./infra/confluent/register.py/:/mnt/register.py
-
-  topic-init:
-    <<: *kafka-common
-    container_name: topic-init
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-    restart: "no"
-    volumes:
-      - ./kafka/init:/mnt/init
-    command: ["bash", "/mnt/init/create-topics.sh"]
-
-  producer:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
-    command: >
-      sh -c "tail -f /dev/null"
-    volumes:
-      - ../jobs/producer/:/app/
-    depends_on:
-      - kafka1
-      - kafka2
-      - kafka3
-
+      
   consumer:
     build:
       context: ./consumer
