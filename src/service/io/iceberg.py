@@ -1,4 +1,5 @@
 from service.init.iceberg import *
+from service.io import minio
 from pyiceberg.exceptions import NoSuchTableError
 from typing import Iterable
 import pandas as pd
@@ -25,14 +26,6 @@ def get_table():
         print(f"Failed to load table {TABLE_IDENTIFIER}: {str(e)}")
         raise
 
-def delete_s3_objects(bucket, prefix):
-    """S3 버킷에서 지정된 prefix의 모든 객체를 삭제"""
-    response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
-    if "Contents" in response:
-        for obj in response["Contents"]:
-            s3_client.delete_object(Bucket=bucket, Key=obj["Key"])
-        print(f"Deleted objects in s3://{bucket}/{prefix}")
-
 def delete_table(tables_to_delete: Iterable[Iterable]):
     """
     삭제할 테이블 목록 예시
@@ -51,7 +44,7 @@ def delete_table(tables_to_delete: Iterable[Iterable]):
             # S3에서 메타데이터 및 데이터 파일 삭제
             bucket = BUCKET_NAME
             prefix = location.replace(f"s3://{bucket}/", "")
-            delete_s3_objects(bucket, prefix)
+            minio.delete_s3_objects(bucket, prefix)
             print("All specified tables and their data have been deleted.")
         except Exception as e:
             print(f"Failed to drop table {namespace}.{table_name}: {str(e)}")

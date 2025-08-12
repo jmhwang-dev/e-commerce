@@ -1,5 +1,5 @@
-
-from service.io import *
+from service.io.minio import *
+from service.io.iceberg import *
 
 data_dict = {
     "review_id": ["f7c4243c7fe1938f181bec41a392bdeb"],

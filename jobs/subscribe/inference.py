@@ -2,7 +2,7 @@ import json
 from pprint import pformat
 import logging
 import time
-from init.inference import *
+from service.init.inference import *
 
 os.makedirs("/app/logs", exist_ok=True)
 logging.basicConfig(
