@@ -57,7 +57,9 @@ class DataMessage:
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
         elif isinstance(_event, pd.DataFrame):
-            # event_list += _event.to_dict(orient='records')
+            # pandas의 np.nan: Python의 None이 아닌 float 타입
+            # Avro 스키마: null 타입은 Python의 None만 인식
+            # 변환 필요: np.nan → None으로 변환해야 Avro 직렬화 성공
             event_list += _event.where(pd.notnull(_event), None).to_dict(orient='records')
         
         for event in event_list:
