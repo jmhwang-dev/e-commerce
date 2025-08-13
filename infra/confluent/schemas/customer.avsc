@@ -1,0 +1,15 @@
+{
+  "namespace": "warehouse_dev.bronze.customer",
+  "type": "record",
+  "name": "RawCustomer",
+  "fields": [
+    {
+      "name": "customer_id",
+      "type": "string"
+    },
+    {
+      "name": "zip_code",
+      "type": "string"
+    }
+  ]
+}

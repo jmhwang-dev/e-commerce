@@ -1,0 +1,15 @@
+{
+  "namespace": "warehouse_dev.bronze.seller",
+  "type": "record",
+  "name": "RawSeller",
+  "fields": [
+    {
+      "name": "seller_id",
+      "type": "string"
+    },
+    {
+      "name": "zip_code",
+      "type": "string"
+    }
+  ]
+}
