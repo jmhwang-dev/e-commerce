@@ -9,5 +9,5 @@ subjects=$(curl -s "$REGISTRY_URL/subjects" | jq -r '.[]')
 for subject in $subjects; do
   echo "Subject: $subject"
   curl -s "$REGISTRY_URL/subjects/$subject/versions/latest" | jq .
-  echo "-------------------"
+  echo -e "\n"
 done
