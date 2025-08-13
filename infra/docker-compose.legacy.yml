@@ -39,43 +39,6 @@ services:
       - "./superset/superset_config.py:/app/pythonpath/superset_config.py"
       - "./superset/requirements-local.txt:/app/docker/requirements-local.txt"
     environment: *superset-env
-
-  schema-registry:
-    image: confluentinc/cp-schema-registry:latest
-    container_name: schema-registry
-    # hostname: schema-registry
-    depends_on:
-      kafka1: { condition: service_healthy }
-      kafka2: { condition: service_healthy }
-      kafka3: { condition: service_healthy }
-    environment:
-      # Kafka 클러스터 연결
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
-        PLAINTEXT://kafka1:9092,PLAINTEXT://kafka2:9092,PLAINTEXT://kafka3:9092
-      # REST 엔드포인트 설정
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      # _schemas 토픽 복제계수 (브로커 3대)
-      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 3
-      # 기본 호환성(BACKWARD 권장)
-      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: BACKWARD
-    healthcheck:
-      test: ["CMD", "curl", "-fs", "http://schema-registry:8081/subjects"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    ports:
-      - "8082:8081"
-
-  schema-registry-init:
-    image: confluentinc/cp-schema-registry:latest
-    container_name: schema-registry-init
-    depends_on:
-      schema-registry: { condition: service_healthy }
-    command: python /mnt/register.py
-    volumes:
-      - ./infra/confluent/schemas/:/mnt/schemas/
-      - ./infra/confluent/register.py/:/mnt/register.py
       
   inference:
     build:

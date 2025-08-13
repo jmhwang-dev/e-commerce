@@ -3,7 +3,7 @@ import json
 import sys
 
 # Config: Replace with your Schema Registry URL (e.g., from Kafka cluster on RPi/Desktop)
-SCHEMA_REGISTRY_URL = "http://localhost:8081"  # Or https for prod
+SCHEMA_REGISTRY_URL = "http://schema-registry:8081"  # Or https for prod
 HEADERS = {
     "Accept": "application/vnd.schemaregistry.v1+json",
     "Content-Type": "application/vnd.schemaregistry.v1+json"
@@ -13,6 +13,7 @@ def set_compatibility(subject, level="BACKWARD"):
     """Set subject-level compatibility (e.g., BACKWARD for safe evolution)."""
     url = f"{SCHEMA_REGISTRY_URL}/config/{subject}"
     response = requests.put(url, headers=HEADERS, data=json.dumps({"compatibility": level}))
+
     if response.status_code == 200:
         print(f"Compatibility set to {level} for {subject}")
     else:
@@ -48,15 +49,3 @@ def register_schema(subject, schema_str, schema_type="AVRO"):
     else:
         print(f"Error registering: {response.status_code}, {response.text}")
         sys.exit(1)
-
-# Example usage for Olist
-if __name__ == "__main__":
-    # Load schemas (in prod: read from files or Git)
-    with open("/mnt/schemas/reviews.avsc", "r") as f:
-        reviews_schema = f.read()
-    
-    # Set compatibility first
-    set_compatibility("review-value")
-    
-    # Register
-    register_schema("review-value", reviews_schema)

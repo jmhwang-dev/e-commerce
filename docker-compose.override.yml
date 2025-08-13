@@ -1,7 +1,7 @@
 x-health-kafka: &kafka-healthcheck
   test: ["CMD-SHELL",
          "/opt/kafka/bin/kafka-broker-api-versions.sh \
-          --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+          --bootstrap-server kafka1:9092 >/dev/null 2>&1 || exit 1"]
   interval: 10s
   timeout: 5s
   retries: 10
@@ -19,6 +19,9 @@ x-kafka-common: &kafka-common
   env_file:
     - ./configs/kafka/.env
   healthcheck: *kafka-healthcheck
+
+x-confluent-common: &confluent-common
+  image: confluentinc/cp-schema-registry:latest
 
 services:
   kafka1:
@@ -44,3 +47,45 @@ services:
     volumes:
       - ./configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node3:/var/lib/kafka/data
+
+  schema-registry:
+    <<: *confluent-common
+    container_name: schema-registry
+    # hostname: schema-registry
+    depends_on:
+      kafka1: { condition: service_healthy }
+      kafka2: { condition: service_healthy }
+      kafka3: { condition: service_healthy }
+    environment:
+      # Kafka 클러스터 연결
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
+        PLAINTEXT://kafka1:9092,PLAINTEXT://kafka2:9092,PLAINTEXT://kafka3:9092
+      # REST 엔드포인트 설정
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      # _schemas 토픽 복제계수 (브로커 3대)
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 3
+      # 기본 호환성(BACKWARD 권장)
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: BACKWARD
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://schema-registry:8081/subjects"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "8082:8081"
+
+  init-schema-registry:
+    <<: *confluent-common
+    container_name: init-schema-registry
+    depends_on:
+      schema-registry: { condition: service_healthy }
+    command: python register.py
+    working_dir: /mnt
+    environment:
+      - PYTHONPATH=/mnt
+
+    volumes:
+      - ./infra/confluent/schemas/:/mnt/infra/confluent/schemas/
+      - ./jobs/confluent/register.py/:/mnt/register.py
+      - ./src/service/init/confluent.py/:/mnt/service/init/confluent.py
