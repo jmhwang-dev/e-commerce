@@ -9,7 +9,7 @@
     },
     {
       "name": "zip_code",
-      "type": "string"
+      "type": "int"
     }
   ]
 }

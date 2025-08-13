@@ -1,5 +1,5 @@
 Table geolocation {
-  zip_code string [pk]
+  zip_code int [pk]
   lat float
   lng float
   state string
@@ -8,7 +8,7 @@ Table geolocation {
 
 Table seller {
   seller_id string [pk]
-  zip_code string [ref: > geolocation.zip_code] // FK
+  zip_code int [ref: > geolocation.zip_code] // FK
   // 정규화 강화: INDEX 추천 (SQL: CREATE INDEX idx_seller_zip ON seller(zip_code);)
 }
 
@@ -23,7 +23,7 @@ Table product {
 
 Table customer {
   customer_id string [pk]
-  zip_code string [ref: > geolocation.zip_code] // FK
+  zip_code int [ref: > geolocation.zip_code] // FK
   // 정규화 강화: VIEW 추천 (SQL: CREATE VIEW customer_location AS SELECT c.*, g.city FROM customer c JOIN geolocation g ON c.zip_code = g.zip_code;)
 }
 
