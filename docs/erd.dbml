@@ -45,7 +45,7 @@ Table estimated_delivery_date {
 
 Table payment {
   order_id string [pk, ref: > order_item.order_id]
-  payment_sequential integer [pk]
+  payment_sequential float [pk]
   timestamp datetime
   payment_value float
   payment_type string

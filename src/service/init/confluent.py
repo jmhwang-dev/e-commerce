@@ -2,8 +2,8 @@ import requests
 import json
 import sys
 
-# Config: Replace with your Schema Registry URL (e.g., from Kafka cluster on RPi/Desktop)
-SCHEMA_REGISTRY_URL = "http://schema-registry:8081"  # Or https for prod
+SCHEMA_REGISTRY_INTERNAL_URL = "http://schema-registry:8081"
+SCHEMA_REGISTRY_EXTERNAL_URL = "http://localhost:8082"
 HEADERS = {
     "Accept": "application/vnd.schemaregistry.v1+json",
     "Content-Type": "application/vnd.schemaregistry.v1+json"
@@ -11,7 +11,7 @@ HEADERS = {
 
 def set_compatibility(subject, level="BACKWARD"):
     """Set subject-level compatibility (e.g., BACKWARD for safe evolution)."""
-    url = f"{SCHEMA_REGISTRY_URL}/config/{subject}"
+    url = f"{SCHEMA_REGISTRY_INTERNAL_URL}/config/{subject}"
     response = requests.put(url, headers=HEADERS, data=json.dumps({"compatibility": level}))
 
     if response.status_code == 200:
@@ -21,7 +21,7 @@ def set_compatibility(subject, level="BACKWARD"):
 
 def check_schema_exists(subject, schema_str):
     """Check if schema already exists; returns ID if found."""
-    url = f"{SCHEMA_REGISTRY_URL}/subjects/{subject}"
+    url = f"{SCHEMA_REGISTRY_INTERNAL_URL}/subjects/{subject}"
     response = requests.post(url, headers=HEADERS, data=json.dumps({"schema": schema_str}))
     if response.status_code == 200:
         data = response.json()
@@ -35,7 +35,7 @@ def register_schema(subject, schema_str, schema_type="AVRO"):
         print(f"Schema already exists for {subject}: ID {existing_id}, Version {existing_version}")
         return existing_id
     
-    url = f"{SCHEMA_REGISTRY_URL}/subjects/{subject}/versions"
+    url = f"{SCHEMA_REGISTRY_INTERNAL_URL}/subjects/{subject}/versions"
     payload = {
         "schema": schema_str,
         "schemaType": schema_type,

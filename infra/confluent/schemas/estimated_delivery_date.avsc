@@ -1,14 +1,14 @@
 {
   "namespace": "warehouse_dev.bronze.estimated_delivery_date",
   "type": "record",
-  "name": "RawEstimatedDeliveryDate",
+  "name": "estimated_delivery_date",
   "fields": [
     {
       "name": "order_id",
       "type": "string"
     },
     {
-      "name": "estimated_delivery",
+      "name": "estimated_delivery_date",
       "type": "string"
     }
   ]

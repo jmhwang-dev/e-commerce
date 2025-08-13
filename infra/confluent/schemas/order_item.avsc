@@ -1,7 +1,7 @@
 {
   "namespace": "warehouse_dev.bronze.order_item",
   "type": "record",
-  "name": "RawOrderItem",
+  "name": "order_item",
   "fields": [
     {
       "name": "order_id",

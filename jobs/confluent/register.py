@@ -7,7 +7,7 @@ if __name__ == "__main__":
     SCHEMA_DIR = Path('infra/confluent/schemas')
     for file_name in os.listdir(SCHEMA_DIR):
         schema_path = SCHEMA_DIR / file_name
-        schema_name = schema_path.stem
+        schema_name = f"{schema_path.stem}"
         
         with open(schema_path, "r") as f:
             schema = f.read()

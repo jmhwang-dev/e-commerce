@@ -7,8 +7,6 @@ if __name__=="__main__":
     delete_topics(admin_client, Topic())
     create_topics(admin_client, Topic())
 
-    DataMessage.producer = get_producer(BOOTSTRAP_SERVERS_EXTERNAL)
-    
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()
         OrderStatusMessage.publish(order_status_log)

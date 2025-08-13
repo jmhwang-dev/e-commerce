@@ -2,6 +2,15 @@ from typing import Iterator, Iterable
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
+
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import StringSerializer
+from confluent_kafka import SerializingProducer
+from confluent_kafka.schema_registry import record_subject_name_strategy
+
+from service.init.confluent import *
+
 import json
 import time
 
@@ -15,6 +24,8 @@ BOOTSTRAP_SERVERS_EXTERNAL = os.getenv("BOOTSTRAP_SERVERS_EXTERNAL", "localhost:
 BOOTSTRAP_SERVERS_INTERNAL = os.getenv("BOOTSTRAP_SERVERS_INTERNAL", "kafka1:9092,kafka2:19092,kafka3:9092")
 DATASET_DIR = Path(os.getenv("DATASET_DIR", "./downloads/olist_redefined"))
 
+SCHEMA_REGISTRY_CLIENT = SchemaRegistryClient({'url': SCHEMA_REGISTRY_EXTERNAL_URL})
+
 class IngestionType(Enum):
     CDC = 'cdc'
     STREAM = 'stream'
@@ -23,7 +34,7 @@ class Topic:
     # CDC
     ORDER_ITEM = 'order_item'
     PRODUCT = 'product'
-    CUSTOMER = 'customer_cleaned'
+    CUSTOMER = 'customer'
     SELLER = 'seller'
     GEOLOCATION = 'geolocation'
 
@@ -41,7 +52,35 @@ class Topic:
             if not attr_name.startswith('__'):
                 yield attr_value
 
-def get_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
+
+    # 등록된 모든 subject 확인
+    subjects = SCHEMA_REGISTRY_CLIENT.get_subjects()
+    print("Available subjects:", subjects)
+
+    schema_obj = SCHEMA_REGISTRY_CLIENT.get_latest_version(topic_name).schema
+
+    avro_serializer = AvroSerializer(
+        SCHEMA_REGISTRY_CLIENT,
+        schema_obj,  # None으로 두면 subject 기반으로 fetch
+        to_dict=lambda obj, ctx: obj,
+        conf={
+            'auto.register.schemas': False,
+            # 'subject.name.strategy': record_subject_name_strategy
+            'subject.name.strategy': lambda ctx, record_name: topic_name
+            }
+    )
+
+    producer_conf = {
+        'bootstrap.servers': bootstrap_servers[0],
+        'key.serializer': StringSerializer('utf_8'),
+        'value.serializer': avro_serializer,
+        'acks': 'all',
+        'retries': 3
+    }
+    return SerializingProducer(producer_conf)
+
+def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
     return KafkaProducer(
         bootstrap_servers=bootstrp_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),

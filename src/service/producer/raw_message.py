@@ -12,7 +12,7 @@ class DataMessage:
     ingestion_type: IngestionType
     file_path: Path = Path()
     current_index: int = 0
-    producer: KafkaProducer = get_producer(BOOTSTRAP_SERVERS_EXTERNAL)
+    producer: SerializingProducer = None
 
     @classmethod
     def init_file_path(cls, ) -> None:
@@ -22,7 +22,12 @@ class DataMessage:
             cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic}.tsv"
         else:
             raise ValueError(f"Unknown ingestion type: {cls.ingestion_type}")
-
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def get_producer(cls) -> SerializingProducer:
+        return get_confluent_producer(cls.topic, BOOTSTRAP_SERVERS_EXTERNAL)
+    
     @classmethod
     @lru_cache(maxsize=1)  # 자동 캐싱, maxsize=1로 한 번 로드 후 재사용
     def get_df(cls) -> pd.DataFrame:
@@ -46,24 +51,25 @@ class DataMessage:
     def publish(cls, _event: pd.DataFrame | pd.Series) -> None:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')
-            return 
+            return
+        producer = cls.get_producer()
         event_list = []
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
         elif isinstance(_event, pd.DataFrame):
-            event_list += _event.to_dict(orient='records')
-            
+            # event_list += _event.to_dict(orient='records')
+            event_list += _event.where(pd.notnull(_event), None).to_dict(orient='records')
+        
         for event in event_list:
             key_str_list = []
             for pk_col in cls.pk_column:
                 key_str_list.append(str(event[pk_col]))
 
             key = '|'.join(key_str_list)
-            value = event
-            cls.producer.send(cls.topic, key=key, value=value)
-            cls.producer.flush()
+            producer.produce(cls.topic, key=key, value=event)
+            producer.flush()
 
-            print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(value)}')
+            print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(event)}')
             cls.current_index += 1
 
 # CDC
