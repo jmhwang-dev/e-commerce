@@ -38,9 +38,11 @@ services:
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
         mc mb --ignore-existing local/warehouse-dev/bronze &&
-        mc cp /mnt/downloads/olist/*.csv local/warehouse-dev/bronze || true &&
-        echo "init-minio ready; keeping container alive" &&
-        tail -f /dev/null
+        mc mb --ignore-existing local/warehouse-dev/silver &&
+        mc mb --ignore-existing local/warehouse-dev/gold
+        # mc cp /mnt/downloads/olist/*.csv local/warehouse-dev/bronze || true &&
+        # echo "init-minio ready; keeping container alive" &&
+        # tail -f /dev/null
       '
 
   spark-master:
