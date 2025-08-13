@@ -7,7 +7,6 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 from confluent_kafka import SerializingProducer
-from confluent_kafka.schema_registry import record_subject_name_strategy
 
 from service.init.confluent import *
 
@@ -25,6 +24,7 @@ BOOTSTRAP_SERVERS_INTERNAL = os.getenv("BOOTSTRAP_SERVERS_INTERNAL", "kafka1:909
 DATASET_DIR = Path(os.getenv("DATASET_DIR", "./downloads/olist_redefined"))
 
 SCHEMA_REGISTRY_CLIENT = SchemaRegistryClient({'url': SCHEMA_REGISTRY_EXTERNAL_URL})
+SCHEMA_REGISTRY_INTERNAL = SchemaRegistryClient({'url': SCHEMA_REGISTRY_INTERNAL_URL})
 
 class IngestionType(Enum):
     CDC = 'cdc'
