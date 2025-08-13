@@ -12,6 +12,6 @@ if __name__=="__main__":
     kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
     decoded_stream_df = get_decoded_stream_df(kafka_stream_df, topic_name)
 
-    # qeury = start_console_stream(decoded_stream_df)
-    qeury = load_stream(decoded_stream_df)
+    qeury = start_console_stream(decoded_stream_df)
+    # qeury = load_stream(decoded_stream_df)
     qeury.awaitTermination()

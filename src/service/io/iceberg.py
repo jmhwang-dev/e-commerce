@@ -6,8 +6,6 @@ import pandas as pd
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import StreamingQuery
 
-
-
 def get_table():
     try:
         table = catalog.load_table(TABLE_IDENTIFIER)

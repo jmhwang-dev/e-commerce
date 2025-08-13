@@ -80,12 +80,12 @@ services:
     container_name: init-schema-registry
     depends_on:
       schema-registry: { condition: service_healthy }
-    command: python register.py
+    command: python register_schema.py
     working_dir: /mnt
     environment:
       - PYTHONPATH=/mnt
 
     volumes:
       - ./infra/confluent/schemas/:/mnt/infra/confluent/schemas/
-      - ./jobs/confluent/register.py/:/mnt/register.py
+      - ./jobs/producer/register_schema.py/:/mnt/register_schema.py
       - ./src/service/init/confluent.py/:/mnt/service/init/confluent.py

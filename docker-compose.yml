@@ -97,7 +97,6 @@ services:
       - SPARK_NO_DAEMONIZE=1  # run foreground
       - PYTHONPATH=/src
 
-    # command: tail -f /dev/null
     command: >
       /opt/spark/sbin/start-thriftserver.sh \
         --master spark://spark-master:7077 --executor-memory 3g \
