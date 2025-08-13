@@ -57,10 +57,9 @@ class DataMessage:
             key_str_list = []
             for pk_col in cls.pk_column:
                 key_str_list.append(str(event[pk_col]))
-                event.pop(pk_col)
 
             key = '|'.join(key_str_list)
-            value = event   # the key in `pk_column`` is removed
+            value = event
             cls.producer.send(cls.topic, key=key, value=value)
             cls.producer.flush()
 
