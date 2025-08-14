@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.dataframe import DataFrame
-
+from pyspark.sql.streaming import  StreamingQuery
 
 def create_table(spark_session:SparkSession, df:DataFrame) -> None:
     DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.products"

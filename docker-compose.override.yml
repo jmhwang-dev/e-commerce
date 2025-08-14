@@ -89,3 +89,4 @@ services:
       - ./infra/confluent/schemas/:/mnt/infra/confluent/schemas/
       - ./jobs/publish/register_schema.py/:/mnt/register_schema.py
       - ./src/service/init/confluent.py/:/mnt/service/init/confluent.py
+      - ./src/config/confluent.py/:/mnt/config/confluent.py

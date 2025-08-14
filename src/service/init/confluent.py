@@ -2,12 +2,7 @@ import requests
 import json
 import sys
 
-SCHEMA_REGISTRY_INTERNAL_URL = "http://schema-registry:8081"
-SCHEMA_REGISTRY_EXTERNAL_URL = "http://localhost:8082"
-HEADERS = {
-    "Accept": "application/vnd.schemaregistry.v1+json",
-    "Content-Type": "application/vnd.schemaregistry.v1+json"
-}
+from config.confluent import *
 
 def set_compatibility(subject, level="BACKWARD"):
     """Set subject-level compatibility (e.g., BACKWARD for safe evolution)."""
