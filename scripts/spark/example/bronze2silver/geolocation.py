@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # 테이블 로드
     try:
-        SRC_TABLE_NAME = "warehouse_dev.silver.dedup.olist_geolocation_dataset"
+        SRC_TABLE_NAME = "warehousedev.silver.dedup.olist_geolocation_dataset"
         geolocation = spark.read.table(SRC_TABLE_NAME)
     except Exception as e:
         print(f"Error loading table: {e}")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     ).show()
 
 
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.geolocation"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.geolocation"
     DST_TABLE_NAME = "unified_geolocation"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
     full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         .tableProperty(
             "comment",
             "Unified geolocation data by zip code prefix, using the most frequent city name and averaged latitude/longitude. "
-            "Derived from `warehouse_dev.silver.dedup.olist_geolocation_dataset` with duplicates removed."
+            "Derived from `warehousedev.silver.dedup.olist_geolocation_dataset` with duplicates removed."
         )
     )
 

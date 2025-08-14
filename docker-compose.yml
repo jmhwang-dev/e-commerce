@@ -37,10 +37,10 @@ services:
     entrypoint: >
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
-        mc mb --ignore-existing local/warehouse-dev/bronze &&
-        mc mb --ignore-existing local/warehouse-dev/silver &&
-        mc mb --ignore-existing local/warehouse-dev/gold
-        # mc cp /mnt/downloads/olist/*.csv local/warehouse-dev/bronze || true &&
+        mc mb --ignore-existing local/warehousedev/bronze/checkpoints &&
+        mc mb --ignore-existing local/warehousedev/silver/checkpoints &&
+        mc mb --ignore-existing local/warehousedev/gold/checkpoints
+        # mc cp /mnt/downloads/olist/*.csv local/warehousedev/bronze || true &&
         # echo "init-minio ready; keeping container alive" &&
         # tail -f /dev/null
       '
@@ -102,7 +102,7 @@ services:
         --master spark://spark-master:7077 --executor-memory 3g \
         --executor-cores 1 \
         --driver-memory 2g &&
-      spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;"
+      spark-sql -e "CREATE NAMESPACE IF NOT EXISTS warehousedev.default;"
 
   init-spark:
     <<: *spark-common
@@ -116,7 +116,7 @@ services:
       bash -c "
         echo 'Waiting for master/catalog…';
         sleep 10;
-        spark-sql -e \"CREATE NAMESPACE IF NOT EXISTS warehouse_dev.default;\"
+        spark-sql -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
       "
       
   postgres:
@@ -148,7 +148,7 @@ services:
       CATALOG_URI: jdbc:postgresql://postgres:5432/iceberg
       CATALOG_JDBC_USER: iceberg
       CATALOG_JDBC_PASSWORD: iceberg
-      CATALOG_WAREHOUSE: s3://warehouse-dev/
+      CATALOG_WAREHOUSE: s3://warehousedev/
       CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
 
       CATALOG_S3_ENDPOINT: http://minio:9000

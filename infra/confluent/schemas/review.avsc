@@ -1,5 +1,5 @@
 {
-  "namespace": "warehouse_dev.bronze.review",
+  "namespace": "warehousedev.bronze.review",
   "type": "record",
   "name": "review",
   "fields": [

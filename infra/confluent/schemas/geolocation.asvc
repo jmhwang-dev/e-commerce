@@ -1,5 +1,5 @@
 {
-  "namespace": "warehouse_dev.bronze.geolocation",
+  "namespace": "warehousedev.bronze.geolocation",
   "type": "record",
   "name": "geolocation",
   "fields": [

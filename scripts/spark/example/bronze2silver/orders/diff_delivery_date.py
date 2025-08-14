@@ -22,11 +22,11 @@ if __name__ == "__main__":
     spark = SparkSession.builder.appName('diff_delivery_date').getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
 
-    ORDERS_TABLE_NAME = "warehouse_dev.silver.dedup.olist_orders_dataset"
+    ORDERS_TABLE_NAME = "warehousedev.silver.dedup.olist_orders_dataset"
     orders = spark.read.table(ORDERS_TABLE_NAME)
     diff_delivery_date = get_diff_delivery_date(orders)
 
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.orders"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.orders"
     DST_TABLE_NAME = "diff_delivery_date"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
     full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"

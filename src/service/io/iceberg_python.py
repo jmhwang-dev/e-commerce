@@ -14,11 +14,11 @@ from domain.schema.iceberg_python import *
 
 NAMESPCE = "silver"
 TABLE_NAME = "example_table"
-BUCKET_NAME = 'warehouse-dev'
+BUCKET_NAME = 'warehousedev'
 
 def create_table(catalog: Catalog, table_schema, partition_spec, s3_uri:str, table_identifier: str):
     """
-    ex) s3_uri = s3://warehouse_dev.silver
+    ex) s3_uri = s3://warehousedev.silver
     """
     try:
         table = catalog.create_table(
@@ -46,8 +46,8 @@ def delete_table(catalog: Catalog, tables_to_delete: Iterable[Table]) -> None:
     """
     삭제할 테이블 목록 예시
     tables_to_delete = [
-        ("default", "example_table", "s3://warehouse-dev/silver/test/example_table/"),
-        ("gold", "example_table", "s3://warehouse-dev/gold/test/example_table/")
+        ("default", "example_table", "s3://warehousedev/silver/test/example_table/"),
+        ("gold", "example_table", "s3://warehousedev/gold/test/example_table/")
     ]
     """
     # 테이블 삭제 및 S3 객체 정리

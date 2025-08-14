@@ -58,8 +58,8 @@ if __name__ == "__main__":
     spark.sparkContext.setLogLevel("WARN")
 
     # 데이터 로드
-    PRODUCTS_TABLE_NAME = "warehouse_dev.silver.dedup.olist_products_dataset"
-    ENG_CATEGORIES_TABLE_NAME = "warehouse_dev.silver.dedup.product_category_name_translation"
+    PRODUCTS_TABLE_NAME = "warehousedev.silver.dedup.olist_products_dataset"
+    ENG_CATEGORIES_TABLE_NAME = "warehousedev.silver.dedup.product_category_name_translation"
 
     products = spark.table(PRODUCTS_TABLE_NAME)
     eng_categories = spark.table(ENG_CATEGORIES_TABLE_NAME)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     product_spec = rename_columns(product_spec, rename_dict)
 
     # Step 5. 테이블 저장
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.products"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.products"
     DST_TABLE_NAME = "products_spec"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
     full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"

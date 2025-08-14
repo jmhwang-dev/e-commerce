@@ -1,5 +1,5 @@
 {
-  "namespace": "warehouse_dev.bronze.order_item",
+  "namespace": "warehousedev.bronze.order_item",
   "type": "record",
   "name": "order_item",
   "fields": [

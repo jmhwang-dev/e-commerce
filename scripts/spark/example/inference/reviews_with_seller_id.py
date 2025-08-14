@@ -5,9 +5,9 @@ if __name__ == "__main__":
     spark = SparkSession.builder.appName('tmp_inference').getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
 
-    inference_table_name = "warehouse_dev.silver.inference.reviews"
-    order_items_table_name = "warehouse_dev.silver.dedup.olist_order_items_dataset"
-    order_reviews_table_name = "warehouse_dev.silver.dedup.olist_order_reviews_dataset"
+    inference_table_name = "warehousedev.silver.inference.reviews"
+    order_items_table_name = "warehousedev.silver.dedup.olist_order_items_dataset"
+    order_reviews_table_name = "warehousedev.silver.dedup.olist_order_reviews_dataset"
 
     infer_df = spark.read.table(inference_table_name)
     order_items_df = spark.read.table(order_items_table_name)
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     infer_with_seller_id = infer_with_ordier_id.join(unique_seller_by_order, on="order_id", how='left')
 
 
-    full_table_name = "warehouse_dev.silver.inference.reviews_with_seller_id"
+    full_table_name = "warehousedev.silver.inference.reviews_with_seller_id"
     writer = (
         infer_with_seller_id.writeTo(full_table_name)
         .tableProperty(

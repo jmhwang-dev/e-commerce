@@ -51,9 +51,9 @@ if __name__ == "__main__":
     spark = SparkSession.builder.appName("deduplicate_bronze").getOrCreate()
     try:
         spark.sparkContext.setLogLevel("WARN")
-        BUCKET = "warehouse-dev"
+        BUCKET = "warehousedev"
         BRONZE_PREFIX = "bronze"
-        DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.dedup"
+        DST_QUALIFIED_NAMESPACE = "warehousedev.silver.dedup"
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
         file_paths = get_paths(spark, BUCKET, BRONZE_PREFIX)
         for file_path in file_paths:

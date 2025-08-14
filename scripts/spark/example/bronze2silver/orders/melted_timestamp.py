@@ -24,7 +24,7 @@ if __name__ == "__main__":
     )
     melted_df = melted_df.dropna(subset=["timestamp"]).dropDuplicates()
 
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.orders"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.orders"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
 
     DST_TABLE_NAME = "melted_timestamp"

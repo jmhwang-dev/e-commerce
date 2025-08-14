@@ -1,5 +1,5 @@
 {
-  "namespace": "warehouse_dev.bronze.customer",
+  "namespace": "warehousedev.bronze.customer",
   "type": "record",
   "name": "customer",
   "fields": [

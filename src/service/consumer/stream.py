@@ -9,6 +9,11 @@ from pyspark.sql.streaming import DataStreamReader, StreamingQuery
 from config.spark import *
 
 def get_kafka_stream_df(spark_session: SparkSession, topic_name: str) -> DataFrame:
+    """
+    - .option("maxOffsetsPerTrigger", "10000")
+        : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
+
+    """
     # The type of `spark_session.readStream` is `DataStreamReader`
     return spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \

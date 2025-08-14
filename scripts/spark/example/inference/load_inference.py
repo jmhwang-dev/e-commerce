@@ -4,10 +4,10 @@ if __name__ == "__main__":
     spark = SparkSession.builder.appName('tmp_inference').getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
 
-    SOURCE_TSV_PATH = "s3://warehouse-dev/tmp/eng_reviews_with_senti.tsv"
+    SOURCE_TSV_PATH = "s3://warehousedev/tmp/eng_reviews_with_senti.tsv"
     df = spark.read.option("header", "true").option("delimiter", "\t").csv(SOURCE_TSV_PATH)
 
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.inference"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.inference"
     DST_TABLE_NAME = "reviews"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
     full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"

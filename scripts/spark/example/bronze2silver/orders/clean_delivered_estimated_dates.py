@@ -36,7 +36,7 @@ if __name__ == "__main__":
     estimated_delivery_date_df.show(n=5, truncate=False)
 
     # Iceberg 테이블 저장 설정
-    DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.orders"
+    DST_QUALIFIED_NAMESPACE = "warehousedev.silver.orders"
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
 
     DST_TABLE_NAME = "delivered_estimated_dates"  # 테이블 이름 파일명과 조화
