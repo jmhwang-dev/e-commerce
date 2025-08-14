@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.silver.product",
   "type": "record",
-  "name": "silver-product",
+  "name": "silver.product",
   "fields": [
     {
       "name": "product_id",

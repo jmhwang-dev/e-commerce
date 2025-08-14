@@ -17,9 +17,9 @@ class DataMessage:
     @classmethod
     def init_file_path(cls, ) -> None:
         if cls.ingestion_type == IngestionType.CDC:
-            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic}.tsv"
+            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic.split('.')[-1]}.tsv"
         elif cls.ingestion_type == IngestionType.STREAM:
-            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic}.tsv"
+            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic.split('.')[-1]}.tsv"
         else:
             raise ValueError(f"Unknown ingestion type: {cls.ingestion_type}")
     
@@ -76,28 +76,28 @@ class DataMessage:
 
 # CDC
 class GeolocationMessage(DataMessage):
-    topic = Topic.GEOLOCATION
+    topic = RawToBronzeTopic.GEOLOCATION
     pk_column = ['zip_code']
     ingestion_type = IngestionType.CDC
 
 class CustomerMessage(DataMessage):
-    topic = Topic.CUSTOMER
+    topic = RawToBronzeTopic.CUSTOMER
     pk_column = ['customer_id']
     ingestion_type = IngestionType.CDC
 
 class SellerMessage(DataMessage):
-    topic = Topic.SELLER
+    topic = RawToBronzeTopic.SELLER
     pk_column = ['seller_id']
     ingestion_type = IngestionType.CDC
 
 class ProductMessage(DataMessage):
-    topic = Topic.PRODUCT
+    topic = RawToBronzeTopic.PRODUCT
     pk_column = ['product_id']
     ingestion_type = IngestionType.CDC
 
 # STREAM
 class OrderStatusMessage(DataMessage):
-    topic = Topic.ORDER_STATUS
+    topic = RawToBronzeTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
     ingestion_type = IngestionType.STREAM
 
@@ -110,22 +110,22 @@ class OrderStatusMessage(DataMessage):
         return cls.current_index == len(cls.get_df())
 
 class PaymentMessage(DataMessage):
-    topic = Topic.PAYMENT
+    topic = RawToBronzeTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']
     ingestion_type = IngestionType.STREAM
 
 class OrderItemMessage(DataMessage):
-    topic = Topic.ORDER_ITEM
+    topic = RawToBronzeTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']
     ingestion_type = IngestionType.STREAM
 
 class EstimatedDeliberyDateMessage(DataMessage):
-    topic = Topic.ESTIMATED_DELIVERY_DATE
+    topic = RawToBronzeTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
     ingestion_type = IngestionType.STREAM
 
 class ReviewMessage(DataMessage):
-    topic = Topic.REVIEW
+    topic = RawToBronzeTopic.REVIEW
     pk_column = ['review_id']
     ingestion_type = IngestionType.STREAM
 

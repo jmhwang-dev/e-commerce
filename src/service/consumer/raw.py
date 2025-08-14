@@ -22,8 +22,8 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_name: str) -> DataFra
         .option("failOnDataLoss", "false") \
         .load()
 
-def get_decoded_stream_df(kafka_stream_df: DataFrame, topic_name) -> DataFrame:
-    schema_str = SCHEMA_REGISTRY_INTERNAL.get_latest_version(topic_name).schema.schema_str
+def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_name) -> DataFrame:
+    schema_str = SCHEMA_REGISTRY_INTERNAL.get_latest_version(schema_name).schema.schema_str
     
     deserialized_column = from_avro(
               expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거

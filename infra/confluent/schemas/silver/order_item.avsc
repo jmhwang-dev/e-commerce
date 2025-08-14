@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.silver.order_item",
   "type": "record",
-  "name": "silver-order_item",
+  "name": "silver.order_item",
   "fields": [
     {
       "name": "order_id",

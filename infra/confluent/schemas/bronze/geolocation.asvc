@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze.geolocation",
   "type": "record",
-  "name": "bronze-geolocation",
+  "name": "bronze.geolocation",
   "fields": [
     {
       "name": "zip_code",

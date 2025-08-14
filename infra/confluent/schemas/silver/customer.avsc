@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.silver.customer",
   "type": "record",
-  "name": "silver-customer",
+  "name": "silver.customer",
   "fields": [
     {
       "name": "customer_id",

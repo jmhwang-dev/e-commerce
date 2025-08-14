@@ -2,6 +2,7 @@ x-spark-common: &spark-common
   build:
     context: ./infra/spark
     dockerfile: Dockerfile
+  image: ecommerce-spark-image:latest
 
 x-minio-common: &minio-common
   image: minio/minio:RELEASE.2025-06-13T11-33-47Z
@@ -56,14 +57,32 @@ services:
         - ./configs/spark:/opt/spark/conf
       command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     
-  spark-worker:
+  spark-worker1:
     <<: *spark-common
-    hostname: spark-worker
-    container_name: spark-worker
+    hostname: spark-worker1
+    container_name: spark-worker1
     depends_on:
       - spark-master
     ports:
       - "8081:8081"
+    environment:
+      SPARK_WORKER_MEMORY: 4g
+      SPARK_WORKER_CORES: 2
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: >
+      bash -c "
+        sleep 10 &&
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+      "
+  spark-worker2:
+    <<: *spark-common
+    hostname: spark-worker2
+    container_name: spark-worker2
+    depends_on:
+      - spark-master
+    ports:
+      - "8083:8081"
     environment:
       SPARK_WORKER_MEMORY: 4g
       SPARK_WORKER_CORES: 2

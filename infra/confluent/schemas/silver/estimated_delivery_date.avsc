@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.silver.estimated_delivery_date",
   "type": "record",
-  "name": "silver-estimated_delivery_date",
+  "name": "silver.estimated_delivery_date",
   "fields": [
     {
       "name": "order_id",

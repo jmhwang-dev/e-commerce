@@ -22,29 +22,89 @@ class IngestionType(Enum):
     CDC = 'cdc'
     STREAM = 'stream'
 
-class Topic:
-    # CDC
-    ORDER_ITEM = 'order_item'
-    PRODUCT = 'product'
-    CUSTOMER = 'customer'
-    SELLER = 'seller'
-    GEOLOCATION = 'geolocation'
 
-    # stream
-    ORDER_STATUS = 'order_status'
-    PAYMENT = 'payment'
-    ESTIMATED_DELIVERY_DATE = 'estimated_delivery_date'
-    REVIEW = 'review'
 
-    # inference
-    PREPROCESSED_REVIEW = 'inferenced_review'
-    INFERENCED_REVIEW = 'inferenced_review'
+# 1. 클래스 생성 과정을 제어할 메타클래스 정의
+class TopicMeta(type):
+    """
+    클래스 변수를 `prefix.value` 형태로 자동 변환하는 메타클래스
+    """
+    def __new__(mcs, name, bases, attrs):
+        # 클래스에 정의된 TOPIC_PREFIX 값을 가져옴
+        prefix = attrs.get("TOPIC_PREFIX", "")
+
+        # 클래스 속성들을 순회하며 TOPIC 변수들을 찾아 값을 변환
+        for attr_name, attr_value in attrs.items():
+            if (isinstance(attr_value, str) and
+                    attr_name.isupper() and
+                    not attr_name.startswith('_') and
+                    not attr_name.startswith('TOPIC_')):
+                # 'prefix.value' 형태로 값을 새로 할당
+                attrs[attr_name] = f"{prefix}.{attr_value}"
+
+        # 수정된 속성들로 새로운 클래스를 생성하여 반환
+        return super().__new__(mcs, name, bases, attrs)
+
+# 2. BaseTopic에 메타클래스 지정
+class BaseTopic(metaclass=TopicMeta):
+    """Base class for Kafka topic definitions with common methods."""
+    TOPIC_PREFIX: str = ""
 
     @classmethod
-    def __iter__(cls) -> Iterator[str]:
-        for attr_name, attr_value in vars(cls).items():
-            if not attr_name.startswith('__'):
-                yield attr_value
+    def get_all_topics(cls) -> list[str]:
+        """모든 토픽 이름을 prefix와 함께 반환"""
+        topics = []
+        for attr_name in dir(cls):
+            # 메타클래스에서 이미 값을 변환했으므로, 값 자체를 추가하기만 하면 됨
+            attr_value = getattr(cls, attr_name)
+            if (isinstance(attr_value, str) and
+                    attr_name.isupper() and
+                    not attr_name.startswith('_') and
+                    not attr_name.startswith('TOPIC_')):
+                topics.append(attr_value)
+        return topics
+
+class RawToBronzeTopic(BaseTopic):
+    """Topics for raw data ingestion (raw to bronze)."""
+    TOPIC_PREFIX = "bronze"
+    
+    # CDC Topics
+    ORDER_ITEM = "order_item"
+    PRODUCT = "product" 
+    CUSTOMER = "customer"
+    SELLER = "seller"
+    GEOLOCATION = "geolocation"
+    
+    # Stream Topics
+    ORDER_STATUS = "order_status"
+    PAYMENT = "payment"
+    ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
+    REVIEW = "review"
+
+class BronzeToSilverTopic(BaseTopic):
+    """Topics for bronze to silver processing."""
+    TOPIC_PREFIX = "silver"
+    
+    # 기존 bronze 토픽들 상속
+    ORDER_ITEM = "order_item"
+    PRODUCT = "product"
+    CUSTOMER = "customer" 
+    SELLER = "seller"
+    GEOLOCATION = "geolocation"
+    ORDER_STATUS = "order_status"
+    PAYMENT = "payment"
+    ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
+    REVIEW = "review"
+    
+    # 추가 silver 토픽들
+    PREPROCESSED_REVIEW = "preprocessed_review"
+    INFERENCED_REVIEW = "inferenced_review"
+
+class SilverToGoldTopic(BaseTopic):
+    """Topics for silver to gold processing."""
+    TOPIC_PREFIX = "gold"
+    
+    AGGREGATED_ORDER = "aggregated_order"
 
 def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
 

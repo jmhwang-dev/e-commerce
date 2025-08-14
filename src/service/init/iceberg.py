@@ -1,47 +1,32 @@
 from typing import Tuple
-from pyiceberg.catalog import load_catalog
 from pyspark.sql import SparkSession
-from pyspark.sql.dataframe import DataFrame
 
 from service.init.kafka import *
 
-class MedallionLayer():
-    BUCKET = "warehousedev"
-    NAMESPACE_BRONZE = 'bronze'
-    NAMESPACE_SILVER = 'silver'
-    NAMESPACE_SILVER = 'gold'
+from typing import Tuple, Iterator
+# from pyiceberg.catalog import load_catalog
+from pyspark.sql import SparkSession
+from pyspark.sql.dataframe import DataFrame
+from service.init.kafka import *
 
-class BronzeLayer(MedallionLayer):
-    ORDER_ITEM_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.ORDER_ITEM}'
-    PRODUCT_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.PRODUCT}'
-    CUSTOMER_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.CUSTOMER}'
-    SELLER_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.SELLER}'
-    GEOLOCATION_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.GEOLOCATION}'
-    ORDER_STATUS_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.ORDER_STATUS}'
-    PAYMENT_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.PAYMENT}'
-    ESTIMATED_DELIVERY_DATE_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.ESTIMATED_DELIVERY_DATE}'
-    REVIEW_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_BRONZE}.{Topic.REVIEW}'
+class MedallionLayer:
+    BUCKET: str = "warehousedev"
+    TOPIC_CLASS: BaseTopic = None  # 자식 클래스에서 정의 (예: RawToBronzeTopic, BronzeToSilverTopic)
 
     @classmethod
     def __iter__(cls) -> Iterator[Tuple[str, str]]:
-        for attr_name, attr_value in vars(cls).items():
-            if not attr_name.startswith('__'):
-                topic = attr_name.split('_TABLE_IDENTIFIER')[0].lower()
-                yield topic, attr_value  # (topic, table_identifier) 반환
+        if not cls.TOPIC_CLASS:
+            raise ValueError("TOPIC_CLASS must be defined in subclass")
+        topic_names = cls.TOPIC_CLASS.get_all_topics()
+        for base_topic_name in topic_names:
+            table_identifier = f"{cls.BUCKET}.{base_topic_name}"
+            yield base_topic_name, table_identifier
+
+class BronzeLayer(MedallionLayer):
+    TOPIC_CLASS = RawToBronzeTopic
 
 class SilverLayer(MedallionLayer):
-    ORDER_ITEM_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.ORDER_ITEM}'
-    PRODUCT_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.PRODUCT}'
-    CUSTOMER_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.CUSTOMER}'
-    SELLER_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.SELLER}'
-    GEOLOCATION_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.GEOLOCATION}'
-    ORDER_STATUS_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.ORDER_STATUS}'
-    PAYMENT_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.PAYMENT}'
-    ESTIMATED_DELIVERY_DATE_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.ESTIMATED_DELIVERY_DATE}'
-    REVIEW_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.REVIEW}'
-    
-    INFERENCE_REVIEW_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.INFERENCED_REVIEW}'
-    PREPROCESSED_REVIEW_TABLE_IDENTIFIER = f'{MedallionLayer.BUCKET}.{MedallionLayer.NAMESPACE_SILVER}.{Topic.PREPROCESSED_REVIEW}'
+    TOPIC_CLASS = BronzeToSilverTopic
 
 def create_namespace(spark_session: SparkSession, table_identifier: str) -> Tuple[str, str]:
     components = table_identifier.split('.')
@@ -52,31 +37,31 @@ def create_namespace(spark_session: SparkSession, table_identifier: str) -> Tupl
     spark_session.sql(f"CREATE NAMESPACE IF NOT EXISTS {qualified_namespace}")
     return qualified_namespace, table_name
 
-def get_catalog(
-        catalog_uri: str,
-        s3_endpoint: str,
-        bucket: str
-        ):
-    """
-    ex)
-    option = {
-            "type": "REST",
-            "uri": "http://rest-catalog:8181",
-            "s3.endpoint": "http://minio:9000",
-            "s3.access-key-id": "minioadmin",
-            "s3.secret-access-key": "minioadmin",
-            "s3.use-ssl": "false",
-            "warehouse": f"s3://{MedallionLayer.BUCKET}"
-        }
+# def get_catalog(
+#         catalog_uri: str,
+#         s3_endpoint: str,
+#         bucket: str = MedallionLayer.BUCKET
+#         ):
+#     """
+#     ex)
+#     option = {
+#             "type": "REST",
+#             "uri": "http://rest-catalog:8181",
+#             "s3.endpoint": "http://minio:9000",
+#             "s3.access-key-id": "minioadmin",
+#             "s3.secret-access-key": "minioadmin",
+#             "s3.use-ssl": "false",
+#             "warehouse": f"s3://{MedallionLayer.BUCKET}"
+#         }
 
-    """
-    option = {
-        "type": "REST",
-        "uri": catalog_uri,
-        "s3.endpoint": s3_endpoint,
-        "s3.access-key-id": "minioadmin",
-        "s3.secret-access-key": "minioadmin",
-        "s3.use-ssl": "false",
-        "warehouse": f"s3://{MedallionLayer.BUCKET}"
-    }
-    return load_catalog("REST", **option)
+#     """
+#     option = {
+#         "type": "REST",
+#         "uri": catalog_uri,
+#         "s3.endpoint": s3_endpoint,
+#         "s3.access-key-id": "minioadmin",
+#         "s3.secret-access-key": "minioadmin",
+#         "s3.use-ssl": "false",
+#         "warehouse": f"s3://{bucket}"
+#     }
+#     return load_catalog("REST", **option)

@@ -4,8 +4,10 @@ from service.producer.raw import *
 
 if __name__=="__main__":
     admin_client = get_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    delete_topics(admin_client, Topic())
-    create_topics(admin_client, Topic())
+    for topic_class in [RawToBronzeTopic, BronzeToSilverTopic, SilverToGoldTopic]:
+        topic_names = topic_class.get_all_topics()
+        delete_topics(admin_client, topic_names)
+        create_topics(admin_client, topic_names)
 
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()

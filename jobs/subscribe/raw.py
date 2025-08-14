@@ -3,7 +3,7 @@ from service.init.kafka import *
 from service.init.iceberg import *
 from service.io.iceberg_spark import *
 
-from service.consumer.stream import *
+from service.consumer.raw import *
 from service.init.iceberg import *
 
 if __name__=="__main__":
@@ -22,14 +22,10 @@ if __name__=="__main__":
     try:
         spark_session.streams.awaitAnyTermination()  # 모든 쿼리 종료까지 대기
     except Exception as e:
-        # logging.error(f"Streaming query failed: {e}")
         print(f"Streaming query failed: {e}")
 
-    # 스파크로 아이스버그 table 만들고
-    
-    # 모든 토픽 넣기: 브론즈
-    # review_inference 토픽 만들고
-    # 전처리 해서 review_inference로 발행
+    # preprocessed_review 토픽 만들고
+    # 전처리 해서 inference_review로 발행
 
     # 리뷰 제외한 모든 토픽을 형변환해서 실버로
         # int여도 되는 float -> int
@@ -44,4 +40,3 @@ if __name__=="__main__":
     # [옵션]
     # 원본 데이터로 브론즈 넣고
     # 실버에 redfined 형태로 넣기
-
