@@ -1,0 +1,27 @@
+{
+  "namespace": "warehousedev.silver.geolocation",
+  "type": "record",
+  "name": "silver.geolocation",
+  "fields": [
+    {
+      "name": "zip_code",
+      "type": "int"
+    },
+    {
+      "name": "lat",
+      "type": "float"
+    },
+    {
+      "name": "lng",
+      "type": "float"
+    },
+    {
+      "name": "state",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    }
+  ]
+}

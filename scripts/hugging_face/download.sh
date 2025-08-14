@@ -9,9 +9,9 @@ workers=$(( ($(nproc) * CPU_RATIO + 99) / 100 ))
 [ $workers -lt 1 ] && workers=1
 
 # 모델 다운로드
-huggingface-cli download "$MODEL1" --local-dir infra/consumer/models/translate --max-workers "$workers" || {
+huggingface-cli download "$MODEL1" --local-dir downloads/models/translate --max-workers "$workers" || {
     echo "$MODEL1 download failed, continuing"
 }
-huggingface-cli download "$MODEL2" --local-dir infra/consumer/models/sentiment --max-workers "$workers" || {
+huggingface-cli download "$MODEL2" --local-dir downloads/models/sentiment --max-workers "$workers" || {
     echo "$MODEL2 download failed, continuing"
 }

@@ -1,0 +1,43 @@
+{
+  "namespace": "warehousedev.silver.payment",
+  "type": "record",
+  "name": "silver.payment",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "string"
+    },
+    {
+      "name": "payment_sequential",
+      "type": "int"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    },
+    {
+      "name": "payment_value",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "payment_type",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "payment_installments",
+      "type": "int"
+    },
+    {
+      "name": "customer_id",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "namespace": "warehousedev.bronze.product",
+  "type": "record",
+  "name": "bronze.product",
+  "fields": [
+    {
+      "name": "product_id",
+      "type": "string"
+    },
+    {
+      "name": "weight_g",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "length_cm",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "height_cm",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "width_cm",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "category",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}

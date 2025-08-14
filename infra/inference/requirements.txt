@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+confluent-kafka[avro]
+torch
+transformers
+accelerate
+huggingface_hub[cli,hf_transfer]
+pandas
+pyiceberg
+pyarrow
+boto3
+unidecode
+python-dotenv
+pyyaml

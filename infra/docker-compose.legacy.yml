@@ -39,3 +39,23 @@ services:
       - "./superset/superset_config.py:/app/pythonpath/superset_config.py"
       - "./superset/requirements-local.txt:/app/docker/requirements-local.txt"
     environment: *superset-env
+      
+  inference:
+    build:
+      context: ./infra/inference
+      dockerfile: Dockerfile
+    command: bash -c "tail -f /dev/null"
+    volumes:
+      - ./jobs/consumer/:/app/
+      - ./downloads/models/:/models/
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # 또는 1, 2 등
+              capabilities: [gpu]

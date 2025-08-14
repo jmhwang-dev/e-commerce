@@ -13,8 +13,6 @@ metastore_db/
 pgdata/
 data/
 s3/
-*.properties
-!default.properties
 .vscode/
 infra/consumer/models/
 !infra/consumer/models/.gitkeep

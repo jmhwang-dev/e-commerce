@@ -4,3 +4,10 @@ pyarrow
 seaborn
 matplotlib
 jupyter
+kafka-python
+boto3
+unidecode
+python-dotenv
+emoji
+confluent-kafka[avro]
+pyyaml

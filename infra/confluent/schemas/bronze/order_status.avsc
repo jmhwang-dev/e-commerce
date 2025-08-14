@@ -1,0 +1,23 @@
+{
+  "namespace": "warehousedev.bronze.order_status",
+  "type": "record",
+  "name": "bronze.order_status",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}

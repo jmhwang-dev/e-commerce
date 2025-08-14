@@ -1,0 +1,35 @@
+{
+  "namespace": "warehousedev.bronze.order_item",
+  "type": "record",
+  "name": "bronze.order_item",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "string"
+    },
+    {
+      "name": "order_item_id",
+      "type": "int"
+    },
+    {
+      "name": "shipping_limit_date",
+      "type": "string"
+    },
+    {
+      "name": "price",
+      "type": "float"
+    },
+    {
+      "name": "freight_value",
+      "type": "float"
+    },
+    {
+      "name": "product_id",
+      "type": "string"
+    },
+    {
+      "name": "seller_id",
+      "type": "string"
+    }
+  ]
+}

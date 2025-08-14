@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-COMPOSE_FILE="infra/docker-compose.override.yml"
-TOPIC="reviews.translation-prompts"
+COMPOSE_FILE="docker-compose.override.yml"
+TOPIC="review"
 BOOTSTRAP="kafka1:9092,kafka2:9092,kafka3:9092"
 SCHEMA_REGISTRY="http://schema-registry:8081"
 
@@ -24,6 +24,6 @@ docker compose -f "$COMPOSE_FILE" exec kafka1 \
   /opt/kafka/bin/kafka-console-consumer.sh \
     --bootstrap-server kafka1:9092 \
     --topic $TOPIC \
-    --from-beginning \
-    --property print.value=true | jq .
+    --from-beginning
+    # --property print.value=true | jq . # message가 json인 경우
     # --max-messages 1 \
