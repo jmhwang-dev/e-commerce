@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze.product",
   "type": "record",
-  "name": "raw-product",
+  "name": "bronze-product",
   "fields": [
     {
       "name": "product_id",

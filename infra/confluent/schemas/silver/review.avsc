@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.review",
+  "namespace": "warehousedev.silver.review",
   "type": "record",
-  "name": "raw-review",
+  "name": "silver-review",
   "fields": [
     {
       "name": "review_id",

@@ -1,0 +1,23 @@
+{
+  "namespace": "warehousedev.silver.order_status",
+  "type": "record",
+  "name": "silver-order_status",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}

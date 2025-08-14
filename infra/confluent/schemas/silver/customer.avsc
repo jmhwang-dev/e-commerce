@@ -1,10 +1,10 @@
 {
-  "namespace": "warehousedev.bronze.seller",
+  "namespace": "warehousedev.silver.customer",
   "type": "record",
-  "name": "raw-seller",
+  "name": "silver-customer",
   "fields": [
     {
-      "name": "seller_id",
+      "name": "customer_id",
       "type": "string"
     },
     {

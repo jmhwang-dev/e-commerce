@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.payment",
+  "namespace": "warehousedev.silver.payment",
   "type": "record",
-  "name": "raw-payment",
+  "name": "silver-payment",
   "fields": [
     {
       "name": "order_id",
@@ -9,11 +9,7 @@
     },
     {
       "name": "payment_sequential",
-      "type": [
-        "null",
-        "float"
-      ],
-      "default": null
+      "type": "int"
     },
     {
       "name": "timestamp",
@@ -37,11 +33,7 @@
     },
     {
       "name": "payment_installments",
-      "type": [
-        "null",
-        "float"
-      ],
-      "default": null
+      "type": "int"
     },
     {
       "name": "customer_id",
