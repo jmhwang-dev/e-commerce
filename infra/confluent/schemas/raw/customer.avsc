@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze.customer",
   "type": "record",
-  "name": "customer",
+  "name": "raw-customer",
   "fields": [
     {
       "name": "customer_id",

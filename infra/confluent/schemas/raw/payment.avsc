@@ -1,14 +1,14 @@
 {
-  "namespace": "warehousedev.bronze.product",
+  "namespace": "warehousedev.bronze.payment",
   "type": "record",
-  "name": "product",
+  "name": "raw-payment",
   "fields": [
     {
-      "name": "product_id",
+      "name": "order_id",
       "type": "string"
     },
     {
-      "name": "weight_g",
+      "name": "payment_sequential",
       "type": [
         "null",
         "float"
@@ -16,7 +16,11 @@
       "default": null
     },
     {
-      "name": "length_cm",
+      "name": "timestamp",
+      "type": "string"
+    },
+    {
+      "name": "payment_value",
       "type": [
         "null",
         "float"
@@ -24,28 +28,24 @@
       "default": null
     },
     {
-      "name": "height_cm",
-      "type": [
-        "null",
-        "float"
-      ],
-      "default": null
-    },
-    {
-      "name": "width_cm",
-      "type": [
-        "null",
-        "float"
-      ],
-      "default": null
-    },
-    {
-      "name": "category",
+      "name": "payment_type",
       "type": [
         "null",
         "string"
       ],
       "default": null
+    },
+    {
+      "name": "payment_installments",
+      "type": [
+        "null",
+        "float"
+      ],
+      "default": null
+    },
+    {
+      "name": "customer_id",
+      "type": "string"
     }
   ]
 }

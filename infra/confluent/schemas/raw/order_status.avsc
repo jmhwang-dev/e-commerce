@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze.order_status",
   "type": "record",
-  "name": "order_status",
+  "name": "raw-order_status",
   "fields": [
     {
       "name": "order_id",

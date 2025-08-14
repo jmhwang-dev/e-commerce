@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze.seller",
   "type": "record",
-  "name": "seller",
+  "name": "raw-seller",
   "fields": [
     {
       "name": "seller_id",
