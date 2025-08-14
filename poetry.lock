@@ -4153,6 +4153,21 @@ files = [
 ]
 
 [[package]]
+name = "pyyml"
+version = "0.0.2"
+description = "Use python in yaml"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pyyml-0.0.2-py2.py3-none-any.whl", hash = "sha256:17acc886bb8d58197a745003eae477b18b343ebaa0a304527c5a5dc5770a2b74"},
+    {file = "pyyml-0.0.2.tar.gz", hash = "sha256:f005c753eb36a405321eb653d803861c8570c347f89b35a7c9c21edef5248f5f"},
+]
+
+[package.dependencies]
+pyyaml = ">=3.13"
+
+[[package]]
 name = "pyzmq"
 version = "27.0.0"
 description = "Python bindings for 0MQ"
@@ -5584,4 +5599,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "fb0c2abd63c3f6bfefd4b580228fa232a1118e999b82a82951350262bf9e7a68"
+content-hash = "c585a61bd202c26391d237f0c9fe73d4b9ba664c43a89c7c37baba9f5068d77d"

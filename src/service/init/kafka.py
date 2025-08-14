@@ -1,4 +1,4 @@
-from typing import Iterator, Iterable
+from typing import Iterable
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
@@ -9,48 +9,13 @@ from confluent_kafka.serialization import StringSerializer
 from confluent_kafka import SerializingProducer
 
 from service.init.confluent import *
+from config.kafka import *
 
 import json
 import time
 
-from dotenv import load_dotenv
-import os
-from pathlib import Path
-from enum import Enum
-
-load_dotenv('./configs/kafka/.env')
-BOOTSTRAP_SERVERS_EXTERNAL = os.getenv("BOOTSTRAP_SERVERS_EXTERNAL", "localhost:19092,localhost:19094,localhost:19096").split(",")
-BOOTSTRAP_SERVERS_INTERNAL = os.getenv("BOOTSTRAP_SERVERS_INTERNAL", "kafka1:9092,kafka2:19092,kafka3:9092")
-DATASET_DIR = Path(os.getenv("DATASET_DIR", "./downloads/olist_redefined"))
-
 SCHEMA_REGISTRY_CLIENT = SchemaRegistryClient({'url': SCHEMA_REGISTRY_EXTERNAL_URL})
 SCHEMA_REGISTRY_INTERNAL = SchemaRegistryClient({'url': SCHEMA_REGISTRY_INTERNAL_URL})
-
-class IngestionType(Enum):
-    CDC = 'cdc'
-    STREAM = 'stream'
-
-class Topic:
-    # CDC
-    ORDER_ITEM = 'order_item'
-    PRODUCT = 'product'
-    CUSTOMER = 'customer'
-    SELLER = 'seller'
-    GEOLOCATION = 'geolocation'
-
-    # stream
-    ORDER_STATUS = 'order_status'
-    PAYMENT = 'payment'
-    ESTIMATED_DELIVERY_DATE = 'estimated_delivery_date'
-    REVIEW = 'review'
-
-    REVIEW_INFERENCE = 'review_inference'
-
-    @classmethod
-    def __iter__(cls) -> Iterator[str]:
-        for attr_name, attr_value in vars(cls).items():
-            if not attr_name.startswith('__'):
-                yield attr_value
 
 def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
 
@@ -95,7 +60,7 @@ def get_client(bootstrp_servers: Iterable[str]) -> KafkaAdminClient:
         bootstrap_servers=bootstrp_servers
     )
 
-def get_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
+def get_kafak_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
     consumer = KafkaConsumer(
         bootstrap_servers=bootstrp_servers,
         auto_offset_reset='earliest',

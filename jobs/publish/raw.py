@@ -1,6 +1,6 @@
 from service.init.kafka import *
 from service.producer.topic import *
-from service.producer.raw_message import *
+from service.producer.raw import *
 
 if __name__=="__main__":
     admin_client = get_client(BOOTSTRAP_SERVERS_EXTERNAL)

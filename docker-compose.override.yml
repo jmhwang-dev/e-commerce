@@ -87,5 +87,5 @@ services:
 
     volumes:
       - ./infra/confluent/schemas/:/mnt/infra/confluent/schemas/
-      - ./jobs/producer/register_schema.py/:/mnt/register_schema.py
+      - ./jobs/publish/register_schema.py/:/mnt/register_schema.py
       - ./src/service/init/confluent.py/:/mnt/service/init/confluent.py

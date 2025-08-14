@@ -1,10 +1,9 @@
 from service.init.spark import *
 from service.init.kafka import *
 from service.init.iceberg import *
-from service.io.iceberg import *
+from service.io.iceberg_spark import *
 
 from service.consumer.stream import *
-from service.io.iceberg import *
 
 if __name__=="__main__":
     spark_session = get_spark_session("RawStream")

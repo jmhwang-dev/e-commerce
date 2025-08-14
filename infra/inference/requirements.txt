@@ -12,3 +12,4 @@ pyarrow
 boto3
 unidecode
 python-dotenv
+pyyaml

@@ -6,6 +6,8 @@ from pyspark.sql.functions import expr
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import DataStreamReader, StreamingQuery
 
+from config.spark import *
+
 def get_kafka_stream_df(spark_session: SparkSession, topic_name: str) -> DataFrame:
     # The type of `spark_session.readStream` is `DataStreamReader`
     return spark_session.readStream.format("kafka") \

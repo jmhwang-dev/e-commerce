@@ -10,3 +10,4 @@ unidecode
 python-dotenv
 emoji
 confluent-kafka[avro]
+pyyaml
