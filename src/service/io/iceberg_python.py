@@ -1,34 +1,48 @@
-from service.init.iceberg import *
-from service.io import minio
 from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.table import Table
+from pyiceberg.catalog import Catalog
 from typing import Iterable
 import pandas as pd
-from pyspark.sql.dataframe import DataFrame
-from pyspark.sql.streaming import StreamingQuery
 
-def get_table():
+from service.init.minio import *
+from service.init.iceberg import *
+from service.io import minio
+
+from config.iceberg import *
+from config.minio import *
+from domain.schema.iceberg_python import *
+
+NAMESPCE = "silver"
+TABLE_NAME = "example_table"
+BUCKET_NAME = 'warehouse-dev'
+
+def create_table(catalog: Catalog, table_schema, partition_spec, s3_uri:str, table_identifier: str):
+    """
+    ex) s3_uri = s3://warehouse_dev.silver
+    """
     try:
-        table = catalog.load_table(TABLE_IDENTIFIER)
-        print(f"Table {TABLE_IDENTIFIER} loaded.")
+        table = catalog.create_table(
+            identifier=table_identifier,
+            schema=table_schema,
+            location=s3_uri,
+            partition_spec=partition_spec
+        )
+        print(f"Table {table_identifier} created at {s3_uri}.")
         return table
-    except NoSuchTableError:
-        try:
-            table = catalog.create_table(
-                identifier=TABLE_IDENTIFIER,
-                schema=table_schema,
-                location=DST_LOCATION,
-                partition_spec=partition_spec
-            )
-            print(f"Table {TABLE_IDENTIFIER} created at {DST_LOCATION}.")
-            return table
-        except Exception as e:
-            print(f"Failed to create table {TABLE_IDENTIFIER}: {str(e)}")
-            raise
     except Exception as e:
-        print(f"Failed to load table {TABLE_IDENTIFIER}: {str(e)}")
+        print(f"Failed to create table {table_identifier}: {str(e)}")
         raise
 
-def delete_table(tables_to_delete: Iterable[Iterable]):
+def get_table(catalog: Catalog, table_identifier: str) -> Table | None:
+    try:
+        table = catalog.load_table(table_identifier)
+        print(f"Table {table_identifier} loaded.")
+        return table
+    except NoSuchTableError:
+        print(f"Failed to load table {table_identifier}: {str(e)}")
+        raise
+
+def delete_table(catalog: Catalog, tables_to_delete: Iterable[Table]) -> None:
     """
     삭제할 테이블 목록 예시
     tables_to_delete = [
@@ -56,42 +70,11 @@ def get_table_data(data:dict):
     table_data = pa.Table.from_pandas(df, schema=arrow_schema, preserve_index=False)
     return table_data
 
-def insert(data):
+def insert(table: Table, data: pa.Table):
     try:
-        table = get_table()
         with table.transaction() as txn:
             txn.append(data)
-        print(f"Data appended to {TABLE_IDENTIFIER} successfully.")
+            print(f"Data appended to {table.identifier}")
     except Exception as e:
-        print(f"Failed to append data to {TABLE_IDENTIFIER}: {str(e)}")
+        print(f"Failed to append data to {table.identifier}: {str(e)}")
         raise
-
-def load_stream(decoded_stream_df: DataFrame, full_table_name:str, process_time="10 secondes") -> StreamingQuery:
-    return decoded_stream_df.writeStream \
-        .outputMode("append") \
-        .format("iceberg") \
-        .option("checkpointLocation", "/tmp/checkpoint/olist_stream") \
-        .trigger(processingTime=process_time) \
-        .toTable(full_table_name) \
-        .start()
-
-        
-def load_batch(df: DataFrame) -> None:
-    pass
-    # DST_QUALIFIED_NAMESPACE = "warehouse_dev.silver.review"
-    # DST_TABLE_NAME = "raw"
-    # spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {DST_QUALIFIED_NAMESPACE}")
-    # full_table_name = f"{DST_QUALIFIED_NAMESPACE}.{DST_TABLE_NAME}"
-
-    # writer = (
-    #     processed_df.writeTo(full_table_name)
-    #     .tableProperty(
-    #         "comment",
-    #         "test"
-    #     )
-    # )
-
-    # if not spark.catalog.tableExists(full_table_name):
-    #     writer.create()
-    # else:
-    #     writer.overwritePartitions()

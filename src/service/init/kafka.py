@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Iterator
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
@@ -10,12 +10,41 @@ from confluent_kafka import SerializingProducer
 
 from service.init.confluent import *
 from config.kafka import *
+from enum import Enum
 
 import json
 import time
 
 SCHEMA_REGISTRY_CLIENT = SchemaRegistryClient({'url': SCHEMA_REGISTRY_EXTERNAL_URL})
 SCHEMA_REGISTRY_INTERNAL = SchemaRegistryClient({'url': SCHEMA_REGISTRY_INTERNAL_URL})
+
+class IngestionType(Enum):
+    CDC = 'cdc'
+    STREAM = 'stream'
+
+class Topic:
+    # CDC
+    ORDER_ITEM = 'order_item'
+    PRODUCT = 'product'
+    CUSTOMER = 'customer'
+    SELLER = 'seller'
+    GEOLOCATION = 'geolocation'
+
+    # stream
+    ORDER_STATUS = 'order_status'
+    PAYMENT = 'payment'
+    ESTIMATED_DELIVERY_DATE = 'estimated_delivery_date'
+    REVIEW = 'review'
+
+    # inference
+    PREPROCESSED_REVIEW = 'inferenced_review'
+    INFERENCED_REVIEW = 'inferenced_review'
+
+    @classmethod
+    def __iter__(cls) -> Iterator[str]:
+        for attr_name, attr_value in vars(cls).items():
+            if not attr_name.startswith('__'):
+                yield attr_value
 
 def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
 
