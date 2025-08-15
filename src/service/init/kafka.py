@@ -65,10 +65,10 @@ class BronzeToSilverTopic(BaseTopic):
     ORDER_STATUS = "order_status"
     PAYMENT = "payment"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
-    REVIEW = "review"
+    REVIEW_METADATA = "review_metadata"
     
-    PREPROCESSED_REVIEW = "preprocessed_review"
-    INFERENCED_REVIEW = "inferenced_review"
+    REVIEW_PREPROCESSED = "review_preprocessed"
+    REVIEW_INFERENCED = "review_inferenced"
 
 class SilverToGoldTopic(BaseTopic):
     """Topics for silver to gold processing."""

@@ -12,6 +12,7 @@ if __name__=="__main__":
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
     register_schema.main()
+    exit()
 
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()

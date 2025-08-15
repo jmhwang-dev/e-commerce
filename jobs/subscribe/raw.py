@@ -36,14 +36,13 @@ if __name__=="__main__":
     except Exception as e:
         print(f"Streaming query failed: {e}")
 
-    # preprocessed_review 토픽 만들고
-    # 전처리 해서 inference_review로 발행
+    # v review_processed, review_metadata 토픽 만들기
+        # 전처리 해서 review_processed 발행
 
     # 리뷰 제외한 모든 토픽을 형변환해서 실버로
         # int여도 되는 float -> int
 
     # 번역 추론하고 실버로
-
 
     # 실버토픽에 토픽별로 집계해서 골드로 저장
 
