@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 
 from service.init.iceberg import *
 
-def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, table_identifier:str, process_time="10 seconds") -> StreamingQuery:
+def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -21,8 +21,10 @@ def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, table
         - spark.sql("CALL iceberg_catalog.system.rewrite_data_files('your_table')") // OPTIMIZE
         - spark.sql("CALL iceberg_catalog.system.expire_snapshots('your_table', TIMESTAMP '2025-08-13 00:00:00')") // expire_snapshots
     """
-    qualified_namespace, table_name = create_namespace(spark_session, table_identifier)
-    s3_uri = qualified_namespace.replace('.', '/')
+    namespace, table_name = SchemaRegistryManager.get_schem_identifier(schema_str)
+
+    s3_uri = namespace.replace('.', '/')
+    table_identifier = f"{namespace}.{table_name}"
 
     return decoded_stream_df.writeStream \
         .outputMode("append") \

@@ -1,5 +1,7 @@
 import os
 import logging
+import json
+from typing import Tuple
 from functools import wraps
 from dotenv import load_dotenv
 from typing import Optional, Callable, Any
@@ -122,3 +124,10 @@ class SchemaRegistryManager:
         deleted_versions = client.delete_subject(subject_name, permanent=True)
         logger.info(f"'{subject_name}' 주제가 영구적으로 삭제되었습니다. 삭제된 버전: {deleted_versions}")
         return deleted_versions
+    
+    @staticmethod
+    def get_schem_identifier(schema_str) -> Tuple[str, str]:
+        schema_dict = json.loads(schema_str)
+        namespace = schema_dict.get('namespace')
+        table_name = schema_dict.get('name')
+        return namespace, table_name

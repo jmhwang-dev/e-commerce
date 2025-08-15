@@ -13,10 +13,12 @@ if __name__=="__main__":
         all_topic_names = topic_class.get_all_topics()
         for topic_name in all_topic_names:
 
-            # bronze.customer warehousedev.bronze.customer
+            client = SchemaRegistryManager._get_client(use_internal=True)
+            schema_str = client.get_latest_version(topic_name).schema.schema_str
+            create_namespace(spark_session, schema_str)
             kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
-            decoded_stream_df = get_decoded_stream_df(kafka_stream_df, topic_name)
-            load_stream(spark_session, decoded_stream_df, layer_class.BUCKET, topic_name)
+            decoded_stream_df = get_decoded_stream_df(kafka_stream_df, schema_str)
+            load_stream(spark_session, decoded_stream_df, schema_str)
 
 
     # qeury = start_console_stream(decoded_stream_df)

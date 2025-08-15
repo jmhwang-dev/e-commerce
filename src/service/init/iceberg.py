@@ -1,42 +1,16 @@
 from typing import Tuple
 from pyspark.sql import SparkSession
-
-from service.init.kafka import *
-
-from typing import Tuple, Iterator
-# from pyiceberg.catalog import load_catalog
 from pyspark.sql import SparkSession
-from pyspark.sql.dataframe import DataFrame
 from service.init.kafka import *
 
-class MedallionLayer:
-    BUCKET: str = "warehousedev"
-    TOPIC_CLASS: BaseTopic = None  # 자식 클래스에서 정의 (예: RawToBronzeTopic, BronzeToSilverTopic)
+from service.init.confluent import *
 
-    @classmethod
-    def __iter__(cls) -> Iterator[Tuple[str, str]]:
-        if not cls.TOPIC_CLASS:
-            raise ValueError("TOPIC_CLASS must be defined in subclass")
-        topic_names = cls.TOPIC_CLASS.get_all_topics()
-        for base_topic_name in topic_names:
-            table_identifier = f"{cls.BUCKET}.{base_topic_name}"
-            yield base_topic_name, table_identifier
+# from pyiceberg.catalog import load_catalog
 
-class BronzeLayer(MedallionLayer):
-    TOPIC_CLASS = RawToBronzeTopic
-
-class SilverLayer(MedallionLayer):
-    TOPIC_CLASS = BronzeToSilverTopic
-
-def create_namespace(spark_session: SparkSession, table_identifier: str) -> Tuple[str, str]:
-    components = table_identifier.split('.')
-    table_name = components[-1]
-    if len(components) < 2:
-        raise ValueError(f"Invalid table_identifier: {table_identifier}. Expected format: catalog.namespace.table")
-    qualified_namespace = '.'.join(components[:-1])
-    spark_session.sql(f"CREATE NAMESPACE IF NOT EXISTS {qualified_namespace}")
-    return qualified_namespace, table_name
-
+def create_namespace(spark_session: SparkSession, schema_str: str) -> None:
+    namespace, _ = SchemaRegistryManager.get_schem_identifier(schema_str)
+    spark_session.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
+    return 
 # def get_catalog(
 #         catalog_uri: str,
 #         s3_endpoint: str,
