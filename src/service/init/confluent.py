@@ -26,12 +26,15 @@ class SchemaRegistryManager:
     """Confluent Schema Registry와의 모든 상호작용을 관리하는 유틸리티 클래스."""
 
     load_dotenv('./configs/kafka/.env')
-    SCHEMA_REGISTRY_URL: str = os.environ.get("SCHEMA_REGISTRY_EXTERNAL_URL", "http://localhost:8082")
+    SCHEMA_REGISTRY_URL: str = os.environ.get("SCHEMA_REGISTRY_INTERNAL_URL", "http://schema-registry:8081")
     _client: Optional[SchemaRegistryClient] = None
 
     @classmethod
-    def _get_client(cls) -> SchemaRegistryClient:
+    def _get_client(cls, use_internal=True) -> SchemaRegistryClient:
         """SchemaRegistryClient 인스턴스를 지연 초기화하여 반환합니다 (싱글턴 패턴)."""
+        if not use_internal:
+            cls.SCHEMA_REGISTRY_URL = os.environ.get("SCHEMA_REGISTRY_EXTERNAL_URL", "http://localhost:8082")
+
         if cls._client is None:
             cls._client = SchemaRegistryClient({"url": cls.SCHEMA_REGISTRY_URL})
             logger.debug(f"SchemaRegistryClient 초기화 완료: {cls.SCHEMA_REGISTRY_URL}")
@@ -47,7 +50,7 @@ class SchemaRegistryManager:
     @_handle_sr_errors
     def set_compatibility(cls, subject_name: str, level: str = "BACKWARD") -> None:
         """주제(Subject)의 호환성 레벨을 설정합니다."""
-        client = cls._get_client()
+        client = cls._get_client(use_internal=False)
         client.set_compatibility(subject_name, level)
         logger.info(f"'{subject_name}' 주제의 호환성을 '{level}'로 설정했습니다.")
 
@@ -111,10 +114,10 @@ class SchemaRegistryManager:
         logger.critical(f"'{subject_name}' 주제의 모든 스키마를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.")
 
         # 사용자 확인 절차
-        proceed = input(f"정말로 '{subject_name}' 주제를 삭제하시겠습니까? [y/N]: ")
-        if proceed.lower() != 'y':
-            logger.info("삭제 작업을 취소했습니다.")
-            return []
+        # proceed = input(f"정말로 '{subject_name}' 주제를 삭제하시겠습니까? [y/N]: ")
+        # if proceed.lower() != 'y':
+        #     logger.info("삭제 작업을 취소했습니다.")
+        #     return []
         
         deleted_versions = client.delete_subject(subject_name, permanent=True)
         logger.info(f"'{subject_name}' 주제가 영구적으로 삭제되었습니다. 삭제된 버전: {deleted_versions}")
