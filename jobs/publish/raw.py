@@ -2,12 +2,17 @@ from service.init.kafka import *
 from service.producer.topic import *
 from service.producer.raw import *
 
+import register_schema
+
 if __name__=="__main__":
+    
     admin_client = get_client(BOOTSTRAP_SERVERS_EXTERNAL)
     for topic_class in [RawToBronzeTopic, BronzeToSilverTopic, SilverToGoldTopic]:
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
+    
+    register_schema.main()
 
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()

@@ -6,7 +6,7 @@ from functools import lru_cache
 from service.init.kafka import *
 from copy import deepcopy
 
-class DataMessage:
+class RawMessage:
     topic: str = ''
     pk_column: Iterable[str] = []
     ingestion_type: IngestionType
@@ -75,28 +75,28 @@ class DataMessage:
             cls.current_index += 1
 
 # CDC
-class GeolocationMessage(DataMessage):
+class GeolocationMessage(RawMessage):
     topic = RawToBronzeTopic.GEOLOCATION
     pk_column = ['zip_code']
     ingestion_type = IngestionType.CDC
 
-class CustomerMessage(DataMessage):
+class CustomerMessage(RawMessage):
     topic = RawToBronzeTopic.CUSTOMER
     pk_column = ['customer_id']
     ingestion_type = IngestionType.CDC
 
-class SellerMessage(DataMessage):
+class SellerMessage(RawMessage):
     topic = RawToBronzeTopic.SELLER
     pk_column = ['seller_id']
     ingestion_type = IngestionType.CDC
 
-class ProductMessage(DataMessage):
+class ProductMessage(RawMessage):
     topic = RawToBronzeTopic.PRODUCT
     pk_column = ['product_id']
     ingestion_type = IngestionType.CDC
 
 # STREAM
-class OrderStatusMessage(DataMessage):
+class OrderStatusMessage(RawMessage):
     topic = RawToBronzeTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
     ingestion_type = IngestionType.STREAM
@@ -109,22 +109,22 @@ class OrderStatusMessage(DataMessage):
     def is_end(cls):
         return cls.current_index == len(cls.get_df())
 
-class PaymentMessage(DataMessage):
+class PaymentMessage(RawMessage):
     topic = RawToBronzeTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']
     ingestion_type = IngestionType.STREAM
 
-class OrderItemMessage(DataMessage):
+class OrderItemMessage(RawMessage):
     topic = RawToBronzeTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']
     ingestion_type = IngestionType.STREAM
 
-class EstimatedDeliberyDateMessage(DataMessage):
+class EstimatedDeliberyDateMessage(RawMessage):
     topic = RawToBronzeTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
     ingestion_type = IngestionType.STREAM
 
-class ReviewMessage(DataMessage):
+class ReviewMessage(RawMessage):
     topic = RawToBronzeTopic.REVIEW
     pk_column = ['review_id']
     ingestion_type = IngestionType.STREAM

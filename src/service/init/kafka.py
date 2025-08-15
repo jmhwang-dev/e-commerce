@@ -3,25 +3,20 @@ from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
 
-from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 from confluent_kafka import SerializingProducer
 
-from service.init.confluent import *
+from service.utils.confluent import *
 from config.kafka import *
 from enum import Enum
 
 import json
 import time
 
-SCHEMA_REGISTRY_CLIENT = SchemaRegistryClient({'url': SCHEMA_REGISTRY_EXTERNAL_URL})
-SCHEMA_REGISTRY_INTERNAL = SchemaRegistryClient({'url': SCHEMA_REGISTRY_INTERNAL_URL})
-
 class IngestionType(Enum):
     CDC = 'cdc'
     STREAM = 'stream'
-
 
 
 # 1. 클래스 생성 과정을 제어할 메타클래스 정의
@@ -106,13 +101,13 @@ class SilverToGoldTopic(BaseTopic):
     
     AGGREGATED_ORDER = "aggregated_order"
 
-def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
+def get_confluent_producer(schema_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
 
     # 등록된 모든 subject 확인
     subjects = SCHEMA_REGISTRY_CLIENT.get_subjects()
     print("Available subjects:", subjects)
 
-    schema_obj = SCHEMA_REGISTRY_CLIENT.get_latest_version(topic_name).schema
+    schema_obj = SCHEMA_REGISTRY_CLIENT.get_latest_version(schema_name).schema
 
     avro_serializer = AvroSerializer(
         SCHEMA_REGISTRY_CLIENT,
@@ -120,8 +115,7 @@ def get_confluent_producer(topic_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTER
         to_dict=lambda obj, ctx: obj,
         conf={
             'auto.register.schemas': False,
-            # 'subject.name.strategy': record_subject_name_strategy
-            'subject.name.strategy': lambda ctx, record_name: topic_name
+            'subject.name.strategy': lambda ctx, record_name: schema_name
             }
     )
 
