@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.review",
+  "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "bronze.review",
+  "name": "stream_review",
   "fields": [
     {
       "name": "review_id",

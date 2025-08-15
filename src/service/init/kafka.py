@@ -18,30 +18,7 @@ class IngestionType(Enum):
     CDC = 'cdc'
     STREAM = 'stream'
 
-
-# 1. 클래스 생성 과정을 제어할 메타클래스 정의
-class TopicMeta(type):
-    """
-    클래스 변수를 `prefix.value` 형태로 자동 변환하는 메타클래스
-    """
-    def __new__(mcs, name, bases, attrs):
-        # 클래스에 정의된 TOPIC_PREFIX 값을 가져옴
-        prefix = attrs.get("TOPIC_PREFIX", "")
-
-        # 클래스 속성들을 순회하며 TOPIC 변수들을 찾아 값을 변환
-        for attr_name, attr_value in attrs.items():
-            if (isinstance(attr_value, str) and
-                    attr_name.isupper() and
-                    not attr_name.startswith('_') and
-                    not attr_name.startswith('TOPIC_')):
-                # 'prefix.value' 형태로 값을 새로 할당
-                attrs[attr_name] = f"{prefix}.{attr_value}"
-
-        # 수정된 속성들로 새로운 클래스를 생성하여 반환
-        return super().__new__(mcs, name, bases, attrs)
-
-# 2. BaseTopic에 메타클래스 지정
-class BaseTopic(metaclass=TopicMeta):
+class BaseTopic:
     """Base class for Kafka topic definitions with common methods."""
     TOPIC_PREFIX: str = ""
 
@@ -64,23 +41,22 @@ class RawToBronzeTopic(BaseTopic):
     TOPIC_PREFIX = "bronze"
     
     # CDC Topics
-    ORDER_ITEM = "order_item"
-    PRODUCT = "product" 
-    CUSTOMER = "customer"
-    SELLER = "seller"
-    GEOLOCATION = "geolocation"
+    PRODUCT = "cdc_product" 
+    CUSTOMER = "cdc_customer"
+    SELLER = "cdc_seller"
+    GEOLOCATION = "cdc_geolocation"
     
     # Stream Topics
-    ORDER_STATUS = "order_status"
-    PAYMENT = "payment"
-    ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
-    REVIEW = "review"
+    ORDER_ITEM = "stream_order_item"
+    ORDER_STATUS = "stream_order_status"
+    PAYMENT = "stream_payment"
+    ESTIMATED_DELIVERY_DATE = "stream_estimated_delivery_date"
+    REVIEW = "stream_review"
 
 class BronzeToSilverTopic(BaseTopic):
     """Topics for bronze to silver processing."""
     TOPIC_PREFIX = "silver"
     
-    # 기존 bronze 토픽들 상속
     ORDER_ITEM = "order_item"
     PRODUCT = "product"
     CUSTOMER = "customer" 
@@ -91,7 +67,6 @@ class BronzeToSilverTopic(BaseTopic):
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
     REVIEW = "review"
     
-    # 추가 silver 토픽들
     PREPROCESSED_REVIEW = "preprocessed_review"
     INFERENCED_REVIEW = "inferenced_review"
 

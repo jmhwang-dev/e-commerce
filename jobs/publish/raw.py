@@ -11,7 +11,6 @@ if __name__=="__main__":
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
-    
     register_schema.main()
 
     while not OrderStatusMessage.is_end():

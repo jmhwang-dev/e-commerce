@@ -9,10 +9,14 @@ from service.init.iceberg import *
 if __name__=="__main__":
     spark_session = get_spark_session("RawStream")
 
-    for topic_name, table_identifier in BronzeLayer():
-        kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
-        decoded_stream_df = get_decoded_stream_df(kafka_stream_df, topic_name)
-        load_stream(spark_session, decoded_stream_df, table_identifier)
+    for topic_class in [RawToBronzeTopic]:
+        all_topic_names = topic_class.get_all_topics()
+        for topic_name in all_topic_names:
+
+            # bronze.customer warehousedev.bronze.customer
+            kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
+            decoded_stream_df = get_decoded_stream_df(kafka_stream_df, topic_name)
+            load_stream(spark_session, decoded_stream_df, layer_class.BUCKET, topic_name)
 
 
     # qeury = start_console_stream(decoded_stream_df)

@@ -9,19 +9,14 @@ from copy import deepcopy
 class RawMessage:
     topic: str = ''
     pk_column: Iterable[str] = []
-    ingestion_type: IngestionType
     file_path: Path = Path()
     current_index: int = 0
     producer: SerializingProducer = None
 
     @classmethod
     def init_file_path(cls, ) -> None:
-        if cls.ingestion_type == IngestionType.CDC:
-            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic.split('.')[-1]}.tsv"
-        elif cls.ingestion_type == IngestionType.STREAM:
-            cls.file_path = DATASET_DIR / cls.ingestion_type.value / f"{cls.topic.split('.')[-1]}.tsv"
-        else:
-            raise ValueError(f"Unknown ingestion type: {cls.ingestion_type}")
+        cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
+
     
     @classmethod
     @lru_cache(maxsize=1)

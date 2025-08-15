@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.payment",
+  "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "bronze.payment",
+  "name": "stream_payment",
   "fields": [
     {
       "name": "order_id",

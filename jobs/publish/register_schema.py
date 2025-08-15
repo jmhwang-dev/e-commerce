@@ -40,6 +40,8 @@ def process_schema_file(schema_path: Path):
         schema_json = json.loads(schema_str)
         subject_name = schema_json.get("name")
 
+        # SchemaRegistryManager.delete_subject(subject_name)
+
         if not subject_name:
             logger.warning(f"'{schema_path.name}' 파일에 'name' 필드가 없어 건너뜁니다.")
             return

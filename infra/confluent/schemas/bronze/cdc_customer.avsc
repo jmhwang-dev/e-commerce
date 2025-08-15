@@ -1,10 +1,10 @@
 {
-  "namespace": "warehousedev.bronze.seller",
+  "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "bronze.seller",
+  "name": "cdc_customer",
   "fields": [
     {
-      "name": "seller_id",
+      "name": "customer_id",
       "type": "string"
     },
     {
