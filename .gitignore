@@ -16,7 +16,7 @@ s3/
 .vscode/
 infra/consumer/models/
 !infra/consumer/models/.gitkeep
-
+src.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,5 +1,5 @@
 from service.init.kafka import *
-from service.producer.topic import *
+from service.producer.utils import *
 from service.producer.raw import *
 
 import register_schema

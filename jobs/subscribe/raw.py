@@ -3,7 +3,9 @@ from service.init.kafka import *
 from service.init.iceberg import *
 from service.io.iceberg_spark import *
 
-from service.consumer.raw import *
+from service.consumer.utils import *
+from service.consumer.review import *
+
 from service.init.iceberg import *
 
 if __name__=="__main__":
@@ -12,18 +14,22 @@ if __name__=="__main__":
     for topic_class in [RawToBronzeTopic]:
         all_topic_names = topic_class.get_all_topics()
         for topic_name in all_topic_names:
+            if topic_name != topic_class.REVIEW:
+                continue
 
             client = SchemaRegistryManager._get_client(use_internal=True)
             schema_str = client.get_latest_version(topic_name).schema.schema_str
             create_namespace(spark_session, schema_str)
             kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
             decoded_stream_df = get_decoded_stream_df(kafka_stream_df, schema_str)
-            load_stream(spark_session, decoded_stream_df, schema_str)
+            # load_stream(decoded_stream_df, schema_str)
 
+            review_info = review_info_bronze2silver(decoded_stream_df)
 
-    # qeury = start_console_stream(decoded_stream_df)
-    # query = load_stream(spark_session, decoded_stream_df, BronzeLayer.REVIEW_TABLE_IDENTIFIER)
-    # query.awaitTermination()
+            melted_df = PortuguessPreprocessor.melt_reviews(decoded_stream_df)
+            melted_df = PortuguessPreprocessor.clean_review_comment(melted_df)
+
+            qeury = start_console_stream(melted_df)
 
     try:
         spark_session.streams.awaitAnyTermination()  # 모든 쿼리 종료까지 대기

@@ -5,6 +5,7 @@ from pyspark.sql.avro.functions import from_avro
 from pyspark.sql.functions import expr
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import DataStreamReader, StreamingQuery
+from pyspark.sql.functions import col, expr
 
 from config.spark import *
 

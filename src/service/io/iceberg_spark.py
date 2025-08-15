@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 
 from service.init.iceberg import *
 
-def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
+def load_stream(decoded_stream_df: DataFrame, schema_str:str, process_time="2 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
