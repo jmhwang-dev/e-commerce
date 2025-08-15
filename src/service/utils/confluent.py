@@ -109,11 +109,12 @@ class SchemaRegistryManager:
         """
         client = cls._get_client()
         logger.critical(f"'{subject_name}' 주제의 모든 스키마를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.")
-        # 사용자 확인 절차를 추가하는 것이 좋습니다 (예: 터미널 입력)
-        # proceed = input(f"정말로 '{subject_name}' 주제를 삭제하시겠습니까? [y/N]: ")
-        # if proceed.lower() != 'y':
-        #     logger.info("삭제 작업을 취소했습니다.")
-        #     return []
+
+        # 사용자 확인 절차
+        proceed = input(f"정말로 '{subject_name}' 주제를 삭제하시겠습니까? [y/N]: ")
+        if proceed.lower() != 'y':
+            logger.info("삭제 작업을 취소했습니다.")
+            return []
         
         deleted_versions = client.delete_subject(subject_name, permanent=True)
         logger.info(f"'{subject_name}' 주제가 영구적으로 삭제되었습니다. 삭제된 버전: {deleted_versions}")
