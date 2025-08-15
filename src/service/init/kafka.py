@@ -7,7 +7,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 from confluent_kafka import SerializingProducer
 
-from service.utils.confluent import *
+from service.init.confluent import *
 from config.kafka import *
 from enum import Enum
 
@@ -101,33 +101,6 @@ class SilverToGoldTopic(BaseTopic):
     
     AGGREGATED_ORDER = "aggregated_order"
 
-def get_confluent_producer(schema_name, bootstrap_servers=BOOTSTRAP_SERVERS_INTERNAL) -> SerializingProducer:
-
-    # 등록된 모든 subject 확인
-    subjects = SCHEMA_REGISTRY_CLIENT.get_subjects()
-    print("Available subjects:", subjects)
-
-    schema_obj = SCHEMA_REGISTRY_CLIENT.get_latest_version(schema_name).schema
-
-    avro_serializer = AvroSerializer(
-        SCHEMA_REGISTRY_CLIENT,
-        schema_obj,  # None으로 두면 subject 기반으로 fetch
-        to_dict=lambda obj, ctx: obj,
-        conf={
-            'auto.register.schemas': False,
-            'subject.name.strategy': lambda ctx, record_name: schema_name
-            }
-    )
-
-    producer_conf = {
-        'bootstrap.servers': bootstrap_servers[0],
-        'key.serializer': StringSerializer('utf_8'),
-        'value.serializer': avro_serializer,
-        'acks': 'all',
-        'retries': 3
-    }
-    return SerializingProducer(producer_conf)
-
 def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
     return KafkaProducer(
         bootstrap_servers=bootstrp_servers,
@@ -138,9 +111,10 @@ def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
         max_in_flight_requests_per_connection=1
     )
 
-def get_client(bootstrp_servers: Iterable[str]) -> KafkaAdminClient:
+def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
+    bootstrp_server_list = bootstrp_servers.split(",")
     return KafkaAdminClient(
-        bootstrap_servers=bootstrp_servers
+        bootstrap_servers=bootstrp_server_list
     )
 
 def get_kafak_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:

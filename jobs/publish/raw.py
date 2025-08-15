@@ -6,8 +6,8 @@ import register_schema
 
 if __name__=="__main__":
     
-    admin_client = get_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    for topic_class in [RawToBronzeTopic, BronzeToSilverTopic, SilverToGoldTopic]:
+    admin_client = get_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
+    for topic_class in [RawToBronzeTopic, BronzeToSilverTopic]:
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)

@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from service.utils.confluent import SchemaRegistryManager
+from service.init.confluent import SchemaRegistryManager
 
 # 이 스크립트의 로거 인스턴스를 가져옵니다.
 logger = logging.getLogger(__name__)
