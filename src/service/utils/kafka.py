@@ -7,11 +7,8 @@ from confluent_kafka import SerializingProducer, DeserializingConsumer
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
 
-
-
 from service.common.topic import *
 from service.common.schema import *
-from service.utils.spark import *
 from config.kafka import *
 
 def get_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
@@ -22,7 +19,7 @@ def get_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
     
     return AdminClient(admin_config)
 
-def get_confluent_kafka_consumer(topic_names:list, use_internal=False):
+def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=False):
     if not use_internal:
         bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
     else:
@@ -35,6 +32,7 @@ def get_confluent_kafka_consumer(topic_names:list, use_internal=False):
     consumer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],  # Kafka 브로커
         'auto.offset.reset': 'earliest',
+        'group.id': group_id,
         'key.deserializer': StringDeserializer('utf-8'),  # 키는 문자열 가정
         'value.deserializer': avro_deserializer  # 값은 Avro
     }

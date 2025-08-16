@@ -156,7 +156,7 @@ class PortuguessPreprocessor:
         )
         return df
     
-def review_info_bronze2silver(decoded_stream_df: DataFrame):
+def review_metadata_bronze2silver(decoded_stream_df: DataFrame):
     return decoded_stream_df.select(
         'review_id',
         'order_id',

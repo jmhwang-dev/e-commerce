@@ -27,10 +27,10 @@ def get_sentiment_analyzer():
     analyzer = pipeline(
         "text-classification",
         model=model,
-        tokenizer=tokenizer,  # 여기서 tokenizer 명시
+        tokenizer=tokenizer,
         top_k=3,
         max_length=512,
-        truncation=True,  # 입력 초과 시 자르기 (권장)
+        truncation=False,  # 입력 초과 시 자르기 (권장)
     )
     return analyzer
 
@@ -56,47 +56,6 @@ def get_translator():
         device_map='auto'
         )
     return trasnlator
-
-
-from confluent_kafka import DeserializingConsumer, KafkaError, TopicPartition
-from confluent_kafka.schema_registry import SchemaRegistryClient
-import time
-
-# SR_URL = "http://schema-registry:8081"
-# TOPIC = "review"
-
-# sr_client = SchemaRegistryClient({'url': SR_URL})
-# avro_deserializer = AvroDeserializer(schema_str=None, schema_registry_client=sr_client)
-
-# def create_consumer(group_id: str) -> DeserializingConsumer:
-#     return DeserializingConsumer({
-#         'bootstrap.servers': 'kafka1:9092',
-#         'group.id': group_id,
-#         'auto.offset.reset': 'earliest',
-#         'enable.auto.commit': False,
-#         'value.deserializer': avro_deserializer,
-#     })
-
-
-# def create_translator():
-#     from transformers.models.auto.tokenization_auto import AutoTokenizer
-#     from transformers.pipelines import pipeline
-#     import torch
-
-#     checkpoint = "Unbabel/TowerInstruct-7B-v0.2"
-#     device = "auto" if torch.cuda.is_available() else "cpu"
-#     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-#     tokenizer.padding_side = "left"
-
-#     translator = pipeline(
-#         "text-generation",
-#         model=checkpoint,
-#         tokenizer=tokenizer,
-#         torch_dtype=torch.bfloat16,
-#         device_map=device
-#     )
-
-#     return translator
 
 def get_prompt(text: str) -> str:
     language_from = "Portuguese"

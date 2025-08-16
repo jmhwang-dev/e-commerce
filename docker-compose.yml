@@ -184,7 +184,7 @@ services:
     image: ecommerce-inference:latest
     container_name: inference
     command: bash -c "tail -f /dev/null"
-    working_dir: /jobs/subscribe
+    working_dir: /jobs
     environment:
       - PYTHONPATH=/src
     volumes:

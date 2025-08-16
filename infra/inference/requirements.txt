@@ -13,3 +13,4 @@ boto3
 unidecode
 python-dotenv
 pyyaml
+kafka-python

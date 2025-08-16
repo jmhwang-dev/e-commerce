@@ -6,7 +6,6 @@ from confluent_kafka.admin import NewTopic
 
 from service.common.topic import *
 from service.common.schema import *
-from service.utils.spark import *
 from config.kafka import *
 
 class IngestionType(Enum):

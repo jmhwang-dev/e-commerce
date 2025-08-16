@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 
 from service.utils.iceberg.spark import *
 
-def load_stream(decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
+def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -29,6 +29,7 @@ def load_stream(decoded_stream_df: DataFrame, schema_str:str, process_time="10 s
         - spark.sql("CALL iceberg_catalog.system.rewrite_data_files('your_table')") // OPTIMIZE
         - spark.sql("CALL iceberg_catalog.system.expire_snapshots('your_table', TIMESTAMP '2025-08-13 00:00:00')") // expire_snapshots
     """
+    create_namespace(spark_session, schema_str)
     s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)
     
     return decoded_stream_df.writeStream \
@@ -42,15 +43,15 @@ def load_stream(decoded_stream_df: DataFrame, schema_str:str, process_time="10 s
     # fanout.enabled=false
     # OPTIMIZE TABLE / expire_snapshots
 
-def load_batch(spark_session: SparkSession, df: DataFrame, table_identifier: str, comment_message: str='') -> None:
-    create_namespace()
-    writer = df.writeTo(table_identifier).tableProperty("comment", comment_message)
+# def load_batch(spark_session: SparkSession, df: DataFrame, table_identifier: str, comment_message: str='') -> None:
+#     create_namespace()
+#     writer = df.writeTo(table_identifier).tableProperty("comment", comment_message)
     
-    if not spark_session.catalog.tableExists(table_identifier):
-        writer.create()
-    else:
-        writer.overwritePartitions()
-    print(f"[INFO] {table_identifier} 테이블 저장 완료")
+#     if not spark_session.catalog.tableExists(table_identifier):
+#         writer.create()
+#     else:
+#         writer.overwritePartitions()
+#     print(f"[INFO] {table_identifier} 테이블 저장 완료")
 
 def create_namespace(spark_session: SparkSession, schema_str: str) -> None:
     namespace, _ = SchemaRegistryManager.get_schem_identifier(schema_str)

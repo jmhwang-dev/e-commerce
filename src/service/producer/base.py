@@ -38,8 +38,8 @@ class BaseProducer:
     
     @classmethod
     @lru_cache(maxsize=1)
-    def _get_producer(cls):
-        return get_confluent_kafka_producer(cls.topic, use_internal=False)
+    def _get_producer(cls, use_internal=False):
+        return get_confluent_kafka_producer(cls.topic, use_internal)
 
     @classmethod
     def select(cls, col, value: str) -> pd.DataFrame:

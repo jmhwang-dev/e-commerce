@@ -1,5 +1,5 @@
 import json
-from pprint import pformat
+from pprint import pformat, pprint
 import logging
 import time
 from service.consumer.inference import *
@@ -20,15 +20,11 @@ from service.utils.kafka import *
 
 if __name__=="__main__":
     
-    consumer = get_confluent_kafka_consumer([BronzeToSilverTopic.REVIEW_CLEAN_COMMENT])
-    translator = get_translator()
-    analyzer = get_sentiment_analyzer()
-    # logging.info("모델 로드 완료")
-
+    consumer = get_confluent_kafka_consumer('inference', [BronzeToSilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
     wait_for_partition_assignment(consumer)
-    # logging.info(f'할당된 파티션: {consumer.assignments()}')
-    print('done')
-    exit()
+
+    # translator = get_translator()
+    # analyzer = get_sentiment_analyzer()
 
     while True:
         msg = consumer.poll(1.0)
@@ -39,10 +35,11 @@ if __name__=="__main__":
             break
 
         value = json.loads(msg.value().decode('utf-8'))
-        with open("/app/logs/output.json", 'w') as f:
-            json.dump(value, f)
-        # logging.info(f"\n{pformat(value, indent=2)}")
-        logging.info("메시지 수신 완료")
+        pprint(value)
+        # with open("/app/logs/output.json", 'w') as f:
+        #     json.dump(value, f)
+        # # logging.info(f"\n{pformat(value, indent=2)}")
+        # logging.info("메시지 수신 완료")
 
         dataset = [value['prompt']]
         

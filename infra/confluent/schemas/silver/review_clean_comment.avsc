@@ -8,20 +8,12 @@
       "type": "string"
     },
     {
-      "name": "review_comment_title",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "name": "message_type",
+      "type": "string"
     },
     {
-      "name": "review_comment_message",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "name": "portuguess",
+      "type": "string"
     }
   ]
 }

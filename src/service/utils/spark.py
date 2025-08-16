@@ -8,8 +8,6 @@ from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.functions import expr
 
 from config.spark import *
-import time
-from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 from pyspark.sql.streaming import StreamingQuery
 
@@ -42,7 +40,7 @@ def start_console_stream(decoded_stream_df: DataFrame) -> StreamingQuery:
         .trigger(processingTime="10 seconds") \
         .start()
 
-def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str], group_id: str) -> DataFrame:
+def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str]) -> DataFrame:
     """
     - .option("maxOffsetsPerTrigger", "10000")
         : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
@@ -52,7 +50,6 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str],
     return spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
         .option("subscribe", ','.join(topic_names)) \
-        .option("kafka.group.id", group_id) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
         .load()
