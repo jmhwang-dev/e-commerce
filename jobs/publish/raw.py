@@ -2,7 +2,7 @@ from service.init.kafka import *
 from service.producer.utils import *
 from service.producer.raw import *
 
-import register_schema
+import schema
 
 if __name__=="__main__":
     
@@ -11,8 +11,7 @@ if __name__=="__main__":
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
-    register_schema.main()
-    exit()
+    schema.register()
 
     while not OrderStatusMessage.is_end():
         order_status_log = OrderStatusMessage.get_current_event()

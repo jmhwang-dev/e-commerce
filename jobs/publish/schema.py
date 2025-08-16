@@ -57,7 +57,7 @@ def process_schema_file(schema_path: Path):
     except Exception as e:
         logger.error(f"'{schema_path.name}' 처리 중 예상치 못한 오류 발생", exc_info=True)
 
-def main():
+def register():
     """메인 실행 함수: 스키마 디렉토리를 순회하며 모든 .avsc 파일을 등록합니다."""
     setup_logging()  # 로깅 설정 실행
 
@@ -89,4 +89,4 @@ def main():
     logger.info("=" * 40)
 
 if __name__ == "__main__":
-    main()
+    register()
