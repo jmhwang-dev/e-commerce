@@ -1,12 +1,13 @@
+from typing import Iterable
+
 from pyiceberg.exceptions import NoSuchTableError
 from pyiceberg.table import Table
 from pyiceberg.catalog import Catalog
-from typing import Iterable
 import pandas as pd
 
-from service.init.minio import *
-from service.init.iceberg import *
-from service.io import minio
+from service.common.schema import *
+from service.utils.iceberg.spark import *
+from service.utils import minio
 
 from config.iceberg import *
 from config.minio import *
@@ -78,3 +79,4 @@ def insert(table: Table, data: pa.Table):
     except Exception as e:
         print(f"Failed to append data to {table.identifier}: {str(e)}")
         raise
+

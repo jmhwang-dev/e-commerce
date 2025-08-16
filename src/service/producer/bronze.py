@@ -1,6 +1,6 @@
 import pandas as pd
 
-from service.init.kafka import *
+from service.common.topic import *
 from service.producer.base import *
 
 # CDC

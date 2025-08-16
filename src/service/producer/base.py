@@ -3,12 +3,13 @@ from typing import Iterable
 import pandas as pd
 from pprint import pformat
 from functools import lru_cache
-from service.init.kafka import *
+from service.common.topic import *
 from copy import deepcopy
 
 from confluent_kafka import SerializingProducer
 
-from service.init.confluent import *
+from service.common.schema import *
+from service.utils.kafka import *
 
 class BaseProducer:
     topic: str = ''

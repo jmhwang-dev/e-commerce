@@ -1,8 +1,7 @@
-from service.init.kafka import *
-from service.producer.utils import *
+from service.common.topic import *
 from service.producer.bronze import *
+from service.common.schema import *
 
-import schema
 import time
 
 if __name__=="__main__":
@@ -12,7 +11,8 @@ if __name__=="__main__":
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
-    schema.register()
+    
+    register_schema()
 
     while not OrderStatusBronzeProducer.is_end():
         time.sleep(2)

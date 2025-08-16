@@ -1,8 +1,8 @@
 from pyspark.sql.dataframe import DataFrame
 
-from service.init.kafka import *
+from service.common.topic import *
 from service.producer.base import *
-from service.io.utils import *
+from service.utils.iceberg.spark import *
 
 class GeolocationSilverProducer(BaseProducer):
     topic = BronzeToSilverTopic.GEOLOCATION

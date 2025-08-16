@@ -1,14 +1,13 @@
-from typing import Iterable
-from kafka import KafkaConsumer
-from kafka.admin import KafkaAdminClient
-from kafka import KafkaProducer
-
-from service.init.confluent import *
-from service.consumer.utils import *
-from config.kafka import *
 from enum import Enum
 
-import json
+from confluent_kafka import Consumer
+from confluent_kafka import Producer
+from confluent_kafka.admin import NewTopic
+
+from service.common.topic import *
+from service.common.schema import *
+from service.utils.spark import *
+from config.kafka import *
 
 class IngestionType(Enum):
     CDC = 'cdc'
@@ -71,34 +70,3 @@ class SilverToGoldTopic(BaseTopic):
     TOPIC_PREFIX = "gold"
     
     AGGREGATED_ORDER = "aggregated_order"
-
-def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
-    return KafkaProducer(
-        bootstrap_servers=bootstrp_servers,
-        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        key_serializer=lambda k: str(k).encode('utf-8') if k else None,
-        acks='all',
-        retries=3,
-        max_in_flight_requests_per_connection=1
-    )
-
-def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
-    bootstrp_server_list = bootstrp_servers.split(",")
-    return KafkaAdminClient(
-        bootstrap_servers=bootstrp_server_list
-    )
-
-def get_kafka_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
-    consumer = KafkaConsumer(
-        bootstrap_servers=bootstrp_servers,
-        auto_offset_reset='earliest',
-        enable_auto_commit=False,
-        group_id=None,
-        value_deserializer=lambda v: json.loads(v.decode('utf-8')),
-        key_deserializer=lambda k: k.decode('utf-8') if k else None
-    )
-
-    consumer.subscribe(topic_name)
-    wait_for_partition_assignment(consumer)
-    return consumer
-
