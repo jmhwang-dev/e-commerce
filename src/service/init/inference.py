@@ -12,7 +12,7 @@ CONSUMER_CONFIG = {
 }
 
 def get_sentiment_analyzer():
-    model_path = "/models/sentiment"
+    model_path = "/mnt/models/sentiment"
 
     model = AutoModelForSequenceClassification.from_pretrained(
         model_path,
@@ -36,7 +36,7 @@ def get_sentiment_analyzer():
     return analyzer
 
 def get_translator():
-    model_path = "/models/translate"  # 샤딩된 체크포인트 디렉토리
+    model_path = "/mnt/models/translate"  # 샤딩된 체크포인트 디렉토리
 
     # 샤딩된 모델 로드
     model = AutoModelForCausalLM.from_pretrained(
@@ -57,15 +57,3 @@ def get_translator():
         device_map='auto'
         )
     return trasnlator
-
-# def wait_for_partition_assignment():
-#     consumer = Consumer(CONSUMER_CONFIG)
-#     consumer.subscribe([TOPIC])
-#     max_attempts = 10
-#     for _ in range(max_attempts):  # 초기 할당 대기 루프
-#         if not consumer.assignment():    
-#             consumer.poll(2)
-#             time.sleep(5)
-#         return consumer
-
-#     raise TimeoutError("Consumer 파티션 할당 실패") 

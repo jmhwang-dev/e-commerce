@@ -3,6 +3,7 @@ from service.producer.utils import *
 from service.producer.bronze import *
 
 import schema
+import time
 
 if __name__=="__main__":
     
@@ -14,6 +15,7 @@ if __name__=="__main__":
     schema.register()
 
     while not OrderStatusBronzeProducer.is_end():
+        time.sleep(2)
         order_status_log = OrderStatusBronzeProducer.get_current_event()
         OrderStatusBronzeProducer.publish(order_status_log)
 

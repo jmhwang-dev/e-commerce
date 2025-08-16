@@ -17,7 +17,7 @@ cd ..
 docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
 
 # Spark 실행
-docker compose -f docker-compose.yml exec spark-client \
+docker compose exec spark-client \
 spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \

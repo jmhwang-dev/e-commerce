@@ -1,21 +1,22 @@
 from confluent_kafka import DeserializingConsumer, KafkaError, TopicPartition
-from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 
-SR_URL = "http://schema-registry:8081"
-TOPIC = "review"
+# SR_URL = "http://schema-registry:8081"
+# TOPIC = "review"
 
-sr_client = SchemaRegistryClient({'url': SR_URL})
-avro_deserializer = AvroDeserializer(schema_str=None, schema_registry_client=sr_client)
+# sr_client = SchemaRegistryClient({'url': SR_URL})
+# avro_deserializer = AvroDeserializer(schema_str=None, schema_registry_client=sr_client)
 
-def create_consumer(group_id: str) -> DeserializingConsumer:
-    return DeserializingConsumer({
-        'bootstrap.servers': 'kafka1:9092',
-        'group.id': group_id,
-        'auto.offset.reset': 'earliest',
-        'enable.auto.commit': False,
-        'value.deserializer': avro_deserializer,
-    })
+# def create_consumer(group_id: str) -> DeserializingConsumer:
+#     return DeserializingConsumer({
+#         'bootstrap.servers': 'kafka1:9092',
+#         'group.id': group_id,
+#         'auto.offset.reset': 'earliest',
+#         'enable.auto.commit': False,
+#         'value.deserializer': avro_deserializer,
+#     })
+
+
 
 def create_translator():
     from transformers.models.auto.tokenization_auto import AutoTokenizer

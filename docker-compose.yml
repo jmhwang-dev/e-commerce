@@ -2,7 +2,7 @@ x-spark-common: &spark-common
   build:
     context: ./infra/spark
     dockerfile: Dockerfile
-  image: ecommerce-spark-image:latest
+  image: ecommerce-spark:latest
 
 x-minio-common: &minio-common
   image: minio/minio:RELEASE.2025-06-13T11-33-47Z
@@ -176,3 +176,28 @@ services:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_REGION: us-east-1
+
+  inference:
+    build:
+      context: ./infra/inference
+      dockerfile: Dockerfile
+    image: ecommerce-inference:latest
+    container_name: inference
+    command: bash -c "tail -f /dev/null"
+    environment:
+      - PYTHONPATH=/mnt/src
+    volumes:
+      - ./jobs/subscribe/inference.py:/mnt/app/inference.py
+      - ./src/service/init/:/mnt/src/service/init/
+      - ./downloads/models/:/mnt/models/
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # 또는 1, 2 등
+              capabilities: [gpu]

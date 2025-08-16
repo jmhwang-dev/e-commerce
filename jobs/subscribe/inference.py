@@ -2,19 +2,22 @@ import json
 from pprint import pformat
 import logging
 import time
-from service.init.inference import *
+# from service.init.inference import *
 
-os.makedirs("/app/logs", exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('/app/logs/p2e.log'),  # 로그를 저장할 파일
-        logging.StreamHandler()  # 콘솔 출력 (선택적)
-])
+# os.makedirs("/app/logs", exist_ok=True)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=[
+#         logging.FileHandler('/app/logs/p2e.log'),  # 로그를 저장할 파일
+#         logging.StreamHandler()  # 콘솔 출력 (선택적)
+# ])
 
 if __name__=="__main__":
+    print('ghkr')
+    exit()
     try:
+
         translator = get_translator()
         analyzer = get_sentiment_analyzer()
         logging.info("모델 로드 완료")

@@ -9,6 +9,8 @@ from service.consumer.review import *
 from service.init.iceberg import *
 from service.producer.silver import *
 
+from pyspark.sql.functions import col
+
 if __name__ == "__main__":
     spark_session = get_spark_session("RawStream")
     client = SchemaRegistryManager._get_client(use_internal=True)

@@ -5,8 +5,9 @@ from service.io.iceberg_spark import *
 
 from service.consumer.utils import *
 from service.consumer.review import *
-
 from service.init.iceberg import *
+
+from pyspark.sql.functions import col
 
 if __name__ == "__main__":
     spark_session = get_spark_session("RawStream")
