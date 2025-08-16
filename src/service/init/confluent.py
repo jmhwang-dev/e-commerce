@@ -7,7 +7,14 @@ from dotenv import load_dotenv
 from typing import Optional, Callable, Any
 from confluent_kafka.schema_registry import SchemaRegistryClient, Schema
 from confluent_kafka.schema_registry.error import SchemaRegistryError
+from confluent_kafka.schema_registry.avro import AvroDeserializer
 
+from confluent_kafka import DeserializingConsumer
+from confluent_kafka.serialization import StringDeserializer, StringSerializer
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka import SerializingProducer
+
+from config.kafka import *
 # 로거 인스턴스만 가져옵니다.
 # 설정(basicConfig)은 이 파일을 import하는 실행 스크립트에서 담당합니다.
 logger: logging.Logger = logging.getLogger(__name__)
@@ -131,3 +138,50 @@ class SchemaRegistryManager:
         namespace = schema_dict.get('namespace')
         table_name = schema_dict.get('name')
         return namespace, table_name
+    
+
+def get_confluent_kafka_consumer():
+    schema_registry_conf = {'url': 'http://localhost:8081'}  # Schema Registry URL
+    schema_registry_client = SchemaRegistryClient(schema_registry_conf)
+
+    # Avro Deserializer 생성 (Olist 리뷰 스키마 자동 로드 가정)
+    avro_deserializer = AvroDeserializer(schema_registry_client)
+
+    # Consumer 설정 (Spark 3.5.6 스트림과 유사한 Olist 실시간 처리)
+    consumer_conf = {
+        'bootstrap.servers': 'localhost:9092',  # Kafka 브로커
+        'group.id': 'olist-avro-consumer-group',
+        'auto.offset.reset': 'earliest',
+        'key.deserializer': StringDeserializer('utf-8'),  # 키는 문자열 가정
+        'value.deserializer': avro_deserializer  # 값은 Avro
+    }
+
+    return DeserializingConsumer(consumer_conf)
+
+
+def get_confluent_kafka_producer(topic:str, use_internal=False) -> SerializingProducer:
+    if not use_internal:
+        bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
+    else:
+        bootstrap_server_list = BOOTSTRAP_SERVERS_INTERNAL.split(',')
+
+    client = SchemaRegistryManager._get_client()
+    schema_obj = client.get_latest_version(topic).schema
+    avro_serializer = AvroSerializer(
+        client,
+        schema_obj,  # None으로 두면 subject 기반으로 fetch
+        to_dict=lambda obj, ctx: obj,
+        conf={
+            'auto.register.schemas': False,
+            'subject.name.strategy': lambda ctx, record_name: topic
+            }
+    )
+
+    producer_conf = {
+        'bootstrap.servers': bootstrap_server_list[0],
+        'key.serializer': StringSerializer('utf_8'),
+        'value.serializer': avro_serializer,
+        'acks': 'all',
+        'retries': 3
+    }
+    return SerializingProducer(producer_conf)

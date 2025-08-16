@@ -4,10 +4,11 @@ from service.init.spark import *
 from pyspark.sql.avro.functions import from_avro
 from pyspark.sql.functions import expr
 from pyspark.sql.dataframe import DataFrame
-from pyspark.sql.streaming import DataStreamReader, StreamingQuery
-from pyspark.sql.functions import col, expr
+from pyspark.sql.streaming import StreamingQuery
+from pyspark.sql.functions import expr
 
 from config.spark import *
+import time
 
 def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str], group_id: str) -> DataFrame:
     """
@@ -40,3 +41,13 @@ def start_console_stream(decoded_stream_df: DataFrame) -> StreamingQuery:
         .option("truncate", "false") \
         .trigger(processingTime="10 seconds") \
         .start()
+
+def wait_for_partition_assignment(consumer):
+    max_attempts = 10
+    for _ in range(max_attempts):
+        if consumer.assignment():
+            print('Consumer partition assignment loaded!')
+            return consumer
+        consumer.poll(1)
+        time.sleep(5)
+    raise TimeoutError("Consumer 파티션 할당 실패")

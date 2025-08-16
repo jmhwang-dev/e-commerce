@@ -4,11 +4,11 @@ from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
 
 from service.init.confluent import *
+from service.consumer.utils import *
 from config.kafka import *
 from enum import Enum
 
 import json
-import time
 
 class IngestionType(Enum):
     CDC = 'cdc'
@@ -72,7 +72,7 @@ class SilverToGoldTopic(BaseTopic):
     
     AGGREGATED_ORDER = "aggregated_order"
 
-def get_kafka_BronzeProducer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
     return KafkaProducer(
         bootstrap_servers=bootstrp_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
@@ -88,7 +88,7 @@ def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
         bootstrap_servers=bootstrp_server_list
     )
 
-def get_kafak_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
+def get_kafka_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
     consumer = KafkaConsumer(
         bootstrap_servers=bootstrp_servers,
         auto_offset_reset='earliest',
@@ -102,12 +102,3 @@ def get_kafak_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str
     wait_for_partition_assignment(consumer)
     return consumer
 
-def wait_for_partition_assignment(consumer):
-    max_attempts = 10
-    for _ in range(max_attempts):
-        if consumer.assignment():
-            print('Consumer partition assignment loaded!')
-            return consumer
-        consumer.poll(1)
-        time.sleep(5)
-    raise TimeoutError("Consumer 파티션 할당 실패")

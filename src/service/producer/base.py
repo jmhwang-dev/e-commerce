@@ -7,8 +7,8 @@ from service.init.kafka import *
 from copy import deepcopy
 
 from confluent_kafka import SerializingProducer
-from confluent_kafka.schema_registry.avro import AvroSerializer
-from confluent_kafka.serialization import StringSerializer
+
+from service.init.confluent import *
 
 class BaseProducer:
     topic: str = ''
@@ -20,33 +20,6 @@ class BaseProducer:
     @classmethod
     def init_file_path(cls, ) -> None:
         cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
-
-    @classmethod
-    @lru_cache(maxsize=1)
-    def get_confluent_BronzeProducer(cls, bootstrap_servers:str=BOOTSTRAP_SERVERS_EXTERNAL) -> SerializingProducer:
-        client = SchemaRegistryManager._get_client()
-        schema_obj = client.get_latest_version(cls.topic).schema
-
-        bootstrap_server_list = bootstrap_servers.split(',')
-
-        avro_serializer = AvroSerializer(
-            client,
-            schema_obj,  # None으로 두면 subject 기반으로 fetch
-            to_dict=lambda obj, ctx: obj,
-            conf={
-                'auto.register.schemas': False,
-                'subject.name.strategy': lambda ctx, record_name: cls.topic
-                }
-        )
-
-        producer_conf = {
-            'bootstrap.servers': bootstrap_server_list[0],
-            'key.serializer': StringSerializer('utf_8'),
-            'value.serializer': avro_serializer,
-            'acks': 'all',
-            'retries': 3
-        }
-        return SerializingProducer(producer_conf)
     
     @classmethod
     @lru_cache(maxsize=1)  # 자동 캐싱, maxsize=1로 한 번 로드 후 재사용
@@ -61,7 +34,12 @@ class BaseProducer:
             return df
         except FileNotFoundError:
             raise ValueError(f"File {cls.file_path} not found")
-        
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _get_producer(cls):
+        return get_confluent_kafka_producer(cls.topic, use_internal=False)
+
     @classmethod
     def select(cls, col, value: str) -> pd.DataFrame:
         df = cls.get_df()
@@ -72,7 +50,7 @@ class BaseProducer:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')
             return
-        producer = cls.get_confluent_BronzeProducer()
+        producer = cls._get_producer()
         event_list = []
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
