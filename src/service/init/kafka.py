@@ -1,11 +1,7 @@
-from typing import Iterable, Iterator
+from typing import Iterable
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
 from kafka import KafkaProducer
-
-from confluent_kafka.schema_registry.avro import AvroSerializer
-from confluent_kafka.serialization import StringSerializer
-from confluent_kafka import SerializingProducer
 
 from service.init.confluent import *
 from config.kafka import *
@@ -65,9 +61,9 @@ class BronzeToSilverTopic(BaseTopic):
     ORDER_STATUS = "order_status"
     PAYMENT = "payment"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
-    REVIEW_METADATA = "review_metadata"
     
-    REVIEW_PREPROCESSED = "review_preprocessed"
+    REVIEW_METADATA = "review_metadata"
+    REVIEW_CLEAN_COMMENT = "review_clean_comment"
     REVIEW_INFERENCED = "review_inferenced"
 
 class SilverToGoldTopic(BaseTopic):
@@ -76,7 +72,7 @@ class SilverToGoldTopic(BaseTopic):
     
     AGGREGATED_ORDER = "aggregated_order"
 
-def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+def get_kafka_BronzeProducer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
     return KafkaProducer(
         bootstrap_servers=bootstrp_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
@@ -96,7 +92,7 @@ def get_kafak_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str
     consumer = KafkaConsumer(
         bootstrap_servers=bootstrp_servers,
         auto_offset_reset='earliest',
-        enable_auto_commit=True,
+        enable_auto_commit=False,
         group_id=None,
         value_deserializer=lambda v: json.loads(v.decode('utf-8')),
         key_deserializer=lambda k: k.decode('utf-8') if k else None

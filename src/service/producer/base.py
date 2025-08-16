@@ -6,7 +6,11 @@ from functools import lru_cache
 from service.init.kafka import *
 from copy import deepcopy
 
-class RawMessage:
+from confluent_kafka import SerializingProducer
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import StringSerializer
+
+class BaseProducer:
     topic: str = ''
     pk_column: Iterable[str] = []
     file_path: Path = Path()
@@ -17,10 +21,9 @@ class RawMessage:
     def init_file_path(cls, ) -> None:
         cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
 
-    
     @classmethod
     @lru_cache(maxsize=1)
-    def get_confluent_producer(cls, bootstrap_servers:str=BOOTSTRAP_SERVERS_EXTERNAL) -> SerializingProducer:
+    def get_confluent_BronzeProducer(cls, bootstrap_servers:str=BOOTSTRAP_SERVERS_EXTERNAL) -> SerializingProducer:
         client = SchemaRegistryManager._get_client()
         schema_obj = client.get_latest_version(cls.topic).schema
 
@@ -69,7 +72,7 @@ class RawMessage:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')
             return
-        producer = cls.get_confluent_producer()
+        producer = cls.get_confluent_BronzeProducer()
         event_list = []
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
@@ -90,61 +93,3 @@ class RawMessage:
 
             print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(event)}')
             cls.current_index += 1
-
-# CDC
-class GeolocationMessage(RawMessage):
-    topic = RawToBronzeTopic.GEOLOCATION
-    pk_column = ['zip_code']
-    ingestion_type = IngestionType.CDC
-
-class CustomerMessage(RawMessage):
-    topic = RawToBronzeTopic.CUSTOMER
-    pk_column = ['customer_id']
-    ingestion_type = IngestionType.CDC
-
-class SellerMessage(RawMessage):
-    topic = RawToBronzeTopic.SELLER
-    pk_column = ['seller_id']
-    ingestion_type = IngestionType.CDC
-
-class ProductMessage(RawMessage):
-    topic = RawToBronzeTopic.PRODUCT
-    pk_column = ['product_id']
-    ingestion_type = IngestionType.CDC
-
-# STREAM
-class OrderStatusMessage(RawMessage):
-    topic = RawToBronzeTopic.ORDER_STATUS
-    pk_column = ['order_id', 'status']
-    ingestion_type = IngestionType.STREAM
-
-    @classmethod
-    def get_current_event(cls,) -> pd.Series:
-        return cls.get_df().iloc[cls.current_index]
-    
-    @classmethod
-    def is_end(cls):
-        return cls.current_index == len(cls.get_df())
-
-class PaymentMessage(RawMessage):
-    topic = RawToBronzeTopic.PAYMENT
-    pk_column = ['order_id', 'payment_sequential']
-    ingestion_type = IngestionType.STREAM
-
-class OrderItemMessage(RawMessage):
-    topic = RawToBronzeTopic.ORDER_ITEM
-    pk_column = ['order_id', 'order_item_id']
-    ingestion_type = IngestionType.STREAM
-
-class EstimatedDeliberyDateMessage(RawMessage):
-    topic = RawToBronzeTopic.ESTIMATED_DELIVERY_DATE
-    pk_column = ['order_id']
-    ingestion_type = IngestionType.STREAM
-
-class ReviewMessage(RawMessage):
-    topic = RawToBronzeTopic.REVIEW
-    pk_column = ['review_id']
-    ingestion_type = IngestionType.STREAM
-
-if __name__ == "__main__":
-    pass

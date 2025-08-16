@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.silver",
   "type": "record",
-  "name": "review_preprocessed",
+  "name": "review_clean_comment",
   "fields": [
     {
       "name": "review_id",

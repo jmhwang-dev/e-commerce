@@ -69,7 +69,7 @@ def _lazy_init(max_retry=10):
             "retries": 5,
             "compression.type": "lz4"
         }
-        _producer = SerializingProducer(p_conf)
+        _producer = SerializingBronzeProducer(p_conf)
 
 def delivery_report(err, msg):
     if err:
