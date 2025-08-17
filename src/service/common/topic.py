@@ -62,7 +62,7 @@ class BronzeToSilverTopic(BaseTopic):
     
     REVIEW_METADATA = "review_metadata"
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
-    REVIEW_INFERENCED = "review_inferenced"
+    REVIEW_INFERED = "review_infered"
 
 class SilverToGoldTopic(BaseTopic):
     """Topics for silver to gold processing."""

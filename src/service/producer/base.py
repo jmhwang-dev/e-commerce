@@ -39,6 +39,7 @@ class BaseProducer:
     @classmethod
     @lru_cache(maxsize=1)
     def _get_producer(cls, use_internal=False):
+        # TODO: 불필요하게 `use_internal` 파라미터를` 계속 받아야 하는 문제 해결 필요
         return get_confluent_kafka_producer(cls.topic, use_internal)
 
     @classmethod
@@ -47,11 +48,11 @@ class BaseProducer:
         return df[df[col] == value]
         
     @classmethod
-    def publish(cls, _event: pd.DataFrame | pd.Series) -> None:
+    def publish(cls, _event: pd.DataFrame | pd.Series, use_internal=False) -> None:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')
             return
-        producer = cls._get_producer()
+        producer = cls._get_producer(use_internal)
         event_list = []
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
@@ -71,4 +72,4 @@ class BaseProducer:
             producer.flush()
 
             print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(event)}')
-            cls.current_index += 1
+            cls.current_index += 1 # TODO: `stream_order_status` 발행시에만 필요한 변수. 정리 필요.

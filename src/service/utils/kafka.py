@@ -19,7 +19,7 @@ def get_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
     
     return AdminClient(admin_config)
 
-def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=False):
+def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=False) -> DeserializingConsumer:
     if not use_internal:
         bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
     else:
@@ -29,12 +29,14 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
     avro_deserializer = AvroDeserializer(client)
 
     # 'group.id': 'olist-avro-consumer-group',
+    # TODO: dev 모드에서 자동 오프셋 커밋을 토글할 수 있어야함
     consumer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],  # Kafka 브로커
         'auto.offset.reset': 'earliest',
         'group.id': group_id,
         'key.deserializer': StringDeserializer('utf-8'),  # 키는 문자열 가정
-        'value.deserializer': avro_deserializer  # 값은 Avro
+        'value.deserializer': avro_deserializer
+        # 'enable.auto.commit': False # in dev mode:
     }
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe(topic_names)

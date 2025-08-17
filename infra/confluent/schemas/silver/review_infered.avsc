@@ -1,0 +1,31 @@
+{
+  "namespace": "warehousedev.silver",
+  "type": "record",
+  "name": "review_infered",
+  "fields": [
+    {
+      "name": "review_id",
+      "type": "string"
+    },
+    {
+      "name": "message_type",
+      "type": "string"
+    },
+    {
+      "name": "eng",
+      "type": "string"
+    },
+    {
+      "name": "negative",
+      "type": "float"
+    },
+    {
+      "name": "neutral",
+      "type": "float"
+    },
+    {
+      "name": "positive",
+      "type": "float"
+    }
+  ]
+}

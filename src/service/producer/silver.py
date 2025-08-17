@@ -1,8 +1,8 @@
-from pyspark.sql.dataframe import DataFrame
-
 from service.common.topic import *
 from service.producer.base import *
-from service.utils.iceberg.spark import *
+# TODO: inference.py에서 silver 모듈 로드시, 파이스파크 설치가 안되어서 import error
+# 그러나 `publish`에서는 타입 명시에 필요
+# from pyspark.sql.dataframe import DataFrame
 
 
 class GeolocationSilverProducer(BaseProducer):
@@ -37,13 +37,19 @@ class EstimatedDeliberyDateSilverProducer(BaseProducer):
     topic = BronzeToSilverTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
 
+class ReviewInferedSilverProducer(BaseProducer):
+    topic = BronzeToSilverTopic.REVIEW_INFERED
+    pk_column = ['review_id']
+    use_internal = True
+
 class ReviewCleanCommentSilverProducer(BaseProducer):
+
     topic = BronzeToSilverTopic.REVIEW_CLEAN_COMMENT
     pk_column = ['review_id']
     use_internal = True
 
     @classmethod
-    def publish(cls, spark_df: DataFrame):
+    def publish(cls, spark_df):
         """PySpark DataFrame을 Kafka 토픽으로 스트리밍"""
 
         cls.producer = cls._get_producer(use_internal=True)

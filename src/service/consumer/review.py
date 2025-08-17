@@ -153,7 +153,7 @@ class PortuguessPreprocessor:
         df = df.filter(
             (F.col(value_column_name).isNotNull()) &
             (F.trim(F.col(value_column_name)) != "")
-        )
+        ).dropDuplicates()
         return df
     
 def review_metadata_bronze2silver(decoded_stream_df: DataFrame):
