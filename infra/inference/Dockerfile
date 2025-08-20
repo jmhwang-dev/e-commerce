@@ -35,4 +35,4 @@ RUN mkdir -p /app && \
 # Switch to non-root user
 USER ${UID}:${GID}
 
-WORKDIR /app
+WORKDIR /mnt/app

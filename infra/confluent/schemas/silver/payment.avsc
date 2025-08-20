@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.silver.payment",
+  "namespace": "warehousedev.silver",
   "type": "record",
-  "name": "silver.payment",
+  "name": "payment",
   "fields": [
     {
       "name": "order_id",

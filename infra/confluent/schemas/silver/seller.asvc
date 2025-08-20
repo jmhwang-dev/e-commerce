@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.silver.seller",
+  "namespace": "warehousedev.silver",
   "type": "record",
-  "name": "silver.seller",
+  "name": "seller",
   "fields": [
     {
       "name": "seller_id",

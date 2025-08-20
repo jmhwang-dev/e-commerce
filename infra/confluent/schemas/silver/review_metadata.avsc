@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.review",
+  "namespace": "warehousedev.silver",
   "type": "record",
-  "name": "bronze.review",
+  "name": "review_metadata",
   "fields": [
     {
       "name": "review_id",
@@ -22,22 +22,6 @@
     {
       "name": "review_score",
       "type": "int"
-    },
-    {
-      "name": "review_comment_title",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "review_comment_message",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
     },
     {
       "name": "order_id",

@@ -75,18 +75,8 @@ services:
     ports:
       - "8082:8081"
 
-  init-schema-registry:
+  healthcheck-schema-registry:
     <<: *confluent-common
-    container_name: init-schema-registry
+    container_name: healthcheck-schema-registry
     depends_on:
       schema-registry: { condition: service_healthy }
-    command: python register_schema.py
-    working_dir: /mnt
-    environment:
-      - PYTHONPATH=/mnt
-
-    volumes:
-      - ./infra/confluent/schemas/:/mnt/infra/confluent/schemas/
-      - ./jobs/publish/register_schema.py/:/mnt/register_schema.py
-      - ./src/service/init/confluent.py/:/mnt/service/init/confluent.py
-      - ./src/config/confluent.py/:/mnt/config/confluent.py

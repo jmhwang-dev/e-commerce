@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.order_status",
+  "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "bronze.order_status",
+  "name": "stream_order_status",
   "fields": [
     {
       "name": "order_id",

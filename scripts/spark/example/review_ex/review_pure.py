@@ -19,7 +19,7 @@ def publish_review(records: list[dict]):
 
     print( schema_avro )
     exit()
-    producer = KafkaProducer(
+    producer = KafkaBronzeProducer(
         bootstrap_servers=[BOOTSTRAP],
         key_serializer=lambda k: k.encode('utf-8'),
         value_serializer=lambda v: to_avro_bytes(v)

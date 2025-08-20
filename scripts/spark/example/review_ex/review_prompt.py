@@ -7,7 +7,7 @@ producer_conf = {
 }
 
 # Producer 초기화
-producer = Producer(producer_conf)
+producer = BronzeProducer(producer_conf)
 
 # JSON 데이터 예시 (prompt를 dict로 수정; 리스트 필요 시 되돌림)
 message_value = {

@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze.geolocation",
+  "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "bronze.geolocation",
+  "name": "cdc_geolocation",
   "fields": [
     {
       "name": "zip_code",
