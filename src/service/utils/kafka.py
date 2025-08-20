@@ -1,6 +1,9 @@
 from typing import Iterable
 from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
 
+from kafka import KafkaConsumer, KafkaProducer
+from kafka.admin import KafkaAdminClient
+
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import NewTopic, AdminClient
 from confluent_kafka import SerializingProducer, DeserializingConsumer
@@ -11,7 +14,7 @@ from service.common.topic import *
 from service.common.schema import *
 from config.kafka import *
 
-def get_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
+def get_confluent_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
     bootstrp_server_list = bootstrp_servers.split(",")
     admin_config = {
         'bootstrap.servers': bootstrp_server_list[0]
@@ -93,3 +96,43 @@ def create_topics(admin_client: AdminClient, topics_names_to_create: Iterable[st
             print(f"Created topic: {topic_name}")
         except TopicAlreadyExistsError:
             print(f"Topic {topic_name} already exists, skipping creation.")
+
+def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
+    bootstrp_server_list = bootstrp_servers.split(",")
+    return KafkaAdminClient(
+        bootstrap_servers=bootstrp_server_list
+    )
+
+def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+    return KafkaProducer(
+        bootstrap_servers=bootstrp_servers,
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        key_serializer=lambda k: str(k).encode('utf-8') if k else None,
+        acks='all',
+        retries=3,
+        max_in_flight_requests_per_connection=1
+    )
+
+def get_kafka_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
+    consumer = KafkaConsumer(
+        bootstrap_servers=bootstrp_servers,
+        auto_offset_reset='earliest',
+        enable_auto_commit=True,
+        group_id=None,
+        value_deserializer=lambda v: json.loads(v.decode('utf-8')),
+        key_deserializer=lambda k: k.decode('utf-8') if k else None
+    )
+
+    consumer.subscribe(topic_name)
+    wait_for_partition_assignment(consumer)
+    return consumer
+
+def wait_for_partition_assignment(consumer):
+    max_attempts = 10
+    for _ in range(max_attempts):
+        if consumer.assignment():
+            print('Consumer partition assignment loaded!')
+            return consumer
+        consumer.poll(1)
+        time.sleep(5)
+    raise TimeoutError("Consumer 파티션 할당 실패")

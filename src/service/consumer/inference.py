@@ -90,15 +90,7 @@ def get_prompts(text: str) -> List[dict]:
         "content": f"Translate the following text from {language_from} into {language_into}.\n{language_from}: {text}\n{language_into}:"
     }]
 
-def wait_for_partition_assignment(consumer):
-    max_attempts = 10
-    for _ in range(max_attempts):
-        if consumer.assignment():
-            print('Consumer partition assignment loaded!')
-            return consumer
-        consumer.poll(1)
-        time.sleep(5)
-    raise TimeoutError("Consumer 파티션 할당 실패")
+
 
 def translate(translator, dataset: List[str]) -> pd.DataFrame:
     start = time.time()
