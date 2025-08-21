@@ -26,36 +26,42 @@ x-confluent-common: &confluent-common
 services:
   kafka1:
     <<: *kafka-common
-    ports: ["19092:19092", "19093:9093"]
+    ports: ["19092:19092", "19093:9093", "19100:9100"]  # 19092: 외부 접근용, 19093: 내부 브로커 포트, 19100: JMX Exporter 포트
     container_name: kafka1
     volumes:
       - ./configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node1:/var/lib/kafka/data
+      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro # JMX Exporter JAR
+      - ./configs/jmx/jmx_exporter.yml:/etc/kafka/jmx/jmx_exporter.yml:ro # JMX Exporter 설정 파일
 
   kafka2:
     <<: *kafka-common
-    ports: ["19094:19094", "19095:9093"]
+    ports: ["19094:19094", "19095:9093", "19101:9100"]
     container_name: kafka2
     volumes:
       - ./configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node2:/var/lib/kafka/data
+      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
+      - ./configs/jmx/jmx_exporter.yml:/etc/kafka/jmx/jmx_exporter.yml:ro
 
   kafka3:
     <<: *kafka-common
-    ports: ["19096:19096", "19097:9093"]
+    ports: ["19096:19096", "19097:9093", "19102:9100"]
     container_name: kafka3
     volumes:
       - ./configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node3:/var/lib/kafka/data
+      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
+      - ./configs/jmx/jmx_exporter.yml:/etc/kafka/jmx/jmx_exporter.yml:ro
 
   schema-registry:
     <<: *confluent-common
     container_name: schema-registry
     # hostname: schema-registry
     depends_on:
-      kafka1: { condition: service_healthy }
-      kafka2: { condition: service_healthy }
-      kafka3: { condition: service_healthy }
+      - kafka1
+      - kafka2
+      - kafka3
     environment:
       # Kafka 클러스터 연결
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
@@ -82,8 +88,19 @@ services:
       schema-registry: { condition: service_healthy }
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
     ports:
       - 9090:9090
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
     volumes:
-      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:12.2.0-17027759091
+    container_name: grafana
+    ports:
+      - 3000:3000
