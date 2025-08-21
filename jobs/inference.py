@@ -2,7 +2,6 @@ from service.consumer.inference import *
 from service.common.schema import *
 from service.common.topic import *
 from service.utils.kafka import *
-from service.consumer.inference import *
 from service.producer.silver import ReviewInferedSilverProducer
 
 if __name__=="__main__":

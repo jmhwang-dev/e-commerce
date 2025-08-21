@@ -184,12 +184,11 @@ services:
     image: ecommerce-inference:latest
     container_name: inference
     command: bash -c "tail -f /dev/null"
-    working_dir: /jobs
     environment:
-      - PYTHONPATH=/src
+      - PYTHONPATH=/mnt/src
     volumes:
-      - ./src/:/src/
-      - ./jobs/inference.py:/jobs/inference.py
+      - ./src/:/mnt/src/
+      - ./jobs/inference.py:/mnt/app/inference.py
       - ./downloads/models/:/mnt/models/
     depends_on:
       - kafka1

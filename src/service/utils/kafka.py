@@ -14,6 +14,8 @@ from service.common.topic import *
 from service.common.schema import *
 from config.kafka import *
 
+import time
+
 def get_confluent_kafka_admin_client(bootstrp_servers: str) -> AdminClient:
     bootstrp_server_list = bootstrp_servers.split(",")
     admin_config = {

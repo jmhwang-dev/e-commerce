@@ -1,9 +1,0 @@
-version: 2
-
-sources:
-  - name: silver_orders
-    schema: warehousedev.silver.orders
-    tables:
-      - name: diff_delivery_date
-        description: |
-          배송 실제·예상 날짜 차이와 지연 여부가 포함된 실버 테이블

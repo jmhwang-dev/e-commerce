@@ -80,3 +80,10 @@ services:
     container_name: healthcheck-schema-registry
     depends_on:
       schema-registry: { condition: service_healthy }
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml

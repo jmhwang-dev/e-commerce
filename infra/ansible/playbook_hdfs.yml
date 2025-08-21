@@ -1,5 +1,0 @@
----
-- name: Setup HDFS cluster
-  hosts: cluster_hdfs
-  roles:
-    - hdfs
