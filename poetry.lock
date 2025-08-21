@@ -1811,6 +1811,18 @@ files = [
 ]
 
 [[package]]
+name = "jmxquery"
+version = "0.6.0"
+description = "A JMX Interface for Python to Query runtime metrics in a JVM"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "jmxquery-0.6.0-py3-none-any.whl", hash = "sha256:8fb4644026bb2de7c1dbedc52f6cb8e3d56820859b7b03cb971c9c633c870a77"},
+    {file = "jmxquery-0.6.0.tar.gz", hash = "sha256:f0bdb002591eec6eea0e16546baa35448f8b66acaf6dd72ed049c3a666afc06b"},
+]
+
+[[package]]
 name = "joblib"
 version = "1.5.1"
 description = "Lightweight pipelining with Python functions"
@@ -5599,4 +5611,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "c585a61bd202c26391d237f0c9fe73d4b9ba664c43a89c7c37baba9f5068d77d"
+content-hash = "1857e6af34c17b70c5f543a326dcaae089223562819147a07f68eaa5e15a9612"

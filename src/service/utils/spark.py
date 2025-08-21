@@ -52,6 +52,7 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
         .option("subscribe", ','.join(topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
+        .option("groupId", "bronze2silver") \
         .load()
 
 def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_str) -> DataFrame:

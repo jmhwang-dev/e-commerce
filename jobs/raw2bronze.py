@@ -13,9 +13,10 @@ if __name__=="__main__":
         create_topics(admin_client, topic_names)
     
     register_schema()
+    # exit()
 
     while not OrderStatusBronzeProducer.is_end():
-        time.sleep(2)
+        time.sleep(5)
         order_status_log = OrderStatusBronzeProducer.get_current_event()
         OrderStatusBronzeProducer.publish(order_status_log)
 
