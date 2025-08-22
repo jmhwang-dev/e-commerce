@@ -27,6 +27,6 @@ $ cd superset
 $ git checkout tags/5.0.0
 
 # Fire up Superset using Docker Compose
-$ docker compose -f docker-compose-image-tag.yml up
+$ docker compose -f docker-compose.yml up -d
 
 ```
