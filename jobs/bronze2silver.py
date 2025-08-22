@@ -57,13 +57,3 @@ if __name__ == "__main__":
         spark_session.streams.awaitAnyTermination()  # 루프 후 대기
     except Exception as e:
         print(f"Streaming {raw2bronze_topic_name} failed: {e}")
-
-    # 번역 추론하고 실버로
-
-    # 실버토픽에 토픽별로 집계해서 골드로 저장
-
-    # 시각화(수퍼셋, 프로메테우스, 그라파나)
-
-    # [옵션]
-    # 원본 데이터로 브론즈 넣고
-    # 실버에 redfined 형태로 넣기
