@@ -4,7 +4,10 @@ from service.utils.spark import *
 from service.consumer.review import *
 
 from service.producer.silver import *
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, cast
+from pyspark.sql.types import IntegerType, FloatType
+
+from service.consumer.silver import float2int
 
 if __name__ == "__main__":
     spark_session = get_spark_session("RawStream")
@@ -15,15 +18,21 @@ if __name__ == "__main__":
     queries = []
     for raw2bronze_topic_name in all_topic_names:
         try:
-            # 모든 토픽은 전부 저장: 근데 여기서는 디버깅 용으로 리뷰만 들고 옴
+            # 모든 토픽은 bronze에 전부 저장
             schema_str = client.get_latest_version(raw2bronze_topic_name).schema.schema_str
             topic_filtered_df = kafka_stream_df.filter(col("topic") == raw2bronze_topic_name)
             decoded_stream_df = get_decoded_stream_df(topic_filtered_df, schema_str)
             query = load_stream(spark_session, decoded_stream_df, schema_str)  # StreamingQuery 반환
             queries.append(query)
 
+            if raw2bronze_topic_name  == RawToBronzeTopic.PAYMENT:
+                # TODO: null 값 dlq로, 실버 스키마 변경 (payment_sequential, payment_value, payment_installments)
+                transformed_df = float2int(decoded_stream_df, ["payment_sequential", 'payment_value', 'payment_installments'])
+                payment_schema_str = client.get_latest_version(BronzeToSilverTopic.PAYMENT).schema.schema_str
+                query_payment = load_stream(spark_session, transformed_df, payment_schema_str)
+                queries.append(query_payment)
 
-            if raw2bronze_topic_name == RawToBronzeTopic.REVIEW:
+            elif raw2bronze_topic_name == RawToBronzeTopic.REVIEW:
                 # review_metadata_df는 아이스버그에 저장한다. 스트림 X
                 review_metatdata_schema_str = client.get_latest_version(BronzeToSilverTopic.REVIEW_METADATA).schema.schema_str
                 review_metadata_df = review_metadata_bronze2silver(decoded_stream_df)
@@ -40,13 +49,6 @@ if __name__ == "__main__":
                 # clean_msg_df는 토픽 발행 부분
                 query_review_clean_topic = ReviewCleanCommentSilverProducer.publish(clean_msg_df)
                 queries.append(query_review_clean_topic)
-
-
-            elif raw2bronze_topic_name in []:
-                # TODO: 현변환 필요한 데이터 처리
-                # - 리뷰 제외한 모든 토픽을 형변환해서 실버로
-                # - int여도 되는 float -> int
-                pass
 
         except Exception as e:
             print(f"Failed to process topic {raw2bronze_topic_name}: {e}")
