@@ -40,13 +40,12 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
         'auto.offset.reset': 'earliest',
         'group.id': group_id,
         'key.deserializer': StringDeserializer('utf-8'),  # 키는 문자열 가정
-        'value.deserializer': avro_deserializer
-        # 'enable.auto.commit': False # in dev mode:
+        'value.deserializer': avro_deserializer,
+        'enable.auto.commit': False # in dev mode:
     }
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe(topic_names)
     return consumer
-
 
 def get_confluent_kafka_producer(topic:str, use_internal=False) -> SerializingProducer:
     if not use_internal:
@@ -74,7 +73,6 @@ def get_confluent_kafka_producer(topic:str, use_internal=False) -> SerializingPr
         'retries': 3
     }
     return SerializingProducer(producer_conf)
-
 
 def delete_topics(admin_client: AdminClient, topic_names_to_delete: Iterable[str]):
     for topic_name in topic_names_to_delete:
@@ -106,8 +104,9 @@ def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
     )
 
 def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+    bootstrap_server_list = bootstrp_servers.split(',')
     return KafkaProducer(
-        bootstrap_servers=bootstrp_servers,
+        bootstrap_servers=bootstrap_server_list,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
         key_serializer=lambda k: str(k).encode('utf-8') if k else None,
         acks='all',

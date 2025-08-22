@@ -29,6 +29,48 @@ class PaymentSilverProducer(BaseProducer):
     topic = BronzeToSilverTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']
 
+    @classmethod
+    def publish_dlq(cls, spark_df):
+        cls.producer = get_kafka_producer(BOOTSTRAP_SERVERS_INTERNAL)
+        cls.topic = BronzeToSilverTopic.PAYMENT_DLQ
+
+        def write_to_kafka(batch_df, batch_id):
+            """각 배치를 JSON으로 Kafka에 전송"""
+            if batch_df.isEmpty():
+                print(f'Empty batch {batch_id}: {cls.topic}')
+                return
+            
+            for row in batch_df.collect():
+                # Row를 dict로 변환 (JSON 직렬화됨)
+                event = row.asDict()
+                
+                # 키 생성
+                key_values = [str(event.get(col, '')) for col in cls.pk_column]
+                key = '_'.join(key_values)
+                
+                try:
+                    cls.producer.send(cls.topic, key=key, value=event)
+                    print(f"✓ Sent JSON to {cls.topic}")
+                except Exception as e:
+                    print(f"✗ Failed to send JSON to {cls.topic}: {e}")
+                    raise
+            
+            cls.producer.flush()
+            print(f'Completed batch {batch_id}')
+        try:
+            query = spark_df.writeStream \
+                .foreachBatch(write_to_kafka) \
+                .trigger(processingTime="10 seconds") \
+                .start()
+            
+            return query
+            
+        except Exception as e:
+            print(f"Failed to setup streaming to {cls.topic}: {e}")
+            raise e
+
+        
+
 class OrderItemSilverProducer(BaseProducer):
     topic = BronzeToSilverTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']

@@ -64,6 +64,8 @@ class BronzeToSilverTopic(BaseTopic):
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
     REVIEW_INFERED = "review_infered"
 
+    PAYMENT_DLQ = "payment_dlq"
+
 class SilverToGoldTopic(BaseTopic):
     """Topics for silver to gold processing."""
     TOPIC_PREFIX = "gold"

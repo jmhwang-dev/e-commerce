@@ -7,7 +7,7 @@ from service.producer.silver import *
 from pyspark.sql.functions import col, cast
 from pyspark.sql.types import IntegerType, FloatType
 
-from service.consumer.silver import float2int
+from service.consumer.silver import *
 
 if __name__ == "__main__":
     spark_session = get_spark_session("RawStream")
@@ -18,6 +18,9 @@ if __name__ == "__main__":
     queries = []
     for raw2bronze_topic_name in all_topic_names:
         try:
+            if raw2bronze_topic_name != RawToBronzeTopic.PAYMENT:
+                continue
+
             # 모든 토픽은 bronze에 전부 저장
             schema_str = client.get_latest_version(raw2bronze_topic_name).schema.schema_str
             topic_filtered_df = kafka_stream_df.filter(col("topic") == raw2bronze_topic_name)
@@ -25,9 +28,9 @@ if __name__ == "__main__":
             query = load_stream(spark_session, decoded_stream_df, schema_str)  # StreamingQuery 반환
             queries.append(query)
 
-            if raw2bronze_topic_name  == RawToBronzeTopic.PAYMENT:
-                # TODO: null 값 dlq로, 실버 스키마 변경 (payment_sequential, payment_value, payment_installments)
-                transformed_df = float2int(decoded_stream_df, ["payment_sequential", 'payment_value', 'payment_installments'])
+            if raw2bronze_topic_name == RawToBronzeTopic.PAYMENT:
+                notnull_rows_df = publish_payment_dlg(decoded_stream_df)
+                transformed_df = float2int(notnull_rows_df, ["payment_sequential", 'payment_value', 'payment_installments'])
                 payment_schema_str = client.get_latest_version(BronzeToSilverTopic.PAYMENT).schema.schema_str
                 query_payment = load_stream(spark_session, transformed_df, payment_schema_str)
                 queries.append(query_payment)
