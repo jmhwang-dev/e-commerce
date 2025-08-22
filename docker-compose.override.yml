@@ -21,7 +21,7 @@ x-kafka-common: &kafka-common
   healthcheck: *kafka-healthcheck
 
 x-confluent-common: &confluent-common
-  image: confluentinc/cp-schema-registry:latest
+  image: confluentinc/cp-schema-registry:8.0.0
 
 services:
   kafka1:
