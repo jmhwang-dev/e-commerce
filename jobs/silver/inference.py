@@ -4,14 +4,14 @@ from service.utils.kafka import *
 from service.producer.inference import ReviewInferedSilverProducer
 
 if __name__=="__main__":
-    consumer = get_confluent_kafka_consumer('inference', [SilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
-    wait_for_partition_assignment(consumer)
-
     translator = get_translator()
     analyzer = get_sentiment_analyzer()
 
+    consumer = get_confluent_kafka_consumer('inference', [SilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
+    wait_for_partition_assignment(consumer)
+
     while True:
-        messages = get_messages(consumer, num_message=5)
+        messages = fetch_batch(consumer)
         message_df = message2dataframe(messages)
 
         prompts = message_df['portuguess'].apply(get_prompts).to_list()

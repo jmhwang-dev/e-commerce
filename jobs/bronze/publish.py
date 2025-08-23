@@ -15,7 +15,7 @@ if __name__=="__main__":
     register_schema()
     order_status_df = OrderStatusBronzeProducer.get_df()
     for _, order_status_log in order_status_df.iterrows():
-        # time.sleep(10)
+        time.sleep(1)
         OrderStatusBronzeProducer.publish(order_status_log)
 
         status = order_status_log['status']

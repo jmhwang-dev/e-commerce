@@ -30,7 +30,6 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
     client = SchemaRegistryManager._get_client(use_internal)
     avro_deserializer = AvroDeserializer(client)
 
-    # 'group.id': 'olist-avro-consumer-group',
     # TODO: dev 모드에서 자동 오프셋 커밋을 토글할 수 있어야함
     consumer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],  # Kafka 브로커
@@ -104,7 +103,7 @@ def wait_for_partition_assignment(consumer):
             print('Consumer partition assignment loaded!')
             return consumer
         consumer.poll(1)
-        time.sleep(5)
+        time.sleep(10)
     raise TimeoutError("Consumer 파티션 할당 실패")
 
 # from kafka import KafkaConsumer, KafkaProducer

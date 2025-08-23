@@ -66,7 +66,7 @@ class SilverProducer(BaseProducer):
         try:
             query = spark_df.writeStream \
                 .foreachBatch(write_to_kafka) \
-                .trigger(processingTime="10 seconds") \
+                .trigger(processingTime="15 seconds") \
                 .start()
             return query
         except Exception as e:
