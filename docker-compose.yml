@@ -108,13 +108,11 @@ services:
       - ./configs/:/configs/
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
-      # - ./src/:/src/
       - ./infra/spark/logs/:/opt/spark/logs/
 
     working_dir: /
     environment:
       - SPARK_NO_DAEMONIZE=1  # run foreground
-      # - PYTHONPATH=/src
 
     command: >
       /opt/spark/sbin/start-thriftserver.sh \
@@ -188,7 +186,7 @@ services:
       - PYTHONPATH=/mnt/src
     volumes:
       - ./src/:/mnt/src/
-      - ./jobs/inference.py:/mnt/app/inference.py
+      - ./jobs/silver/inference.py:/mnt/app/inference.py
       - ./downloads/models/:/mnt/models/
     depends_on:
       - kafka1

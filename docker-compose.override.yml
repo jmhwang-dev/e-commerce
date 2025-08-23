@@ -26,6 +26,7 @@ x-confluent-common: &confluent-common
 services:
   kafka1:
     <<: *kafka-common
+    container_name: kafka1
     ports: ["19092:19092", "19093:9093", "19100:9100", "19999:9999"]  # JMX 포트 매핑 추가    container_name: kafka1
     volumes:
       - ./configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
@@ -36,6 +37,7 @@ services:
   kafka2:
     <<: *kafka-common
     ports: ["19094:19094", "19095:9093", "19101:9100", "20000:9999"]
+    container_name: kafka2
     volumes:
       - ./configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node2:/var/lib/kafka/data
@@ -45,6 +47,7 @@ services:
   kafka3:
     <<: *kafka-common
     ports: ["19096:19096", "19097:9093", "19102:9100", "20001:9999"]
+    container_name: kafka3
     volumes:
       - ./configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node3:/var/lib/kafka/data

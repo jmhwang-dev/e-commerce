@@ -1,11 +1,6 @@
 from service.producer.base import *
 from service.common.topic import *
 from service.utils.kafka import get_confluent_kafka_producer
-
-from pyspark.sql.functions import col, reduce
-
-# TODO: inference.py에서 silver 모듈 로드시, 파이스파크 설치가 안되어서 import error
-# 그러나 `publish`에서는 타입 명시에 필요
 from pyspark.sql.dataframe import DataFrame
 
 class SilverProducer(BaseProducer):
@@ -118,7 +113,3 @@ class OrderItemSilverProducer(SilverProducer):
 class EstimatedDeliberyDateSilverProducer(SilverProducer):
     topic = SilverTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
-
-class ReviewInferedSilverProducer(SilverProducer):
-    topic = SilverTopic.REVIEW_INFERED
-    pk_column = ['review_id']

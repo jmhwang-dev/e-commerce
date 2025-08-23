@@ -1,8 +1,7 @@
 from service.consumer.inference import *
-from service.common.schema import *
-from service.common.topic import *
+from service.common.topic import SilverTopic
 from service.utils.kafka import *
-from service.producer.silver import ReviewInferedSilverProducer
+from service.producer.inference import ReviewInferedSilverProducer
 
 if __name__=="__main__":
     consumer = get_confluent_kafka_consumer('inference', [SilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
@@ -22,4 +21,5 @@ if __name__=="__main__":
         senti_df = analyze(analyzer, eng_text_list)
 
         inference_result_df = pd.concat([message_df, por2eng_df, senti_df], axis=1).drop(columns=['portuguess'])
+        print(inference_result_df)
         ReviewInferedSilverProducer.publish(inference_result_df, use_internal=True)

@@ -6,7 +6,6 @@ from confluent_kafka.admin import NewTopic, AdminClient
 from confluent_kafka import SerializingProducer, DeserializingConsumer
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
-from confluent_kafka.schema_registry.json_schema import JSONSerializer
 
 from service.common.topic import *
 from service.common.schema import *
