@@ -1,35 +1,25 @@
 import pandas as pd
 
 from pathlib import Path
-from typing import Iterable
 from pprint import pformat
 from functools import lru_cache
 from service.common.topic import *
 from copy import deepcopy
 
-from confluent_kafka import SerializingProducer
-
+from service.producer.base import BaseProducer
 from service.common.schema import *
 from service.utils.kafka import *
 from service.common.topic import *
 
-class BronzeProducer:
-    topic: str = ''
-    pk_column: Iterable[str] = []
+class BronzeProducer(BaseProducer):
     file_path: Path = Path()
-    producer: SerializingProducer
-
-    @classmethod
-    def initialize(cls, ) -> None:
-        cls.producer = get_confluent_kafka_producer(cls.topic, use_internal=False)
-        cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
 
     @classmethod
     @lru_cache(maxsize=1)  # 자동 캐싱, maxsize=1로 한 번 로드 후 재사용
     def get_df(cls) -> pd.DataFrame:
         """TSV 파일 로드"""
         try:
-            cls.initialize()
+            cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
             df = pd.read_csv(cls.file_path, sep='\t')
             for pk_col in cls.pk_column:
                 if pk_col not in df.columns:
@@ -48,7 +38,10 @@ class BronzeProducer:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')
             return
-        # clproducer = cls._get_producer(use_internal)
+        
+        if cls.producer is None:
+            cls.producer = get_confluent_kafka_producer(cls.topic, use_internal=False)
+
         event_list = []
         if isinstance(_event, pd.Series):
             event_list += [deepcopy(_event).to_dict()]
