@@ -50,20 +50,21 @@ class BronzeTopic(BaseTopic):
 class SilverTopic(BaseTopic):
     """Topics for bronze to silver processing."""
     TOPIC_PREFIX = "silver"
-    
-    ORDER_ITEM = "order_item"
+
     PRODUCT = "product"
     CUSTOMER = "customer" 
     SELLER = "seller"
     GEOLOCATION = "geolocation"
+
+    ORDER_ITEM = "order_item"
     ORDER_STATUS = "order_status"
-    PAYMENT = "payment"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
     
     REVIEW_METADATA = "review_metadata"
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
     REVIEW_INFERED = "review_infered"
-
+    
+    PAYMENT = "payment"
     PAYMENT_DLQ = "payment_dlq"
 
 class SilverToGoldTopic(BaseTopic):

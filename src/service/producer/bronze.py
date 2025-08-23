@@ -39,8 +39,8 @@ class BronzeProducer(BaseProducer):
             print(f'\nEmpty message: {cls.topic}')
             return
         
-        if cls.producer is None:
-            cls.producer = get_confluent_kafka_producer(cls.topic, use_internal=False)
+        if cls.main_producer is None:
+            cls.main_producer = get_confluent_kafka_producer(topic=cls.topic, use_internal=False)
 
         event_list = []
         if isinstance(_event, pd.Series):
@@ -57,8 +57,8 @@ class BronzeProducer(BaseProducer):
                 key_str_list.append(str(event[pk_col]))
 
             key = '|'.join(key_str_list)
-            cls.producer.produce(cls.topic, key=key, value=event)
-            cls.producer.flush()
+            cls.main_producer.produce(cls.topic, key=key, value=event)
+            cls.main_producer.flush()
 
             print(f'\nPublished message to {cls.topic} - key: {key}\n{pformat(event)}')
 

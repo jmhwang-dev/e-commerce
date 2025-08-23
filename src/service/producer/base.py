@@ -4,4 +4,4 @@ from confluent_kafka import SerializingProducer
 class BaseProducer:
     topic: str = ''
     pk_column: Iterable[str] = []
-    producer: SerializingProducer = None
+    main_producer: SerializingProducer = None

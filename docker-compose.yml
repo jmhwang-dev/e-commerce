@@ -108,13 +108,13 @@ services:
       - ./configs/:/configs/
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
-      - ./src/:/src/
+      # - ./src/:/src/
       - ./infra/spark/logs/:/opt/spark/logs/
 
     working_dir: /
     environment:
       - SPARK_NO_DAEMONIZE=1  # run foreground
-      - PYTHONPATH=/src
+      # - PYTHONPATH=/src
 
     command: >
       /opt/spark/sbin/start-thriftserver.sh \

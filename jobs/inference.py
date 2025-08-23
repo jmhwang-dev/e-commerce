@@ -5,7 +5,7 @@ from service.utils.kafka import *
 from service.producer.silver import ReviewInferedSilverProducer
 
 if __name__=="__main__":
-    consumer = get_confluent_kafka_consumer('inference', [BronzeToSilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
+    consumer = get_confluent_kafka_consumer('inference', [SilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
     wait_for_partition_assignment(consumer)
 
     translator = get_translator()
