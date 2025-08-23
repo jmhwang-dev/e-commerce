@@ -30,7 +30,7 @@ class BaseTopic:
                 topics.append(attr_value)
         return topics
 
-class RawToBronzeTopic(BaseTopic):
+class BronzeTopic(BaseTopic):
     """Topics for raw data ingestion (raw to bronze)."""
     TOPIC_PREFIX = "bronze"
     
@@ -47,7 +47,7 @@ class RawToBronzeTopic(BaseTopic):
     ESTIMATED_DELIVERY_DATE = "stream_estimated_delivery_date"
     REVIEW = "stream_review"
 
-class BronzeToSilverTopic(BaseTopic):
+class SilverTopic(BaseTopic):
     """Topics for bronze to silver processing."""
     TOPIC_PREFIX = "silver"
     

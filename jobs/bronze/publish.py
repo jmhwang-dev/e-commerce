@@ -7,16 +7,15 @@ import time
 if __name__=="__main__":
     
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    for topic_class in [RawToBronzeTopic, BronzeToSilverTopic]:
+    for topic_class in [BronzeTopic, SilverTopic]:
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
     
     register_schema()
-
-    while not OrderStatusBronzeProducer.is_end():
-        time.sleep(10)
-        order_status_log = OrderStatusBronzeProducer.get_current_event()
+    order_status_df = OrderStatusBronzeProducer.get_df()
+    for _, order_status_log in order_status_df.iterrows():
+        # time.sleep(10)
         OrderStatusBronzeProducer.publish(order_status_log)
 
         status = order_status_log['status']
