@@ -1,5 +1,4 @@
 from service.common.topic import *
-from service.utils.iceberg.spark import *
 from service.utils.spark import *
 from service.consumer.review import *
 from service.consumer.payment import *

@@ -13,9 +13,9 @@ if __name__=="__main__":
         create_topics(admin_client, topic_names)
     
     register_schema()
+    interval = 10  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
     for _, order_status_log in order_status_df.iterrows():
-        time.sleep(1)
         OrderStatusBronzeProducer.publish(order_status_log)
 
         status = order_status_log['status']
@@ -62,3 +62,4 @@ if __name__=="__main__":
 
         review_log = ReviewBronzeProducer.select('order_id', order_id)
         ReviewBronzeProducer.publish(review_log)
+        time.sleep(interval)
