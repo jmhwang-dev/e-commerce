@@ -84,9 +84,9 @@ services:
     container_name: spark-worker
     ports:
       - "8084:8081"   # web ui
-      - "19083:9083"  # jmx exporter executor for subscriber bronze to publish silver
-      - "19084:9084"  # jmx exporter executor for subscriber bronze to load bronze
-      - "19085:9085" 
+      - "19083:9080"  # jmx exporter executor for subscriber bronze to publish silver
+      - "19084:9081"  # jmx exporter executor for subscriber bronze to load bronze
+      - "19085:9082" 
 
     environment:
       SPARK_WORKER_MEMORY: 12g  # upper limit of memory to use

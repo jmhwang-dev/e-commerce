@@ -20,8 +20,7 @@ docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
 docker compose exec spark-client \
 spark-submit \
   --conf spark.driver.extraJavaOptions="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/jmx_exporter.yml" \
-  --conf spark.executor.extraJavaOptions="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9085 -javaagent:/mnt/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar=9083:/mnt/configs/jmx/jmx_exporter.yml" \
+  --conf spark.executor.extraJavaOptions="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/jmx_exporter.yml" \
   --deploy-mode client \
   --py-files /opt/spark/work-dir/$SRC_ZIP \
   "$PYTHON_SCRIPT"
-  # --master spark://spark-master:7077 \
