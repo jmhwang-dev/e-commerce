@@ -14,8 +14,13 @@ if __name__=="__main__":
     
     register_schema()
     interval = 10  # seconds
+    upper_limit_payload = 10
     order_status_df = OrderStatusBronzeProducer.get_df()
-    for _, order_status_log in order_status_df.iterrows():
+    for i, order_status_log in order_status_df.iterrows():
+
+        if i % upper_limit_payload == 0:
+            time.sleep(interval)
+
         OrderStatusBronzeProducer.publish(order_status_log)
 
         status = order_status_log['status']
@@ -62,4 +67,3 @@ if __name__=="__main__":
 
         review_log = ReviewBronzeProducer.select('order_id', order_id)
         ReviewBronzeProducer.publish(review_log)
-        time.sleep(interval)

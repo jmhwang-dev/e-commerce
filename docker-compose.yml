@@ -66,8 +66,8 @@ services:
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
       - ./logs/spark/:/opt/spark/logs/
-      - ./downloads/jmx_exporter:/mnt/jmx_exporter/ # tmp
-      - ./configs/jmx:/mnt/configs/jmx # tmp
+      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
 
     working_dir: /
     environment:
@@ -86,15 +86,16 @@ services:
       - "8084:8081"   # web ui
       - "19083:9080"  # jmx exporter executor for subscriber bronze to publish silver
       - "19084:9081"  # jmx exporter executor for subscriber bronze to load bronze
-      - "19085:9082" 
+      - "19085:9082"
 
     environment:
       SPARK_WORKER_MEMORY: 12g  # upper limit of memory to use
       SPARK_WORKER_CORES: 16    # upper limit of cores to use
     volumes:
       - ./configs/spark:/opt/spark/conf
-      - ./downloads/jmx_exporter:/mnt/jmx_exporter/ # tmp
-      - ./configs/jmx:/mnt/configs/jmx # tmp
+      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
+
     command: >
       bash -c "
         sleep 10 &&
