@@ -62,7 +62,6 @@ services:
 
     volumes:
       - ./configs/spark:/opt/spark/conf
-      # - ./configs/:/configs/
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
       - ./logs/spark/:/opt/spark/logs/

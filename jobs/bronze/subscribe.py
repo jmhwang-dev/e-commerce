@@ -1,7 +1,8 @@
-from service.common.topic import *
-from service.utils.spark import *
-from service.consumer.review import *
-from service.consumer.payment import *
+from service.common.topic import BronzeTopic
+from service.utils.spark import get_spark_session, get_decoded_stream_df, get_kafka_stream_df
+from service.consumer.review import PortuguessPreprocessor, get_review_metadata
+from service.consumer.payment import float2int
+from service.common.schema import SchemaRegistryManager
 from service.producer.silver import *
 
 from pyspark.sql.functions import col
@@ -53,12 +54,10 @@ if __name__ == "__main__":
                 query = SellerSilverProducer.publish(decoded_stream_df, is_dlq=False)
             elif topic_name == BronzeTopic.PRODUCT:            
                 query = ProductSilverProducer.publish(decoded_stream_df, is_dlq=False)
-            elif topic_name == BronzeTopic.ORDER_STATUS:
-                query = OrderStatusSilverProducer.publish(decoded_stream_df, is_dlq=False)
             elif topic_name == BronzeTopic.ORDER_ITEM:
                 query = OrderItemSilverProducer.publish(decoded_stream_df, is_dlq=False)
             elif topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
-                query = EstimatedDeliberyDateSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = EstimatedDeliveryDateSilverProducer.publish(decoded_stream_df, is_dlq=False)
 
             queries.append(query)
 
@@ -66,6 +65,8 @@ if __name__ == "__main__":
             print(f"Failed to process topic {topic_name}: {e}")
     
     try:
+        # TODO: query.status polling (실패 쿼리 미리 감지)
+        # TODO: streaming metrics를 활용해 모니터링을 추가
         spark_session.streams.awaitAnyTermination()
     except Exception as e:
         print(f"Streaming failed: {e}")

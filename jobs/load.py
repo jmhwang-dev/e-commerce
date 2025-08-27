@@ -19,7 +19,7 @@ if __name__ == "__main__":
             schema_str = client.get_latest_version(topic_name).schema.schema_str
             topic_filtered_df = kafka_stream_df.filter(col("topic") == topic_name)
             decoded_stream_df = get_decoded_stream_df(topic_filtered_df, schema_str)
-            query = load_stream(spark_session, decoded_stream_df, schema_str)  # StreamingQuery 반환
+            query = write_stream_iceberg(spark_session, decoded_stream_df, schema_str)  # StreamingQuery 반환
             queries.append(query)
 
         except Exception as e:

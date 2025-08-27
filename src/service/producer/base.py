@@ -11,6 +11,11 @@ class BaseProducer:
     main_producer: SerializingProducer = None
 
     @classmethod
+    def generate_key():
+        # TODO: 키 생송 로직을 공용으로 구성
+        pass
+
+    @classmethod
     def publish(cls, _event: pd.DataFrame | pd.Series, use_internal=False) -> None:
         if _event.empty:
             print(f'\nEmpty message: {cls.topic}')

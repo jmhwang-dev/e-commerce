@@ -1,5 +1,8 @@
+import json
+from typing import Optional
+
 from service.producer.base import *
-from service.common.topic import *
+from service.common.topic import SilverTopic
 from service.utils.kafka import get_confluent_kafka_producer
 from pyspark.sql.dataframe import DataFrame
 
@@ -25,7 +28,7 @@ class SilverProducer(BaseProducer):
         target_topic = cls.topic_dlq if is_dlq else cls.topic
 
         def write_to_kafka(batch_df: DataFrame, batch_id: int):
-            if batch_df.rdd.isEmpty():
+            if batch_df.count() == 0:
                 print(f'Empty batch {batch_id}: {target_topic}')
                 return
 
@@ -46,6 +49,7 @@ class SilverProducer(BaseProducer):
                         producer.produce(target_topic, key=key, value=value)
                         print(f"✓ Sent to {target_topic}")
                     except Exception as e:
+                        # TODO: add logging
                         print(f"✗ Failed to send to {target_topic}: {e}")
                         if dlq_producer and not is_dlq:
                             try:
@@ -110,6 +114,6 @@ class OrderItemSilverProducer(SilverProducer):
     topic = SilverTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']
 
-class EstimatedDeliberyDateSilverProducer(SilverProducer):
+class EstimatedDeliveryDateSilverProducer(SilverProducer):
     topic = SilverTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']

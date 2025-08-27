@@ -11,6 +11,7 @@ if __name__=="__main__":
     wait_for_partition_assignment(consumer)
 
     while True:
+        # TODO: apply dynamic modulation of batch size
         messages = fetch_batch(consumer)
         message_df = message2dataframe(messages)
 
