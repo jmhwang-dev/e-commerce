@@ -8,7 +8,6 @@ from typing import Optional, Callable, Any
 from confluent_kafka.schema_registry import SchemaRegistryClient, Schema
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
-from config.kafka import *
 # 로거 인스턴스만 가져옵니다.
 # 설정(basicConfig)은 이 파일을 import하는 실행 스크립트에서 담당합니다.
 logger: logging.Logger = logging.getLogger(__name__)

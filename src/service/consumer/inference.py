@@ -1,10 +1,11 @@
 from typing import List
 from confluent_kafka import Consumer
+from confluent_kafka import KafkaError
+
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
 import torch
 import time
 import pandas as pd
-from confluent_kafka import DeserializingConsumer
 
 TOPIC = 'reviews.translation-prompts'
 CONSUMER_CONFIG = {
@@ -60,17 +61,20 @@ def get_translator():
         )
     return trasnlator
 
-def get_messages(consumer: DeserializingConsumer, num_message: int=5) -> List:
-    messages = []  # Batch accumulator
-    for _ in range(num_message):  # Fetch up to 2 messages; adjust for your needs
-        msg = consumer.poll(1.0)
+def fetch_batch(consumer, num_message=10, timeout=1.0, max_wait_seconds=30):
+    messages = []
+    start_time = time.time()
+    while len(messages) < num_message:
+        if time.time() - start_time > max_wait_seconds and len(messages) >= 1:
+            return messages  # 최소 크기 도달 시 반환
+        
+        msg = consumer.poll(timeout)
         if msg is None:
-            break  # No more messages ready; exit inner loop
-        if msg.error():
-            print(f'컨슈머 오류: {msg.error()}')
-            # Optionally break or handle based on error type
-            break
+            time.sleep(0.1)  # 짧은 대기 후 재시도 (CPU 과부하 방지)
+            continue
+        
         messages.append(msg)  # Add to batch
+    
     return messages
 
 def message2dataframe(messages: List[dict]) -> pd.DataFrame:
@@ -89,8 +93,6 @@ def get_prompts(text: str) -> List[dict]:
         "role": "user",
         "content": f"Translate the following text from {language_from} into {language_into}.\n{language_from}: {text}\n{language_into}:"
     }]
-
-
 
 def translate(translator, dataset: List[str]) -> pd.DataFrame:
     start = time.time()

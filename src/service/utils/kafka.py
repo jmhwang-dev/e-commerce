@@ -1,9 +1,6 @@
 from typing import Iterable
 from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
 
-from kafka import KafkaConsumer, KafkaProducer
-from kafka.admin import KafkaAdminClient
-
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import NewTopic, AdminClient
 from confluent_kafka import SerializingProducer, DeserializingConsumer
@@ -33,48 +30,48 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
     client = SchemaRegistryManager._get_client(use_internal)
     avro_deserializer = AvroDeserializer(client)
 
-    # 'group.id': 'olist-avro-consumer-group',
     # TODO: dev 모드에서 자동 오프셋 커밋을 토글할 수 있어야함
     consumer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],  # Kafka 브로커
         'auto.offset.reset': 'earliest',
         'group.id': group_id,
         'key.deserializer': StringDeserializer('utf-8'),  # 키는 문자열 가정
-        'value.deserializer': avro_deserializer
-        # 'enable.auto.commit': False # in dev mode:
+        'value.deserializer': avro_deserializer,
+        'enable.auto.commit': False # in dev mode:
     }
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe(topic_names)
     return consumer
 
-
-def get_confluent_kafka_producer(topic:str, use_internal=False) -> SerializingProducer:
+def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False) -> SerializingProducer:
     if not use_internal:
         bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
     else:
         bootstrap_server_list = BOOTSTRAP_SERVERS_INTERNAL.split(',')
 
-    client = SchemaRegistryManager._get_client(use_internal)
-    schema_obj = client.get_latest_version(topic).schema
-    avro_serializer = AvroSerializer(
-        client,
-        schema_obj,  # None으로 두면 subject 기반으로 fetch
-        to_dict=lambda obj, ctx: obj,
-        conf={
-            'auto.register.schemas': False,
-            'subject.name.strategy': lambda ctx, record_name: topic
-            }
-    )
+    if topic is None or len(topic) == 0:
+        serializer = StringSerializer('utf_8')
+    else:
+        client = SchemaRegistryManager._get_client(use_internal)
+        schema_obj = client.get_latest_version(topic).schema
+        serializer = AvroSerializer(
+            client,
+            schema_obj,  # None으로 두면 subject 기반으로 fetch
+            to_dict=lambda obj, ctx: obj,
+            conf={
+                'auto.register.schemas': False,
+                'subject.name.strategy': lambda ctx, record_name: topic
+                }
+        )
 
     producer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],
         'key.serializer': StringSerializer('utf_8'),
-        'value.serializer': avro_serializer,
+        'value.serializer': serializer,
         'acks': 'all',
         'retries': 3
     }
     return SerializingProducer(producer_conf)
-
 
 def delete_topics(admin_client: AdminClient, topic_names_to_delete: Iterable[str]):
     for topic_name in topic_names_to_delete:
@@ -99,36 +96,6 @@ def create_topics(admin_client: AdminClient, topics_names_to_create: Iterable[st
         except TopicAlreadyExistsError:
             print(f"Topic {topic_name} already exists, skipping creation.")
 
-def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
-    bootstrp_server_list = bootstrp_servers.split(",")
-    return KafkaAdminClient(
-        bootstrap_servers=bootstrp_server_list
-    )
-
-def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
-    return KafkaProducer(
-        bootstrap_servers=bootstrp_servers,
-        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        key_serializer=lambda k: str(k).encode('utf-8') if k else None,
-        acks='all',
-        retries=3,
-        max_in_flight_requests_per_connection=1
-    )
-
-def get_kafka_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
-    consumer = KafkaConsumer(
-        bootstrap_servers=bootstrp_servers,
-        auto_offset_reset='earliest',
-        enable_auto_commit=True,
-        group_id=None,
-        value_deserializer=lambda v: json.loads(v.decode('utf-8')),
-        key_deserializer=lambda k: k.decode('utf-8') if k else None
-    )
-
-    consumer.subscribe(topic_name)
-    wait_for_partition_assignment(consumer)
-    return consumer
-
 def wait_for_partition_assignment(consumer):
     max_attempts = 10
     for _ in range(max_attempts):
@@ -136,5 +103,39 @@ def wait_for_partition_assignment(consumer):
             print('Consumer partition assignment loaded!')
             return consumer
         consumer.poll(1)
-        time.sleep(5)
+        time.sleep(10)
     raise TimeoutError("Consumer 파티션 할당 실패")
+
+# from kafka import KafkaConsumer, KafkaProducer
+# from kafka.admin import KafkaAdminClient
+
+# def get_kafka_admin_client(bootstrp_servers: str) -> KafkaAdminClient:
+#     bootstrp_server_list = bootstrp_servers.split(",")
+#     return KafkaAdminClient(
+#         bootstrap_servers=bootstrp_server_list
+#     )
+
+# def get_kafka_producer(bootstrp_servers: Iterable[str]) -> KafkaProducer:
+#     bootstrap_server_list = bootstrp_servers.split(',')
+#     return KafkaProducer(
+#         bootstrap_servers=bootstrap_server_list,
+#         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+#         key_serializer=lambda k: str(k).encode('utf-8') if k else None,
+#         acks='all',
+#         retries=3,
+#         max_in_flight_requests_per_connection=1
+#     )
+
+# def get_kafka_consumer(bootstrp_servers: Iterable[str], topic_name: Iterable[str]) -> KafkaConsumer:
+#     consumer = KafkaConsumer(
+#         bootstrap_servers=bootstrp_servers,
+#         auto_offset_reset='earliest',
+#         enable_auto_commit=True,
+#         group_id=None,
+#         value_deserializer=lambda v: json.loads(v.decode('utf-8')),
+#         key_deserializer=lambda k: k.decode('utf-8') if k else None
+#     )
+
+#     consumer.subscribe(topic_name)
+#     wait_for_partition_assignment(consumer)
+#     return consumer

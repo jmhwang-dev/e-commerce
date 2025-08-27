@@ -156,7 +156,7 @@ class PortuguessPreprocessor:
         ).dropDuplicates()
         return df
     
-def review_metadata_bronze2silver(decoded_stream_df: DataFrame):
+def get_review_metadata(decoded_stream_df: DataFrame):
     return decoded_stream_df.select(
         'review_id',
         'order_id',

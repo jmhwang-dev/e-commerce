@@ -17,19 +17,11 @@
     },
     {
       "name": "payment_value",
-      "type": [
-        "null",
-        "float"
-      ],
-      "default": null
+      "type": "float"
     },
     {
       "name": "payment_type",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "type": "string"
     },
     {
       "name": "payment_installments",

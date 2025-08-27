@@ -1,18 +1,18 @@
 from service.consumer.inference import *
-from service.common.schema import *
-from service.common.topic import *
+from service.common.topic import SilverTopic
 from service.utils.kafka import *
-from service.producer.silver import ReviewInferedSilverProducer
+from service.producer.inference import ReviewInferedSilverProducer
 
 if __name__=="__main__":
-    consumer = get_confluent_kafka_consumer('inference', [BronzeToSilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
-    wait_for_partition_assignment(consumer)
-
     translator = get_translator()
     analyzer = get_sentiment_analyzer()
 
+    consumer = get_confluent_kafka_consumer('inference', [SilverTopic.REVIEW_CLEAN_COMMENT], use_internal=True)
+    wait_for_partition_assignment(consumer)
+
     while True:
-        messages = get_messages(consumer, num_message=5)
+        # TODO: apply dynamic modulation of batch size
+        messages = fetch_batch(consumer)
         message_df = message2dataframe(messages)
 
         prompts = message_df['portuguess'].apply(get_prompts).to_list()

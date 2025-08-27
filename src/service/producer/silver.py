@@ -1,108 +1,119 @@
-from service.common.topic import *
+import json
+from typing import Optional
+
 from service.producer.base import *
-# TODO: inference.py에서 silver 모듈 로드시, 파이스파크 설치가 안되어서 import error
-# 그러나 `publish`에서는 타입 명시에 필요
-# from pyspark.sql.dataframe import DataFrame
+from service.common.topic import SilverTopic
+from service.utils.kafka import get_confluent_kafka_producer
+from pyspark.sql.dataframe import DataFrame
 
-
-class GeolocationSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.GEOLOCATION
-    pk_column = ['zip_code']
-
-class CustomerSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.CUSTOMER
-    pk_column = ['customer_id']
-
-class SellerSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.SELLER
-    pk_column = ['seller_id']
-
-class ProductSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.PRODUCT
-    pk_column = ['product_id']
-
-class OrderStatusSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.ORDER_STATUS
-    pk_column = ['order_id', 'status']
-
-class PaymentSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.PAYMENT
-    pk_column = ['order_id', 'payment_sequential']
-
-class OrderItemSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.ORDER_ITEM
-    pk_column = ['order_id', 'order_item_id']
-
-class EstimatedDeliberyDateSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.ESTIMATED_DELIVERY_DATE
-    pk_column = ['order_id']
-
-class ReviewInferedSilverProducer(BaseProducer):
-    topic = BronzeToSilverTopic.REVIEW_INFERED
-    pk_column = ['review_id']
-    use_internal = True
-
-class ReviewCleanCommentSilverProducer(BaseProducer):
-
-    topic = BronzeToSilverTopic.REVIEW_CLEAN_COMMENT
-    pk_column = ['review_id']
-    use_internal = True
+class SilverProducer(BaseProducer):
+    topic_dlq: Optional[str] = None  # DLQ topic (서브클래스에서 오버라이드 가능)
+    dlq_producer: Optional[SerializingProducer] = None
 
     @classmethod
-    def publish(cls, spark_df):
-        """PySpark DataFrame을 Kafka 토픽으로 스트리밍"""
+    def _get_or_create_producer(cls, topic: Optional[str], use_internal: bool = True) -> SerializingProducer:
+        # Producer 캐싱 (클래스 변수 대신 lazy init)
+        if topic == cls.topic_dlq:
+            if cls.dlq_producer is None:
+                cls.dlq_producer = get_confluent_kafka_producer(None, use_internal=use_internal)  # DLQ는 schema None (JSON)
+            return cls.dlq_producer
+        else:
+            if cls.main_producer is None:
+                cls.main_producer = get_confluent_kafka_producer(cls.topic, use_internal=use_internal)  # Avro
+            return cls.main_producer
 
-        cls.producer = cls._get_producer(use_internal=True)
-        
-        def write_to_kafka(batch_df, batch_id):
-            """각 배치를 Kafka로 전송"""
-            if batch_df.isEmpty():
-                print(f'\nEmpty batch {batch_id}: {cls.topic}')
+    @classmethod
+    def publish(cls, spark_df: DataFrame, is_dlq: bool = False):
+        """PySpark DataFrame을 Kafka 토픽으로 스트리밍 (DLQ fallback 포함)"""
+        target_topic = cls.topic_dlq if is_dlq else cls.topic
+
+        def write_to_kafka(batch_df: DataFrame, batch_id: int):
+            if batch_df.count() == 0:
+                print(f'Empty batch {batch_id}: {target_topic}')
                 return
-                            
-            # DataFrame을 Row 단위로 처리
-            for row in batch_df.collect():
-                # Row를 dict로 변환
-                event = row.asDict()
-                
-                # 디버깅: 실제 데이터 구조 확인
-                print(f"Event data: {event}")
-                print(f"Event keys: {list(event.keys())}")
-                
-                # 키 생성 (BaseProducer와 동일한 방식)
-                key_str_list = []
-                for pk_col in cls.pk_column:
-                    if pk_col in event:
-                        key_str_list.append(str(event[pk_col]))
-                    else:
-                        print(f"Warning: pk_column '{pk_col}' not found in event")
-                        key_str_list.append("unknown")
-                
-                key = '|'.join(key_str_list)
-                
-                try:
-                    cls.producer.produce(cls.topic, key=key, value=event)
-                    cls.producer.flush()
-                    print(f"✓ Successfully sent to {cls.topic}")
-                except Exception as e:
-                    print(f"✗ Failed to send to {cls.topic}: {e}")
-                    print(f"Event that failed: {event}")
-                    raise
-                
-                print(f'\nPublished message to {cls.topic} - key: {key}')
-            
-            print(f"Completed batch {batch_id} to {cls.topic}")
-            print()
-        
-        # 스트림 쿼리 생성
+
+            def process_partition(rows):
+                producer = cls._get_or_create_producer(target_topic)
+                dlq_producer = cls._get_or_create_producer(cls.topic_dlq) if cls.topic_dlq else None
+
+                for row in rows:
+                    event = row.asDict()
+                    key_values = [str(event.get(pk_col, 'unknown')) for pk_col in cls.pk_column]
+                    key = '_'.join(key_values)  # str로 유지! encode 제거
+
+                    try:
+                        if is_dlq:
+                            value = json.dumps(event)  # DLQ: str (JSON string), serializer가 encode
+                        else:
+                            value = event  # Clean: dict, AvroSerializer가 처리
+                        producer.produce(target_topic, key=key, value=value)
+                        print(f"✓ Sent to {target_topic}")
+                    except Exception as e:
+                        # TODO: add logging
+                        print(f"✗ Failed to send to {target_topic}: {e}")
+                        if dlq_producer and not is_dlq:
+                            try:
+                                dlq_value = json.dumps(event)  # str로
+                                dlq_producer.produce(cls.topic_dlq, key=key, value=dlq_value)
+                                print(f"✓ Sent to DLQ: {cls.topic_dlq}")
+                            except Exception as dlq_e:
+                                print(f"✗ DLQ failed: {dlq_e}")
+                                raise
+                        else:
+                            raise
+
+                producer.flush()  # 파티션 단위 flush
+
+            batch_df.foreachPartition(process_partition)
+            print(f'Completed batch {batch_id+1}: {target_topic}')
+
         try:
             query = spark_df.writeStream \
                 .foreachBatch(write_to_kafka) \
-                .trigger(processingTime="10 seconds") \
+                .trigger(processingTime="15 seconds") \
                 .start()
-            
             return query
-            
         except Exception as e:
-            print(f"Failed to setup streaming to {cls.topic}: {e}")
+            print(f"Failed to setup streaming to {target_topic}: {e}")
             raise e
+
+class PaymentSilverProducer(SilverProducer):
+    topic = SilverTopic.PAYMENT
+    topic_dlq = SilverTopic.PAYMENT_DLQ
+    pk_column = ['order_id', 'payment_sequential']
+
+class ReviewCleanCommentSilverProducer(SilverProducer):
+    topic = SilverTopic.REVIEW_CLEAN_COMMENT
+    pk_column = ['review_id']
+
+class ReviewMetadataSilverProducer(SilverProducer):
+    topic = SilverTopic.REVIEW_METADATA
+    pk_column = ['review_id']
+
+class GeolocationSilverProducer(SilverProducer):
+    topic = SilverTopic.GEOLOCATION
+    pk_column = ['zip_code']
+
+class CustomerSilverProducer(SilverProducer):
+    topic = SilverTopic.CUSTOMER
+    pk_column = ['customer_id']
+
+class SellerSilverProducer(SilverProducer):
+    topic = SilverTopic.SELLER
+    pk_column = ['seller_id']
+
+class ProductSilverProducer(SilverProducer):
+    topic = SilverTopic.PRODUCT
+    pk_column = ['product_id']
+
+class OrderStatusSilverProducer(SilverProducer):
+    topic = SilverTopic.ORDER_STATUS
+    pk_column = ['order_id', 'status']
+
+class OrderItemSilverProducer(SilverProducer):
+    topic = SilverTopic.ORDER_ITEM
+    pk_column = ['order_id', 'order_item_id']
+
+class EstimatedDeliveryDateSilverProducer(SilverProducer):
+    topic = SilverTopic.ESTIMATED_DELIVERY_DATE
+    pk_column = ['order_id']

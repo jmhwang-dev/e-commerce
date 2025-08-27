@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 
 from service.utils.iceberg.spark import *
 
-def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
+def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -35,7 +35,7 @@ def load_stream(spark_session: SparkSession, decoded_stream_df: DataFrame, schem
     return decoded_stream_df.writeStream \
         .outputMode("append") \
         .format("iceberg") \
-        .option("checkpointLocation", f"s3://{s3_uri}/checkpoints/{table_name}") \
+        .option("checkpointLocation", f"s3a://{s3_uri}/checkpoints/{table_name}") \
         .option("fanout.enabled", "false") \
         .trigger(processingTime=process_time) \
         .toTable(table_identifier)
