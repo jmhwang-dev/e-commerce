@@ -55,20 +55,15 @@ class SilverTopic(BaseTopic):
     CUSTOMER = "customer" 
     SELLER = "seller"
     GEOLOCATION = "geolocation"
-
+    PAYMENT = "payment"
     ORDER_ITEM = "order_item"
     ORDER_STATUS = "order_status"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
     
     REVIEW_METADATA = "review_metadata"
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
-    REVIEW_INFERED = "review_infered"
+    REVIEW_CONSISTENT_SENTIMENT = "review_consistent_sentiment"
+    REVIEW_CONFLICT_SENTIMENT = "review_conflict_sentiment"
     
-    PAYMENT = "payment"
+    # DLQ topic
     PAYMENT_DLQ = "payment_dlq"
-
-class SilverToGoldTopic(BaseTopic):
-    """Topics for silver to gold processing."""
-    TOPIC_PREFIX = "gold"
-    
-    AGGREGATED_ORDER = "aggregated_order"

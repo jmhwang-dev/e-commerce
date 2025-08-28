@@ -1,13 +1,15 @@
 from service.common.topic import *
-from service.producer.bronze import *
 from service.common.schema import *
+from service.producer.bronze import *
+from service.utils.kafka import *
 
 import time
 
 if __name__=="__main__":
     
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    for topic_class in [BronzeTopic, SilverTopic]:
+    # for topic_class in [BronzeTopic, SilverTopic]:
+    for topic_class in [SilverTopic]:
         topic_names = topic_class.get_all_topics()
         delete_topics(admin_client, topic_names)
         create_topics(admin_client, topic_names)
@@ -16,16 +18,16 @@ if __name__=="__main__":
     interval = 10  # seconds
     upper_limit_payload = 10
     order_status_df = OrderStatusBronzeProducer.get_df()
-    for i, order_status_log in order_status_df.iterrows():
+    for i, order_status_series in order_status_df.iterrows():
 
-        if i % upper_limit_payload == 0:
+        if i > 1 and i % upper_limit_payload == 0:
             time.sleep(interval)
 
+        order_status_log, status, order_id = \
+            OrderStatusBronzeProducer.mock_order_status_log(order_status_series)
+        
         OrderStatusBronzeProducer.publish(order_status_log)
 
-        status = order_status_log['status']
-        order_id = order_status_log['order_id']
-        
         if status == 'purchase':
             payment_log = PaymentBronzeProducer.select('order_id', order_id)
             PaymentBronzeProducer.publish(payment_log)

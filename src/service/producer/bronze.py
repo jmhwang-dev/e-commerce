@@ -1,15 +1,11 @@
 import pandas as pd
-
 from pathlib import Path
 from functools import lru_cache
+
+from service.producer.base.pandas import PandasProducer
 from service.common.topic import *
 
-from service.producer.base import BaseProducer
-from service.common.schema import *
-from service.utils.kafka import *
-from service.common.topic import *
-
-class BronzeProducer(BaseProducer):
+class BronzeProducer(PandasProducer):
     file_path: Path = Path()
 
     @classmethod
@@ -57,6 +53,16 @@ class OrderStatusBronzeProducer(BronzeProducer):
     topic = BronzeTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
     ingestion_type = IngestionType.STREAM
+
+    @staticmethod
+    def mock_order_status_log(order_status_series: pd.Series) -> tuple[pd.DataFrame, str, str]:
+        """
+        Convert a pandas Series to a single-row DataFrame and extract status and order_id.
+        """
+        status = order_status_series['status']
+        order_id = order_status_series['order_id']
+        order_status_log = pd.DataFrame([order_status_series], index=[0])
+        return order_status_log, status, order_id
 
 class PaymentBronzeProducer(BronzeProducer):
     topic = BronzeTopic.PAYMENT

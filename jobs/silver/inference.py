@@ -1,7 +1,7 @@
 from service.consumer.inference import *
 from service.common.topic import SilverTopic
 from service.utils.kafka import *
-from service.producer.inference import ReviewInferedSilverProducer
+from service.producer.inference import ReviewConflictSentimentSilverProducer, ReviewConsistentSentimentSilverProducer
 
 if __name__=="__main__":
     translator = get_translator()
@@ -22,4 +22,6 @@ if __name__=="__main__":
         senti_df = analyze(analyzer, eng_text_list)
 
         inference_result_df = pd.concat([message_df, por2eng_df, senti_df], axis=1).drop(columns=['portuguess'])
-        ReviewInferedSilverProducer.publish(inference_result_df, use_internal=True)
+        conflict_df, consistent_df = split_conflict_main_sentiment(inference_result_df)
+        ReviewConflictSentimentSilverProducer.publish(conflict_df, use_internal=True)
+        ReviewConsistentSentimentSilverProducer.publish(consistent_df, use_internal=True)

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from confluent_kafka import Consumer
 from confluent_kafka import KafkaError
 
@@ -125,22 +125,47 @@ def get_sample_df():
     data = {
         'review_id': [
             '0b637962a16eb130be75783b53f7fa6d',
-            '57998f6fb9bff624291f11c44033bf57',
+            '0b637962a16eb130be75783b53f7fa6d',
             'b212b7df25b4bd6fdc43df8e43c6ed3c',
             '13eff5faa3978a8ce971ae19a9747862',
             'efef5a00aac989951350619e06681dcb'
         ],
-        'message_type': ['review_comment_message'] * 5,
+        'message_type': [
+            'review_title_message',
+            'review_comment_message',
+            'review_comment_message',
+            'review_comment_message',
+            'review_comment_message',],
         'eng': [
+            'bad',
             'product did not arrive I have not had any resp...',
-            'for the shopping experience in the free market...',
             'I liked it arrived on time and the service was...',
             'very good price, but the delivery time is very...',
             'store garbage, delivered wrong product, sent e...'
         ],
         'negative': [0.998981, 0.001457, 0.000174, 0.989022, 0.998509],
         'neutral': [0.000806, 0.997438, 0.000185, 0.004993, 0.000806],
+        # 'negative': [0.998981, 0.997438, 0.000174, 0.989022, 0.998509],
+        # 'neutral': [0.000806, 0.001457, 0.000185, 0.004993, 0.000806],
         'positive': [0.000213, 0.001106, 0.999640, 0.005985, 0.000685]
     }
 
     return pd.DataFrame(data)
+
+def get_main_sentiment(row):
+    sentiments = {'positive': row['positive'], 'neutral': row['neutral'], 'negative': row['negative']}
+    return max(sentiments, key=sentiments.get)
+
+def split_conflict_main_sentiment(infered_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    df = infered_df.copy()
+    df['main_sentiment'] = infered_df.apply(get_main_sentiment, axis=1)
+
+    conflicted_df = df[df.groupby('review_id')['main_sentiment'].transform('nunique') > 1]
+    consistent_df = df[~df['review_id'].isin(conflicted_df['review_id'])]
+
+    single_message_df = df[~df['review_id'].isin(df['review_id'])]
+    if not consistent_df.empty:
+        main_sentiment_df = pd.concat([single_message_df, consistent_df]).drop_duplicates()
+    else:
+        main_sentiment_df = single_message_df.copy()
+    return conflicted_df, main_sentiment_df
