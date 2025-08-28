@@ -6,7 +6,7 @@ import emoji
 # --------------------
 # 텍스트 처리 함수들
 # --------------------
-
+# TODO: rmove udf
 def replace_emoji_with_dot(text):
     if text is None:
         return text

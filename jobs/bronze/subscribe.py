@@ -1,5 +1,5 @@
 from service.common.topic import BronzeTopic
-from service.utils.spark import get_spark_session, get_decoded_stream_df, get_kafka_stream_df
+from service.utils.spark import get_spark_session, get_decoded_stream_df, get_kafka_stream_df, start_console_stream
 from service.consumer.review import PortuguessPreprocessor, get_review_metadata
 from service.consumer.payment import float2int
 from service.common.schema import SchemaRegistryManager
@@ -21,43 +21,48 @@ if __name__ == "__main__":
             topic_filtered_df = kafka_stream_df.filter(col("topic") == topic_name)
             decoded_stream_df = get_decoded_stream_df(topic_filtered_df, schema_str)
 
+            # dev mode
+            if topic_name not in [BronzeTopic.REVIEW, ]:
+                continue
+
             if topic_name == BronzeTopic.PAYMENT:
                 # DLQ: null 행
                 null_condition = reduce(lambda x, y: x | y, [col(c).isNull() for c in decoded_stream_df.columns])
                 dlq_df = decoded_stream_df.filter(null_condition)
-                query_dlq = PaymentSilverProducer.publish(dlq_df, is_dlq=True)
+                query_dlq = PaymentSilverProducer.publish(dlq_df)
                 queries.append(query_dlq)
 
                 # Clean: 모든 컬럼 not null
                 clean_df = decoded_stream_df.dropna(how='any')
                 transformed_clean_df = float2int(clean_df, ["payment_sequential", 'payment_value', 'payment_installments'])
-                query_clean = PaymentSilverProducer.publish(transformed_clean_df, is_dlq=False)
+
+                query_clean = PaymentSilverProducer.publish(transformed_clean_df)
                 queries.append(query_clean)
 
             elif topic_name == BronzeTopic.REVIEW:
                 review_metadata_df = get_review_metadata(decoded_stream_df)
-                query_review_metadata = ReviewMetadataSilverProducer.publish(review_metadata_df, is_dlq=False)
+                query_review_metadata = ReviewMetadataSilverProducer.publish(review_metadata_df)
                 queries.append(query_review_metadata)
 
                 melted_msg_df = PortuguessPreprocessor.melt_reviews(decoded_stream_df)
                 clean_msg_df = PortuguessPreprocessor.clean_review_comment(melted_msg_df)
-                query_clean_review = ReviewCleanCommentSilverProducer.publish(clean_msg_df, is_dlq=False)
+                query_clean_review = ReviewCleanCommentSilverProducer.publish(clean_msg_df)
                 queries.append(query_clean_review)
 
             elif topic_name == BronzeTopic.ORDER_STATUS:
-                query = OrderStatusSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = OrderStatusSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.GEOLOCATION:
-                query = GeolocationSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = GeolocationSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.CUSTOMER:            
-                query = CustomerSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = CustomerSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.SELLER:            
-                query = SellerSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = SellerSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.PRODUCT:            
-                query = ProductSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = ProductSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.ORDER_ITEM:
-                query = OrderItemSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = OrderItemSilverProducer.publish(decoded_stream_df)
             elif topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
-                query = EstimatedDeliveryDateSilverProducer.publish(decoded_stream_df, is_dlq=False)
+                query = EstimatedDeliveryDateSilverProducer.publish(decoded_stream_df)
 
             queries.append(query)
 
