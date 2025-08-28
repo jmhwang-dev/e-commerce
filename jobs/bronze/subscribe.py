@@ -22,8 +22,8 @@ if __name__ == "__main__":
             decoded_stream_df = get_decoded_stream_df(topic_filtered_df, schema_str)
 
             # dev mode
-            if topic_name not in [BronzeTopic.REVIEW, ]:
-                continue
+            # if topic_name not in [BronzeTopic.REVIEW, ]:
+            #     continue
 
             if topic_name == BronzeTopic.PAYMENT:
                 # DLQ: null 행
