@@ -16,6 +16,8 @@ if __name__ == "__main__":
     queries = []
     for topic_name in all_topic_names:
         try:
+            if topic_name != 'stream_order_status':
+                continue
             schema_str = client.get_latest_version(topic_name).schema.schema_str
             topic_filtered_df = kafka_stream_df.filter(col("topic") == topic_name)
             decoded_stream_df = get_decoded_stream_df(topic_filtered_df, schema_str)
