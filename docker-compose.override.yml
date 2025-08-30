@@ -87,19 +87,19 @@ services:
     depends_on:
       schema-registry: { condition: service_healthy }
 
-  prometheus:
-    image: prom/prometheus:v3.5.0
-    container_name: prometheus
-    ports:
-      - 9090:9090
-    depends_on:
-      - schema-registry
-      - spark-client
-    volumes:
-      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  # prometheus:
+  #   image: prom/prometheus:v3.5.0
+  #   container_name: prometheus
+  #   ports:
+  #     - 9090:9090
+  #   depends_on:
+  #     - schema-registry
+  #     - spark-client
+  #   volumes:
+  #     - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
 
-  grafana:
-    image: grafana/grafana:12.2.0-17027759091
-    container_name: grafana
-    ports:
-      - 3000:3000
+  # grafana:
+  #   image: grafana/grafana:12.2.0-17027759091
+  #   container_name: grafana
+  #   ports:
+  #     - 3000:3000
