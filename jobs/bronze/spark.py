@@ -56,7 +56,7 @@ def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
     # micro_batch_df.unpersist()
 
 if __name__ == "__main__":
-    spark_session = get_spark_session("LoadStream")
+    spark_session = get_spark_session("BronzeJob")
     client = SchemaRegistryManager._get_client(use_internal=True)
     all_topic_names = BronzeTopic.get_all_topics()
 

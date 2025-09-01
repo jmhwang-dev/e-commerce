@@ -39,12 +39,12 @@ class BronzeTopic(BaseTopic):
     CUSTOMER = "cdc_customer"
     SELLER = "cdc_seller"
     GEOLOCATION = "cdc_geolocation"
+    ESTIMATED_DELIVERY_DATE = "cdc_estimated_delivery_date"
+    ORDER_ITEM = "cdc_order_item"
     
     # Stream Topics
-    ORDER_ITEM = "stream_order_item"
     ORDER_STATUS = "stream_order_status"
     PAYMENT = "stream_payment"
-    ESTIMATED_DELIVERY_DATE = "stream_estimated_delivery_date"
     REVIEW = "stream_review"
 
 class SilverTopic(BaseTopic):
