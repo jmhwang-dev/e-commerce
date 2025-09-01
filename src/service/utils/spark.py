@@ -46,12 +46,15 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
         : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
     """
     # The type of `spark_session.readStream` is `DataStreamReader`
+    # .option("maxOffsetsPerTrigger", "20000")  # 배치당 최대 오프셋, 조정 필요
+    # 추가: spark.streaming.kafka.maxRatePerPartition (파티션당 초당 메시지 수 제한, 예: 1000) 설정으로 입력 속도 제어.
+    # .option("groupId", "bronze2silver") \
     return spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
         .option("subscribe", ','.join(topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
-        .option("groupId", "bronze2silver") \
+        .option("maxOffsetsPerTrigger", "20000") \
         .load()
 
 def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_str) -> DataFrame:

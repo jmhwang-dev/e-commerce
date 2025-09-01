@@ -1,4 +1,3 @@
-sudo rm -rf data logs/*
 docker compose \
     -f docker-compose.yml \
     -f docker-compose.override.yml \

@@ -1,15 +1,10 @@
 from typing import Tuple
 from pyspark.sql import SparkSession
-from service.common.topic import *
-
-from service.common.schema import *
-
-# from pyiceberg.catalog import load_catalog
-
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import  StreamingQuery
-from pyspark.sql import SparkSession
 
+from service.common.topic import *
+from service.common.schema import *
 from service.utils.iceberg.spark import *
 
 def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
