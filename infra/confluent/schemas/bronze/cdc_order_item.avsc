@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "stream_order_item",
+  "name": "cdc_order_item",
   "fields": [
     {
       "name": "order_id",

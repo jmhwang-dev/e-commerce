@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "stream_estimated_delivery_date",
+  "name": "cdc_estimated_delivery_date",
   "fields": [
     {
       "name": "order_id",
