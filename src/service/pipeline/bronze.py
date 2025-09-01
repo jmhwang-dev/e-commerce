@@ -1,10 +1,11 @@
-from service.common.topic import BronzeTopic
-from service.common.schema import SchemaRegistryManager
-
-from service.utils.iceberg.spark import *
-from service.utils.spark import *
-
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+
+from service.common.schema import SchemaRegistryManager
+from service.common.topic import BronzeTopic
+from service.utils.spark import get_decoded_stream_df
+from service.utils.iceberg.spark import get_iceberg_destination
+
 
 def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
     """
@@ -14,9 +15,6 @@ def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
     3. 해당 토픽의 스키마를 사용하여 Avro 데이터를 역직렬화합니다.
     4. 최종 데이터를 올바른 Iceberg 테이블에 저장합니다.
     """
-    # # 성능 최적화를 위해 들어온 마이크로배치를 캐싱합니다.
-    # micro_batch_df.persist()
-    # micro_batch_spark_session = micro_batch_df.sparkSession
     
     # 현재 마이크로배치에 포함된 고유한 토픽 목록을 가져옵니다.
     topics_in_batch = [row.topic for row in micro_batch_df.select("topic").distinct().collect()]
@@ -51,29 +49,3 @@ def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
 
         except Exception as e:
             print(f"Error processing topic {topic_name} in batch {batch_id}: {e}")
-
-    # # 처리가 끝난 마이크로배치의 캐시를 해제합니다.
-    # micro_batch_df.unpersist()
-
-if __name__ == "__main__":
-    spark_session = get_spark_session("BronzeJob")
-    client = SchemaRegistryManager._get_client(use_internal=True)
-    all_topic_names = BronzeTopic.get_all_topics()
-
-    tmp_topic = all_topic_names[0]
-    schema_str = client.get_latest_version(tmp_topic).schema.schema_str
-    # # TODO: 여기서는 `s3_uri` 만 필요
-    s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)
-    # create_namespace(spark_session, schema_str)
-
-    all_topic_stream_df = get_kafka_stream_df(spark_session, all_topic_names)
-    base_stream_df = all_topic_stream_df.select(col("key").cast("string"), col("value"), col("topic"))
-
-    query = base_stream_df.writeStream \
-        .foreachBatch(process_micro_batch) \
-        .queryName("Bronze_Loader") \
-        .option("checkpointLocation", f"s3a://{s3_uri}/checkpoints") \
-        .trigger(processingTime="10 seconds") \
-        .start()
-        
-    query.awaitTermination()
