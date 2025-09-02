@@ -5,8 +5,14 @@ from pyspark.sql.types import (
     IntegerType,
     FloatType,
     DoubleType,
-    TimestampType
+    TimestampType,
+    LongType
 )
+
+WATERMARK_SCHEMA = StructType([
+    StructField("job_name", StringType(), False),
+    StructField("last_processed_snapshot_id", LongType(), False)
+])
 
 CUSTOMER_SCHEMA = StructType([
     StructField("customer_id", StringType(), False),

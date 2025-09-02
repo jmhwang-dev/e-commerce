@@ -6,6 +6,7 @@ from pyspark.sql.functions import col, max, to_timestamp
 from pyspark.sql.readwriter import DataFrameWriterV2
 
 from service.utils.schema.registry_manager import *
+from schema.silver import WATERMARK_SCHEMA
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, min, max
@@ -14,6 +15,63 @@ from enum import Enum
 class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
+
+def append_or_create_table(spark: SparkSession, df: DataFrame, table_identifier: str):
+    """
+    데이터프레임을 테이블에 추가합니다. 테이블이 존재하지 않으면 새로 생성합니다.
+    """
+    if not spark.catalog.tableExists(table_identifier):
+        print(f"Table '{table_identifier}' not found. Creating it with the provided data.")
+        df.writeTo(table_identifier).create()
+    else:
+        # 비어있는 데이터프레임을 append하는 것은 아무 작업도 수행하지 않으므로 안전합니다.
+        print(f"Appending data to table: {table_identifier}")
+        df.writeTo(table_identifier).append()
+
+def get_last_processed_snapshot_id(spark: SparkSession, watermark_table: str, job_name: str) -> Optional[str]:
+    print(f"Getting last processed snapshot ID for job '{job_name}' from '{watermark_table}'...")
+    if not spark.catalog.tableExists(watermark_table):
+        return None # 테이블이 없으면 최초 실행으로 간주
+    try:
+        row = spark.read.table(watermark_table).filter(f"job_name = '{job_name}'").first()
+        return row["last_processed_snapshot_id"] if row else None
+    except Exception:
+        return None
+
+def update_last_processed_snapshot_id(spark: SparkSession, watermark_table: str, job_name: str, snapshot_id: str):
+    """
+    MERGE INTO를 사용하여 워터마크를 안전하게 업데이트(Upsert)합니다.
+    """
+    print(f"Updating watermark for job '{job_name}' to snapshot ID '{snapshot_id}' in '{watermark_table}'.")
+
+    new_watermark_df = spark.createDataFrame([(job_name, snapshot_id)], WATERMARK_SCHEMA)
+    new_watermark_df.createOrReplaceTempView("new_watermark")
+
+    spark.sql(f"""
+        MERGE INTO {watermark_table} t
+        USING new_watermark s
+        ON t.job_name = s.job_name
+        WHEN MATCHED THEN
+            UPDATE SET t.last_processed_snapshot_id = s.last_processed_snapshot_id
+        WHEN NOT MATCHED THEN
+            INSERT (job_name, last_processed_snapshot_id)
+            VALUES (s.job_name, s.last_processed_snapshot_id)
+    """)
+    
+    ## 쿼리를 DataFrame API로 한다면,
+    # target_table = spark.table(watermark_table)
+    # target_table.alias("t").merge(
+    #     source=new_watermark_df.alias("s"),
+    #     condition="t.job_name = s.job_name"
+    # ).whenMatchedUpdate(
+    #     set={"last_processed_snapshot_id": col("s.last_processed_snapshot_id")}
+    # ).whenNotMatchedInsert(
+    #     values={
+    #         "job_name": col("s.job_name"),
+    #         "last_processed_snapshot_id": col("s.last_processed_snapshot_id")
+    #     }
+    # ).execute()
+
 
 def get_snapshot_df(spark: SparkSession, table_identifier: str):
     # |committed_at|snapshot_id|parent_id|operation|manifest_list|summary|
@@ -74,14 +132,6 @@ def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFra
 
     # fanout.enabled=false
     # OPTIMIZE TABLE / expire_snapshots
-
-def load_batch(spark_session: SparkSession, writer: DataFrameWriterV2, table_identifier: str) -> None:    
-    if not spark_session.catalog.tableExists(table_identifier):
-        writer.create()
-    else:
-        writer.append()
-        # writer.overwritePartitions()
-    print(f"[INFO] {table_identifier} 테이블 저장 완료")
 
 # def get_catalog(
 #         catalog_uri: str,

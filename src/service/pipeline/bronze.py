@@ -32,7 +32,6 @@ def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
             record_count = deserialized_df.count()
             if record_count > 0:
                 print(f"Writing {record_count} rows to Iceberg table: {avsc_reader.dst_table_identifier}")
-                # load_batch()
                 deserialized_df.write \
                     .format("iceberg") \
                     .mode("append") \
