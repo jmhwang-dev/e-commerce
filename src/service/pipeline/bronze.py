@@ -1,7 +1,7 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from service.common.schema import SchemaRegistryManager
+from service.utils.schema.registry_manager import SchemaRegistryManager
 from service.common.topic import BronzeTopic
 from service.utils.spark import get_decoded_stream_df
 from service.utils.iceberg.spark import get_iceberg_destination

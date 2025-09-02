@@ -5,7 +5,7 @@ from pyiceberg.table import Table
 from pyiceberg.catalog import Catalog
 import pandas as pd
 
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from service.utils.iceberg.spark import *
 from service.utils import minio
 

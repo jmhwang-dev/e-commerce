@@ -5,7 +5,7 @@ from confluent_kafka import Producer
 from confluent_kafka.admin import NewTopic
 
 from service.common.topic import *
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from config.kafka import *
 
 class IngestionType(Enum):

@@ -8,7 +8,7 @@ from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
 
 from service.common.topic import *
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from config.kafka import *
 
 import time

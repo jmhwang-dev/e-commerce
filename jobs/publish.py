@@ -1,5 +1,5 @@
 from service.common.topic import *
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from service.producer.bronze import *
 from service.utils.kafka import *
 
