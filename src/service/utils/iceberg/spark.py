@@ -2,10 +2,48 @@ from typing import Tuple
 from pyspark.sql import SparkSession
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import  StreamingQuery
+from pyspark.sql.functions import col, max, to_timestamp
+from pyspark.sql.readwriter import DataFrameWriterV2
 
-from service.common.topic import *
-from service.common.schema import *
-from service.utils.iceberg.spark import *
+from service.utils.schema.registry_manager import *
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_timestamp, min, max
+from enum import Enum
+
+class TimeBoundary(Enum):
+    EARLIEST = "Earlies"
+    LATEST = "Latest"
+
+def get_snapshot_df(spark: SparkSession, table_identifier: str):
+    # |committed_at|snapshot_id|parent_id|operation|manifest_list|summary|
+    # 동일: snapshots_df = spark_session.sql(f"SELECT * FROM {table_identifier}.snapshots ORDER BY committed_at DESC")
+    snapshots_df = spark.read.table(f"{table_identifier}.snapshots").select("committed_at", "snapshot_id")
+    return snapshots_df.withColumn("committed_at", to_timestamp(col("committed_at")))
+
+def get_next_start_id(snapshots_df: DataFrame, current_end_id):
+    next_start_id = snapshots_df.filter(col('parent_id') == current_end_id).select(col('snapshot_id')).first()[0]
+    print(f"next_snapshot_id: {next_start_id} (current_end_id: {current_end_id})")
+    return next_start_id
+
+def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: TimeBoundary):
+    try:
+        if snapshots_df.count() == 0:
+            print("스냅샷이 존재하지 않습니다.")
+            return None
+        agg_func = min if time_boundary == TimeBoundary.EARLIEST else max
+        target_timestamps = snapshots_df.select(
+            agg_func(col("committed_at")).alias("target_timestamp")
+        ).first()
+
+        target_ts = target_timestamps["target_timestamp"]
+        target_snapshot_id = snapshots_df.filter(col("committed_at") == target_ts).select("snapshot_id").first()[0]
+        print(f"{time_boundary.value} committed_at: {target_ts} 에 해당하는 snapshot_id: {target_snapshot_id}")
+        return target_snapshot_id
+
+    except Exception as e:
+        print(f"오류가 발생했습니다: {e}")
+        return None, None
 
 def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
     """
@@ -24,41 +62,26 @@ def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFra
         - spark.sql("CALL iceberg_catalog.system.rewrite_data_files('your_table')") // OPTIMIZE
         - spark.sql("CALL iceberg_catalog.system.expire_snapshots('your_table', TIMESTAMP '2025-08-13 00:00:00')") // expire_snapshots
     """
-    create_namespace(spark_session, schema_str)
-    s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)
-    
-    return decoded_stream_df.writeStream \
-        .outputMode("append") \
-        .format("iceberg") \
-        .option("checkpointLocation", f"s3a://{s3_uri}/checkpoints/{table_name}") \
-        .option("fanout.enabled", "false") \
-        .trigger(processingTime=process_time) \
-        .toTable(table_identifier)
+    # s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)    
+    # return decoded_stream_df.writeStream \
+    #     .outputMode("append") \
+    #     .format("iceberg") \
+    #     .option("checkpointLocation", f"s3a://{s3_uri}/checkpoints/{table_name}") \
+    #     .option("fanout.enabled", "false") \
+    #     .trigger(processingTime=process_time) \
+    #     .toTable(table_identifier)
+    pass
 
     # fanout.enabled=false
     # OPTIMIZE TABLE / expire_snapshots
 
-# def load_batch(spark_session: SparkSession, df: DataFrame, table_identifier: str, comment_message: str='') -> None:
-#     create_namespace()
-#     writer = df.writeTo(table_identifier).tableProperty("comment", comment_message)
-    
-#     if not spark_session.catalog.tableExists(table_identifier):
-#         writer.create()
-#     else:
-#         writer.overwritePartitions()
-#     print(f"[INFO] {table_identifier} 테이블 저장 완료")
-
-def create_namespace(spark_session: SparkSession, schema_str: str) -> None:
-    namespace, _ = SchemaRegistryManager.get_schem_identifier(schema_str)
-    spark_session.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
-    return
-
-def get_iceberg_destination(schema_str: str) -> Tuple[str, str, str]:
-    namespace, table_name = SchemaRegistryManager.get_schem_identifier(schema_str)
-
-    s3_uri = namespace.replace('.', '/')
-    table_identifier = f"{namespace}.{table_name}"
-    return s3_uri, table_identifier, table_name
+def load_batch(spark_session: SparkSession, writer: DataFrameWriterV2, table_identifier: str) -> None:    
+    if not spark_session.catalog.tableExists(table_identifier):
+        writer.create()
+    else:
+        writer.append()
+        # writer.overwritePartitions()
+    print(f"[INFO] {table_identifier} 테이블 저장 완료")
 
 # def get_catalog(
 #         catalog_uri: str,

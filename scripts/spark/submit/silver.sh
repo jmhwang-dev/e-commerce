@@ -7,7 +7,7 @@ echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 # zip 생성
 cd src
 SRC_ZIP="src.zip"
-zip -r ../$SRC_ZIP service config > /dev/null
+zip -r ../$SRC_ZIP service config schema > /dev/null
 cd ..
 # 컨테이너에 복사
 docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
