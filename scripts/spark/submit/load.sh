@@ -1,12 +1,8 @@
 #!/bin/bash
 set -e
 
-PYTHON_SCRIPT=$1
-
-if [ -z "$PYTHON_SCRIPT" ]; then
-  echo "Usage: $0 <python_script_path>"
-  exit 1
-fi
+PYTHON_SCRIPT="${1:-jobs/load.py}"
+echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성
 cd src

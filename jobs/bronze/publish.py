@@ -8,14 +8,12 @@ import time
 if __name__=="__main__":
     
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    # for topic_class in [BronzeTopic, SilverTopic]:
-    for topic_class in [SilverTopic]:
-        topic_names = topic_class.get_all_topics()
-        delete_topics(admin_client, topic_names)
-        create_topics(admin_client, topic_names)
+    topic_names = BronzeTopic.get_all_topics()
+    delete_topics(admin_client, topic_names)
+    create_topics(admin_client, topic_names)
     
     register_schema()
-    interval = 10  # seconds
+    interval = 0  # seconds
     upper_limit_payload = 10
     order_status_df = OrderStatusBronzeProducer.get_df()
     for i, order_status_series in order_status_df.iterrows():
