@@ -80,3 +80,31 @@ def insert(table: Table, data: pa.Table):
         print(f"Failed to append data to {table.identifier}: {str(e)}")
         raise
 
+# def get_catalog(
+#         catalog_uri: str,
+#         s3_endpoint: str,
+#         bucket: str = MedallionLayer.BUCKET
+#         ):
+#     """
+#     ex)
+#     option = {
+#             "type": "REST",
+#             "uri": "http://rest-catalog:8181",
+#             "s3.endpoint": "http://minio:9000",
+#             "s3.access-key-id": "minioadmin",
+#             "s3.secret-access-key": "minioadmin",
+#             "s3.use-ssl": "false",
+#             "warehouse": f"s3://{MedallionLayer.BUCKET}"
+#         }
+
+#     """
+#     option = {
+#         "type": "REST",
+#         "uri": catalog_uri,
+#         "s3.endpoint": s3_endpoint,
+#         "s3.access-key-id": "minioadmin",
+#         "s3.secret-access-key": "minioadmin",
+#         "s3.use-ssl": "false",
+#         "warehouse": f"s3://{bucket}"
+#     }
+#     return load_catalog("REST", **option)

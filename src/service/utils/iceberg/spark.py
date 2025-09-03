@@ -1,84 +1,39 @@
-from typing import Tuple
+from enum import Enum
 from pyspark.sql import SparkSession
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import  StreamingQuery
-from pyspark.sql.functions import col, max, to_timestamp
-from pyspark.sql.readwriter import DataFrameWriterV2
+from pyspark.sql.functions import col, min, max
 
 from service.utils.schema.registry_manager import *
 from schema.silver import WATERMARK_SCHEMA
-
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_timestamp, min, max
-from enum import Enum
 
 class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
 
-def append_or_create_table(spark: SparkSession, df: DataFrame, table_identifier: str):
-    """
-    데이터프레임을 테이블에 추가합니다. 테이블이 존재하지 않으면 새로 생성합니다.
-    """
-    if not spark.catalog.tableExists(table_identifier):
-        print(f"Table '{table_identifier}' not found. Creating it with the provided data.")
-        df.writeTo(table_identifier).create()
-    else:
-        # 비어있는 데이터프레임을 append하는 것은 아무 작업도 수행하지 않으므로 안전합니다.
-        print(f"Appending data to table: {table_identifier}")
-        df.writeTo(table_identifier).append()
+def append_or_create_table(spark: SparkSession, df: DataFrame, table: str):
+    if not spark.catalog.tableExists(table): df.writeTo(table).create()
+    else: df.writeTo(table).append()
 
-def get_last_processed_snapshot_id(spark: SparkSession, watermark_table: str, job_name: str) -> Optional[str]:
-    print(f"Getting last processed snapshot ID for job '{job_name}' from '{watermark_table}'...")
-    if not spark.catalog.tableExists(watermark_table):
-        return None # 테이블이 없으면 최초 실행으로 간주
-    try:
-        row = spark.read.table(watermark_table).filter(f"job_name = '{job_name}'").first()
-        return row["last_processed_snapshot_id"] if row else None
-    except Exception:
-        return None
+def get_snapshot_details(df: DataFrame, boundary: str) -> Optional[dict]:
+    if df.isEmpty(): return None
+    order_col = col("committed_at").asc() if boundary == TimeBoundary.EARLIEST else col("committed_at").desc()
+    row = df.orderBy(order_col).select("snapshot_id", "committed_at").first()
+    return {"snapshot_id": row["snapshot_id"], "committed_at": row["committed_at"]} if row else None
 
-def update_last_processed_snapshot_id(spark: SparkSession, watermark_table: str, job_name: str, snapshot_id: str):
-    """
-    MERGE INTO를 사용하여 워터마크를 안전하게 업데이트(Upsert)합니다.
-    """
-    print(f"Updating watermark for job '{job_name}' to snapshot ID '{snapshot_id}' in '{watermark_table}'.")
-
-    new_watermark_df = spark.createDataFrame([(job_name, snapshot_id)], WATERMARK_SCHEMA)
-    new_watermark_df.createOrReplaceTempView("new_watermark")
-
-    spark.sql(f"""
-        MERGE INTO {watermark_table} t
-        USING new_watermark s
-        ON t.job_name = s.job_name
-        WHEN MATCHED THEN
-            UPDATE SET t.last_processed_snapshot_id = s.last_processed_snapshot_id
-        WHEN NOT MATCHED THEN
-            INSERT (job_name, last_processed_snapshot_id)
-            VALUES (s.job_name, s.last_processed_snapshot_id)
-    """)
+def get_last_processed_snapshot_id(spark: SparkSession, table: str, job: str) -> Optional[int]:
+    if not spark.catalog.tableExists(table): return None
+    row = spark.read.table(table).filter(f"job_name = '{job}'").first()
+    return row["last_processed_snapshot_id"] if row else None
     
-    ## 쿼리를 DataFrame API로 한다면,
-    # target_table = spark.table(watermark_table)
-    # target_table.alias("t").merge(
-    #     source=new_watermark_df.alias("s"),
-    #     condition="t.job_name = s.job_name"
-    # ).whenMatchedUpdate(
-    #     set={"last_processed_snapshot_id": col("s.last_processed_snapshot_id")}
-    # ).whenNotMatchedInsert(
-    #     values={
-    #         "job_name": col("s.job_name"),
-    #         "last_processed_snapshot_id": col("s.last_processed_snapshot_id")
-    #     }
-    # ).execute()
+def update_watermark(spark: SparkSession, table: str, job: str, snapshot_id: int):
+    df = spark.createDataFrame([(job, snapshot_id)], WATERMARK_SCHEMA)
+    df.createOrReplaceTempView("new_watermark")
+    spark.sql(f"MERGE INTO {table} t USING new_watermark s ON t.job_name = s.job_name "
+              f"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *")
 
-
-def get_snapshot_df(spark: SparkSession, table_identifier: str):
-    # |committed_at|snapshot_id|parent_id|operation|manifest_list|summary|
-    # 동일: snapshots_df = spark_session.sql(f"SELECT * FROM {table_identifier}.snapshots ORDER BY committed_at DESC")
-    snapshots_df = spark.read.table(f"{table_identifier}.snapshots").select("committed_at", "snapshot_id")
-    return snapshots_df.withColumn("committed_at", to_timestamp(col("committed_at")))
-
+def get_snapshot_df(spark: SparkSession, table: str) -> DataFrame:
+    return spark.sql(f"SELECT * FROM {table}.snapshots")
 
 def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: TimeBoundary):
     try:
@@ -128,32 +83,3 @@ def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFra
 
     # fanout.enabled=false
     # OPTIMIZE TABLE / expire_snapshots
-
-# def get_catalog(
-#         catalog_uri: str,
-#         s3_endpoint: str,
-#         bucket: str = MedallionLayer.BUCKET
-#         ):
-#     """
-#     ex)
-#     option = {
-#             "type": "REST",
-#             "uri": "http://rest-catalog:8181",
-#             "s3.endpoint": "http://minio:9000",
-#             "s3.access-key-id": "minioadmin",
-#             "s3.secret-access-key": "minioadmin",
-#             "s3.use-ssl": "false",
-#             "warehouse": f"s3://{MedallionLayer.BUCKET}"
-#         }
-
-#     """
-#     option = {
-#         "type": "REST",
-#         "uri": catalog_uri,
-#         "s3.endpoint": s3_endpoint,
-#         "s3.access-key-id": "minioadmin",
-#         "s3.secret-access-key": "minioadmin",
-#         "s3.use-ssl": "false",
-#         "warehouse": f"s3://{bucket}"
-#     }
-#     return load_catalog("REST", **option)
