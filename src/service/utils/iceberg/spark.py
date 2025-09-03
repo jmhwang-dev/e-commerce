@@ -79,10 +79,6 @@ def get_snapshot_df(spark: SparkSession, table_identifier: str):
     snapshots_df = spark.read.table(f"{table_identifier}.snapshots").select("committed_at", "snapshot_id")
     return snapshots_df.withColumn("committed_at", to_timestamp(col("committed_at")))
 
-def get_next_start_id(snapshots_df: DataFrame, current_end_id):
-    next_start_id = snapshots_df.filter(col('parent_id') == current_end_id).select(col('snapshot_id')).first()[0]
-    print(f"next_snapshot_id: {next_start_id} (current_end_id: {current_end_id})")
-    return next_start_id
 
 def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: TimeBoundary):
     try:
