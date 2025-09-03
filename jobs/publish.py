@@ -61,9 +61,11 @@ if __name__=="__main__":
             geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
             GeolocationBronzeProducer.publish(geolcation)
 
+            review_log = ReviewBronzeProducer.select('order_id', order_id)
+            ReviewBronzeProducer.publish(review_log)
+
         elif status == 'approved':
             estimated_date = EstimatedDeliberyDateBronzeProducer.select('order_id', order_id)
             EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
 
-        review_log = ReviewBronzeProducer.select('order_id', order_id)
-        ReviewBronzeProducer.publish(review_log)
+        

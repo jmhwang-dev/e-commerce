@@ -67,6 +67,14 @@ PRODUCT_SCHEMA = StructType([
     StructField("category", StringType(), False)
 ])
 
+REVIEW_METADATA_SCHEMA = StructType([
+    StructField("review_id", StringType(), False),
+    StructField("review_creation_date", TimestampType(), False),
+    StructField("review_answer_timestamp", TimestampType(), False),
+    StructField("review_score", IntegerType(), False),
+    StructField("order_id", StringType(), False),
+])
+
 REVIEW_CLEAN_COMMENT_SCHEMA = StructType([
     StructField("review_id", StringType(), False),
     StructField("message_type", StringType(), False),
@@ -81,14 +89,6 @@ REVIEW_INFERENCE_SCHEMA = StructType([
     StructField("neutral", FloatType(), False),
     StructField("positive", FloatType(), False),
     StructField("main_sentiment", StringType(), False)
-])
-
-REVIEW_METADATA_SCHEMA = StructType([
-    StructField("review_id", StringType(), False),
-    StructField("review_creation_date", TimestampType(), False),
-    StructField("review_answer_timestamp", TimestampType(), False),
-    StructField("review_score", IntegerType(), False),
-    StructField("order_id", StringType(), False),
 ])
 
 # seller
