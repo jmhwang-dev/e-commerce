@@ -1,4 +1,4 @@
-COMPOSE_FILE="infra/docker-compose.override.yml"
+COMPOSE_FILE="docker-compose.override.yml"
 TOPIC="review"
 SCHEMA_REGISTRY="http://schema-registry:8081"
 

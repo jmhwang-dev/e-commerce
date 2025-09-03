@@ -1,5 +1,5 @@
 from service.common.topic import BronzeTopic
-from service.utils.iceberg.spark import *
+from service.utils.iceberg import *
 from service.utils.spark import *
 from service.pipeline.bronze import process_micro_batch
 from service.utils.schema.reader import AvscReader

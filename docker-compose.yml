@@ -77,28 +77,3 @@ services:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_REGION: us-east-1
-
-  inference:
-    build:
-      context: ./infra/inference
-      dockerfile: Dockerfile
-    image: ecommerce-inference:latest
-    container_name: inference
-    command: python inference.py
-    # command: bash -c "tail -f /dev/null"
-    environment:
-      - PYTHONPATH=/mnt/src
-    volumes:
-      - ./src/:/mnt/src/
-      - ./jobs/silver/inference.py:/mnt/app/inference.py
-      - ./downloads/models/:/mnt/models/
-      - ./logs/:/mnt/logs/
-    depends_on:
-      schema-registry: { condition: service_healthy }
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all  # 또는 1, 2 등
-              capabilities: [gpu]

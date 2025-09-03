@@ -7,7 +7,7 @@ from functools import reduce
 from operator import or_
 
 from schema.silver import *
-from service.utils.iceberg.spark import *
+from service.utils.iceberg import *
 from service.pipeline.review import PortuguessPreprocessor, get_review_metadata
 
 class SilverJob:
