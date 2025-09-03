@@ -22,6 +22,7 @@ class SilverJob:
         self.incremental_df: Optional[DataFrame] = None
         self.end_snapshot_id: Optional[int] = None
         self.src_table_identifier: str = ''
+        self.dst_table_name: str = ''
         self.clean_schema: Union[Dict[str, StructType], StructType] = {}
 
     def set_incremental_df(self):
@@ -73,15 +74,15 @@ class SilverJob:
         df_not_null = df.filter(~null_condition)
 
         if not df_not_null.isEmpty():
-            clean_table = f"{self.clean_namespace}.{self.dst_table_name}"
-            print(f"Writing {df_not_null.count()} clean records to {clean_table}...")
+            clean_table_identifier = f"{self.clean_namespace}.{self.dst_table_name}"
+            print(f"Writing {df_not_null.count()} clean records to {clean_table_identifier}...")
             applied_df = df_not_null.select([col(f.name).cast(f.dataType) for f in self.clean_schema.fields])
-            append_or_create_table(self.spark, applied_df, clean_table)
+            append_or_create_table(self.spark, applied_df, clean_table_identifier)
 
         if not df_null.isEmpty():
-            error_table = f"{self.error_namespace}.{self.dst_table_name}"
-            print(f"Writing {df_null.count()} bad records to {error_table}...")
-            append_or_create_table(self.spark, df_null, error_table)
+            error_table_identifier = f"{self.error_namespace}.{self.dst_table_name}"
+            print(f"Writing {df_null.count()} bad records to {error_table_identifier}...")
+            append_or_create_table(self.spark, df_null, error_table_identifier)
 
     def run(self):
         print(f"============== [{self.job_name}] Job Started ==============")
@@ -96,6 +97,55 @@ class SilverJob:
         print(f"============== [{self.job_name}] Job Finished ==============")
 
 # --- Concrete Job Implementation ---
+
+class CustomerSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_customer'
+        self.dst_table_name = 'customer'
+        self.clean_schema = CUSTOMER_SCHEMA
+
+class EstimatedDeliveryDateSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_estimated_delivery_date'
+        self.dst_table_name = 'estimated_delivery_date'
+        self.clean_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
+
+class GeolocationSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_geolocation'
+        self.dst_table_name = 'geolocation'
+        self.clean_schema = GEOLOCATION_SCHEMA
+
+class OrderItemSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_order_item'
+        self.dst_table_name = 'order_item'
+        self.clean_schema = ORDER_ITEM_SCHEMA
+
+class ProductSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_product'
+        self.dst_table_name = 'product'
+        self.clean_schema = PRODUCT_SCHEMA
+
+class SellerSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.cdc_seller'
+        self.dst_table_name = 'seller'
+        self.clean_schema = SELLER_SCHEMA
+
+class OrderStatusSilverJob(SilverJob):
+    def __init__(self, spark: SparkSession):
+        super().__init__(spark)
+        self.src_table_identifier = 'warehousedev.bronze.stream_order_status'
+        self.dst_table_name = 'order_status'
+        self.clean_schema = ORDER_STATUS_SCHEMA
 
 class PaymentSilverJob(SilverJob):
     def __init__(self, spark: SparkSession):
@@ -122,7 +172,8 @@ class ReviewSilverJob(SilverJob):
         print(f"[{self.job_name}] Starting custom ETL pipeline...")
         
         # Pre-processing can be done here before complex transformations
-        df = self.incremental_df.dropDuplicates(["review_id"]) # Example: deduplicate by a key
+        # df = self.incremental_df.dropDuplicates(["review_id"]) # Example: deduplicate by a key
+        df = self.incremental_df
 
         melted_df = PortuguessPreprocessor.melt_reviews(df)
         clean_comment_df = PortuguessPreprocessor.clean_review_comment(melted_df)
