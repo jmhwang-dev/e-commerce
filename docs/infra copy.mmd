@@ -1,0 +1,124 @@
+flowchart LR
+json_serializer["json_serializer"]
+
+subgraph kafka["kafka"]
+    subgraph bronze_topics["bronze_topics"]
+        subgraph bronze_cdc["cdc"]
+            bronze_topic_customer[("customer")]
+            bronze_topic_seller[("seller")]
+            bronze_topic_geolocation[("geolocation")]
+            bronze_topic_product[("product")]
+            bronze_topic_order_item[("order_item")]
+            bronze_topic_estimated_delivery_date[("estimated_delivery_date")]
+        end
+        subgraph bronze_stream["stream"]
+            bronze_topic_order_status[("order_status")]
+            bronze_topic_payment[("payment")]
+            bronze_topic_review[("review")]
+        end
+    end
+
+    subgraph silver_topics["silver_topics"]
+        subgraph silver_stream["stream"]
+            silver_topic_order_status[("order_status")]
+            silver_topic_payment[("payment")]
+            silver_topic_review_metadata[("review_metadata")]
+            silver_topic_review_clean_comment[("review_clean_comment")]
+            silver_topic_review_conflict_sentiment[("review_conflict_sentiment")]
+            silver_topic_review_consistent_sentiment[("review_consistent_sentiment")]
+        end
+    end
+end
+
+subgraph iceberg["iceberg"]
+    subgraph warehousedev_bronze["warehousedev_bronze"]
+        bronze_table_customer[("customer")]
+        bronze_table_seller[("seller")]
+        bronze_table_geolocation[("geolocation")]
+        bronze_table_product[("product")]
+        bronze_table_order_item[("order_item")]
+        bronze_table_estimated_delivery_date[("estimated_delivery_date")]
+        bronze_table_order_status[("order_status")]
+        bronze_table_payment[("payment")]
+        bronze_table_review[("review")]
+    end
+    subgraph warehousedev_silver["warehousedev_silver"]
+        silver_table_customer[("customer")]
+        silver_table_seller[("seller")]
+        silver_table_geolocation[("geolocation")]
+        silver_table_product[("product")]
+        silver_table_order_item[("order_item")]
+        silver_table_estimated_delivery_date[("estimated_delivery_date")]
+        silver_table_order_status[("order_status")]
+        silver_table_payment[("payment")]
+        silver_table_review_metadata[("review_metadata")]
+        silver_table_review_clean_comment[("review_clean_comment")]
+        silver_table_review_conflict_sentiment[("review_conflict_sentiment")]
+    end
+    subgraph warehousedev_silver_error["warehousedev_silver_error"]
+        silver_table_error_customer[("customer")]
+        silver_table_error_seller[("seller")]
+        silver_table_error_geolocation[("geolocation")]
+        silver_table_error_product[("product")]
+        silver_table_error_order_item[("order_item")]
+        silver_table_error_estimated_delivery_date[("estimated_delivery_date")]
+        silver_table_error_order_status[("order_status")]
+        silver_table_error_payment[("payment")]
+        silver_table_error_review_metadata[("silver_review_metadata")]
+        silver_table_error_review_conflict_sentiment[("silver_review_conflict_sentiment")]
+    end
+    subgraph warehousedev_gold["warehousedev_gold"]
+        gold_table_sample[("gold_table_sample")]
+    end
+end
+
+subgraph spark_job["spark_job"]
+    bronze_job["bronze_job"]
+    subgraph silver_job["silver_job"]
+        etl_pipeline["etl_pipeline"]
+        inference["inference"]
+    end
+    subgraph gold_job["gold_job"]
+        stream_aggregation["stream_aggregation"]
+    end
+
+    tmp_memory[("tmp_memory")]
+end
+
+spark_thrift_server["spark_thrift_server"]
+superset["superset"]
+
+START(("Start")) ----> json_serializer
+json_serializer ----> cdc ----> bronze_job ----> warehousedev_bronze
+json_serializer ----> stream ----> silver_job
+silver_job ----> warehousedev_silver
+silver_job ----> silver_topic_review_clean_comment
+silver_topic_review_clean_comment ----> inference
+inference ----> silver_topic_review_conflict_sentiment
+inference ----> silver_topic_review_consistent_sentiment
+
+silver_topic_review_consistent_sentiment ----> stream_aggregation
+silver_topic_order_status ----> stream_aggregation
+silver_topic_payment ----> stream_aggregation
+
+stream_aggregation ----> tmp_memory
+superset ----> spark_thrift_server
+spark_thrift_server ----> tmp_memory
+spark_thrift_server ----> warehousedev_gold
+
+style iceberg fill:#e6f3ff,stroke:#4A90E2,stroke-width:2px
+style warehousedev_bronze fill:#CD7F32,stroke:#FFFFFF,stroke-width:1px,color:#000000
+style warehousedev_silver fill:#C0C0C0,stroke:#FFFFFF,stroke-width:1px,color:#000000
+style warehousedev_silver_error fill:#C0C0C0,stroke:#FFFFFF,stroke-width:1px,color:#000000
+style warehousedev_gold fill:#FFD700,stroke:#FFFFFF,stroke-width:1px,color:#000000
+
+
+%% json_serializer ----> customer
+%% json_serializer ----> seller
+%% json_serializer ----> geolocation
+%% json_serializer ----> product
+%% json_serializer ----> order_item
+%% json_serializer ----> estimated_delivery_date
+%% json_serializer ----> order_status
+%% json_serializer ----> payment
+%% json_serializer ----> review
