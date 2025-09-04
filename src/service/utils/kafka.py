@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union
 from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
 
 from confluent_kafka import Consumer, Producer
@@ -43,7 +43,7 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
     consumer.subscribe(topic_names)
     return consumer
 
-def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False) -> SerializingProducer:
+def get_confluent_serializer_conf(topic: Optional[str] = None, use_internal=False) -> Tuple[Union[AvroSerializer, StringSerializer], List[str]]:
     if not use_internal:
         bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
     else:
@@ -63,7 +63,9 @@ def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False
                 'subject.name.strategy': lambda ctx, record_name: topic
                 }
         )
+    return serializer, bootstrap_server_list
 
+def get_confluent_kafka_producer(bootstrap_server_list: List[str], serializer: Union[AvroSerializer, StringSerializer]) -> SerializingProducer:
     producer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],
         'key.serializer': StringSerializer('utf_8'),

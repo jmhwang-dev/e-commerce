@@ -9,8 +9,8 @@ from service.pipeline.load import load_medallion_layer
 
 TARGET_TOPIC_NAMES = BronzeTopic.get_all_topics() + SilverTopic.get_all_topics()
 
-def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
-    load_medallion_layer(TARGET_TOPIC_NAMES, micro_batch_df, batch_id)
+# def process_micro_batch(micro_batch_df: DataFrame, batch_id: int):
+#     load_medallion_layer(TARGET_TOPIC_NAMES, micro_batch_df, batch_id)
 
 if __name__ == "__main__":
     spark_session = get_spark_session("LoadAllTopicsJob")
@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     avsc_reader = AvscReader(TARGET_TOPIC_NAMES[0])
     query = base_stream_df.writeStream \
-        .foreachBatch(process_micro_batch) \
+        .foreachBatch(load_medallion_layer) \
         .queryName("load_all_topics") \
         .option("checkpointLocation", f"s3a://{avsc_reader.s3_uri}/checkpoints") \
         .trigger(processingTime="10 seconds") \

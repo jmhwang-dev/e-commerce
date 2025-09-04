@@ -5,13 +5,13 @@ from pyspark.sql.functions import col
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_decoded_stream_df
 
-def load_medallion_layer(target_topic_names: List[str], micro_batch_df:DataFrame, batch_id: int):
+def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
     topics_in_batch = [row.topic for row in micro_batch_df.select("topic").distinct().collect()]
     
     print(f"Processing Batch ID: {batch_id}")
     print(f"Topics in Batch: {topics_in_batch}")
     print()
-    for topic_name in target_topic_names:
+    for topic_name in topics_in_batch:
         try:
             avsc_reader = AvscReader(topic_name)
             topic_df = micro_batch_df.filter(col("topic") == topic_name)

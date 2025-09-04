@@ -3,6 +3,7 @@ import pandas as pd
 from confluent_kafka.serialization import SerializationError
 
 from service.producer.base.common import *
+from service.utils.kafka import *
 
 class PandasProducer(BaseProducer):
     message: pd.DataFrame = None
@@ -16,6 +17,20 @@ class PandasProducer(BaseProducer):
         """
         cls.message = data.where(pd.notnull(data), None)
         cls.message[cls.message_key_col] = cls.message[cls.pk_column].astype(str).agg('-'.join, axis=1)
+
+    @classmethod
+    def init_producer(cls, use_internal: bool = True):
+        """
+        - DLQ : json
+        - 그 외 : avro
+        """
+        if cls.main_producer is None:
+            serializer, bootstrap_server_list = get_confluent_serializer_conf(cls.topic, use_internal)
+            cls.main_producer = get_confluent_kafka_producer(bootstrap_server_list, serializer)
+
+        if cls.dlq_producer is None:
+            serializer, bootstrap_server_list = get_confluent_serializer_conf(None, use_internal)
+            cls.dlq_producer = get_confluent_kafka_producer(bootstrap_server_list, serializer)
 
     @classmethod
     def publish(cls, event: pd.DataFrame, use_internal=False) -> None:

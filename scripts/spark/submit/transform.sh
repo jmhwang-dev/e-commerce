@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PYTHON_SCRIPT="${1:-jobs/cdc/bronze.py}"
+PYTHON_SCRIPT="${1:-jobs/transform.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성

@@ -8,7 +8,7 @@ import time
 if __name__=="__main__":
     
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    topic_names = BronzeTopic.get_all_topics()
+    topic_names = BronzeTopic.get_all_topics() + SilverTopic.get_all_topics()
     delete_topics(admin_client, topic_names)
     create_topics(admin_client, topic_names)
     
