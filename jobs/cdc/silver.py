@@ -12,10 +12,7 @@ if __name__ == "__main__":
         GeolocationSilverJob,
         OrderItemSilverJob,
         ProductSilverJob,
-        SellerSilverJob,
-        OrderStatusSilverJob,
-        PaymentSilverJob,
-        ReviewSilverJob
+        SellerSilverJob
     ]
     
     i = 0

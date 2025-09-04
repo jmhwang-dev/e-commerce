@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from service.producer.base.pandas import PandasProducer
 from service.common.topic import *
+from config.kafka import DATASET_DIR
 
 class BronzeProducer(PandasProducer):
     file_path: Path = Path()

@@ -13,7 +13,7 @@ from service.pipeline.review import PortuguessPreprocessor, get_review_metadata
 class SilverJob:
     # ... (SilverJob base class remains mostly the same as before) ...
     clean_namespace = "warehousedev.silver"
-    error_namespace = "warehousedev.silver.error"
+    quarantine_namespace = "warehousedev.silver.quarantine"
     watermark_table = "warehousedev.silver.watermarks"
 
     def __init__(self, spark: SparkSession):
@@ -80,7 +80,7 @@ class SilverJob:
             append_or_create_table(self.spark, applied_df, clean_table_identifier)
 
         if not df_null.isEmpty():
-            error_table_identifier = f"{self.error_namespace}.{self.dst_table_name}"
+            error_table_identifier = f"{self.quarantine_namespace}.{self.dst_table_name}"
             print(f"Writing {df_null.count()} bad records to {error_table_identifier}...")
             append_or_create_table(self.spark, df_null, error_table_identifier)
 

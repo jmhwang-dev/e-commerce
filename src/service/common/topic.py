@@ -1,3 +1,4 @@
+from typing import List
 from enum import Enum
 
 from confluent_kafka import Consumer
@@ -6,7 +7,6 @@ from confluent_kafka.admin import NewTopic
 
 from service.common.topic import *
 from service.utils.schema.registry_manager import *
-from config.kafka import *
 
 class IngestionType(Enum):
     CDC = 'cdc'
@@ -17,7 +17,7 @@ class BaseTopic:
     TOPIC_PREFIX: str = ""
 
     @classmethod
-    def get_all_topics(cls) -> list[str]:
+    def get_all_topics(cls) -> List[str]:
         """모든 토픽 이름을 prefix와 함께 반환"""
         topics = []
         for attr_name in dir(cls):
@@ -29,6 +29,14 @@ class BaseTopic:
                     not attr_name.startswith('TOPIC_')):
                 topics.append(attr_value)
         return topics
+    
+    @classmethod
+    def get_cdc_topics(cls,) -> List[str]:
+        return [cls.PRODUCT, cls.CUSTOMER, cls.SELLER, cls.GEOLOCATION, cls.ESTIMATED_DELIVERY_DATE, cls.ORDER_ITEM]
+    
+    @classmethod
+    def get_stream_topics(cls,) -> List[str]:
+        return [cls.ORDER_STATUS, cls.PAYMENT, cls.REVIEW]
 
 class BronzeTopic(BaseTopic):
     """Topics for raw data ingestion (raw to bronze)."""

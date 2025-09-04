@@ -11,7 +11,7 @@ services:
       - PYTHONPATH=/mnt/src
     volumes:
       - ./src/:/mnt/src/
-      - ./jobs/events/inference.py:/mnt/app/inference.py
+      - ./jobs/stream/inference.py:/mnt/app/inference.py
       - ./downloads/models/:/mnt/models/
       - ./logs/:/mnt/logs/
     deploy:
