@@ -4,7 +4,7 @@ from service.pipeline.review import PortuguessPreprocessor, get_review_metadata
 from service.consumer.payment import float2int
 from service.utils.schema.registry_manager import SchemaRegistryManager
 from service.producer.silver import *
-from service.pipeline.silver import *
+from service.pipeline.batch import *
 
 from pyspark.sql.functions import col
 from functools import reduce

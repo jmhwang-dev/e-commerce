@@ -84,17 +84,17 @@ class SilverJob:
             print(f"Writing {df_null.count()} bad records to {error_table_identifier}...")
             append_or_create_table(self.spark, df_null, error_table_identifier)
 
-    def run(self):
-        print(f"============== [{self.job_name}] Job Started ==============")
-        self.set_incremental_df()
+    # def run(self):
+    #     print(f"============== [{self.job_name}] Job Started ==============")
+    #     self.set_incremental_df()
 
-        if self.incremental_df and not self.incremental_df.isEmpty():
-            self.etl_pipeline()
-            if self.end_snapshot_id:
-                update_watermark(self.spark, self.watermark_table, self.job_name, self.end_snapshot_id)
-        else:
-            print(f"[{self.job_name}] No new data found. Skipping ETL.")
-        print(f"============== [{self.job_name}] Job Finished ==============")
+    #     if self.incremental_df and not self.incremental_df.isEmpty():
+    #         self.etl_pipeline()
+    #         if self.end_snapshot_id:
+    #             update_watermark(self.spark, self.watermark_table, self.job_name, self.end_snapshot_id)
+    #     else:
+    #         print(f"[{self.job_name}] No new data found. Skipping ETL.")
+    #     print(f"============== [{self.job_name}] Job Finished ==============")
 
 # --- Concrete Job Implementation ---
 

@@ -1,6 +1,6 @@
 from typing import List
 from service.utils.spark import get_spark_session
-from service.pipeline.silver import *
+from service.pipeline.batch import *
 from service.loader.iceberg import load_to_iceberg
 
 if __name__ == "__main__":
