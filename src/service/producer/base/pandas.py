@@ -24,13 +24,9 @@ class PandasProducer(BaseProducer):
         - DLQ : json
         - 그 외 : avro
         """
-        if cls.main_producer is None:
+        if cls.producer is None:
             serializer, bootstrap_server_list = get_confluent_serializer_conf(cls.topic, use_internal)
-            cls.main_producer = get_confluent_kafka_producer(bootstrap_server_list, serializer)
-
-        if cls.dlq_producer is None:
-            serializer, bootstrap_server_list = get_confluent_serializer_conf(None, use_internal)
-            cls.dlq_producer = get_confluent_kafka_producer(bootstrap_server_list, serializer)
+            cls.producer = get_confluent_kafka_producer(bootstrap_server_list, serializer)
 
     @classmethod
     def publish(cls, event: pd.DataFrame, use_internal=False) -> None:
@@ -44,13 +40,11 @@ class PandasProducer(BaseProducer):
         for _, message in cls.message.iterrows():
             message_key = message[cls.message_key_col]
             message_value = message.drop(cls.message_key_col).to_dict()
-
+            
             try:
-                cls.main_producer.produce(cls.topic, key=message_key, value=message_value)
-                cls.main_producer.flush()
+                cls.producer.produce(cls.topic, key=message_key, value=message_value)
+                cls.producer.flush()
             except SerializationError:
                 print('schema 검증 실패')
-                cls.dlq_producer.produce(cls.topic, key=message_key, value=message_value)
-                cls.dlq_producer.flush()
 
         print(f'Published message to {cls.topic}')

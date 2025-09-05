@@ -5,6 +5,5 @@ class BaseProducer:
     topic: str = ''
     topic_dlq: str = ''
     pk_column: Iterable[str] = []
-    dlq_producer: SerializingProducer = None
-    main_producer: SerializingProducer = None
+    producer: SerializingProducer = None
     message_key_col: str = 'message_key'

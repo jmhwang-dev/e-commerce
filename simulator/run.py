@@ -6,19 +6,20 @@ from service.utils.kafka import *
 import time
 
 if __name__=="__main__":
-    
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    topic_names = BronzeTopic.get_all_topics() + SilverTopic.get_all_topics()
-    delete_topics(admin_client, topic_names)
+    topic_names = BronzeTopic.get_all_topics() + SilverTopic.get_all_topics() + DeadLetterQueuerTopic.get_all_topics()
+    # delete_topics(admin_client, topic_names)
     create_topics(admin_client, topic_names)
-    
     register_schema()
+    # exit()
+
     interval = 0  # seconds
     upper_limit_payload = 10
     order_status_df = OrderStatusBronzeProducer.get_df()
     for i, order_status_series in order_status_df.iterrows():
 
         if i > 1 and i % upper_limit_payload == 0:
+            exit()
             time.sleep(interval)
 
         order_status_log, status, order_id = \
@@ -30,42 +31,42 @@ if __name__=="__main__":
             payment_log = PaymentBronzeProducer.select('order_id', order_id)
             PaymentBronzeProducer.publish(payment_log)
 
-            customer_id = payment_log['customer_id'].iloc[0]
-            customer_log = CustomerBronzeProducer.select('customer_id', customer_id)
-            CustomerBronzeProducer.publish(customer_log)
+        #     customer_id = payment_log['customer_id'].iloc[0]
+        #     customer_log = CustomerBronzeProducer.select('customer_id', customer_id)
+        #     CustomerBronzeProducer.publish(customer_log)
 
-            zip_code = customer_log['zip_code'].iloc[0]
-            geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
-            GeolocationBronzeProducer.publish(geolcation)
+        #     zip_code = customer_log['zip_code'].iloc[0]
+        #     geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
+        #     GeolocationBronzeProducer.publish(geolcation)
 
-            # order_item - cdc
-            order_item_log = OrderItemBronzeProducer.select('order_id', order_id)
-            if order_item_log.empty:
-                print(f'\nEmpty message: {OrderItemBronzeProducer.topic}')
-                continue
+        #     # order_item - cdc
+        #     order_item_log = OrderItemBronzeProducer.select('order_id', order_id)
+        #     if order_item_log.empty:
+        #         print(f'\nEmpty message: {OrderItemBronzeProducer.topic}')
+        #         continue
         
-            OrderItemBronzeProducer.publish(order_item_log)
+        #     OrderItemBronzeProducer.publish(order_item_log)
 
-            # product - cdc
-            product_id = order_item_log['product_id'].iloc[0]
-            proudct_log = ProductBronzeProducer.select('product_id', product_id)
-            ProductBronzeProducer.publish(proudct_log)
+        #     # product - cdc
+        #     product_id = order_item_log['product_id'].iloc[0]
+        #     proudct_log = ProductBronzeProducer.select('product_id', product_id)
+        #     ProductBronzeProducer.publish(proudct_log)
 
-            # seller - cdc
-            seller_id = order_item_log['seller_id'].iloc[0]
-            seller_log = SellerBronzeProducer.select('seller_id', seller_id)
-            SellerBronzeProducer.publish(seller_log)
+        #     # seller - cdc
+        #     seller_id = order_item_log['seller_id'].iloc[0]
+        #     seller_log = SellerBronzeProducer.select('seller_id', seller_id)
+        #     SellerBronzeProducer.publish(seller_log)
 
-            # geolocation - cdc
-            zip_code = seller_log['zip_code'].iloc[0]
-            geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
-            GeolocationBronzeProducer.publish(geolcation)
+        #     # geolocation - cdc
+        #     zip_code = seller_log['zip_code'].iloc[0]
+        #     geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
+        #     GeolocationBronzeProducer.publish(geolcation)
 
-            review_log = ReviewBronzeProducer.select('order_id', order_id)
-            ReviewBronzeProducer.publish(review_log)
+        #     review_log = ReviewBronzeProducer.select('order_id', order_id)
+        #     ReviewBronzeProducer.publish(review_log)
 
-        elif status == 'approved':
-            estimated_date = EstimatedDeliberyDateBronzeProducer.select('order_id', order_id)
-            EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
+        # elif status == 'approved':
+        #     estimated_date = EstimatedDeliberyDateBronzeProducer.select('order_id', order_id)
+        #     EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
 
         

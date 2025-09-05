@@ -9,13 +9,19 @@
     },
     {
       "name": "review_creation_date",
-      "type": "string"
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
     },
     {
       "name": "review_answer_timestamp",
       "type": [
         "null",
-        "string"
+        {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        }
       ],
       "default": null
     },

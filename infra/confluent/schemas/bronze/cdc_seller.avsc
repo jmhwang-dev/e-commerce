@@ -3,13 +3,7 @@
   "type": "record",
   "name": "cdc_seller",
   "fields": [
-    {
-      "name": "seller_id",
-      "type": "string"
-    },
-    {
-      "name": "zip_code",
-      "type": "int"
-    }
+    { "name": "seller_id", "type": ["null", "string"], "default": null },
+    { "name": "zip_code", "type": ["null", "int"], "default": null }
   ]
 }

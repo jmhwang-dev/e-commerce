@@ -3,21 +3,11 @@
   "type": "record",
   "name": "order_status",
   "fields": [
-    {
-      "name": "order_id",
-      "type": "string"
-    },
-    {
-      "name": "status",
-      "type": "string"
-    },
+    { "name": "order_id", "type": "string" },
+    { "name": "status", "type": "string" },
     {
       "name": "timestamp",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
     }
   ]
 }

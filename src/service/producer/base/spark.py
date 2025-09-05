@@ -40,11 +40,11 @@ class SparkProducer(BaseProducer):
     #             message = row.asDict()
     #             message_key = message.get(cls.message_key_col, "invalid_key")
     #             message_value = {k: v for k, v in message.items() if k != cls.message_key_col}
-    #             cls.main_producer.produce(cls.topic, key=message_key, value=message_value)
+    #             cls.producer.produce(cls.topic, key=message_key, value=message_value)
     #         except (SerializationError, KeyError, TypeError):
     #             cls.dlq_producer.produce(cls.topic_dlq, key=message_key, value=json.dumps(message_value))
 
-    #     cls.main_producer.flush()
+    #     cls.producer.flush()
     #     cls.dlq_producer.flush()
 
     # @classmethod

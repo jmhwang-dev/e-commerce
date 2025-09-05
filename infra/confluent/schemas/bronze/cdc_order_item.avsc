@@ -3,33 +3,16 @@
   "type": "record",
   "name": "cdc_order_item",
   "fields": [
-    {
-      "name": "order_id",
-      "type": "string"
-    },
-    {
-      "name": "order_item_id",
-      "type": "int"
-    },
+    { "name": "order_id", "type": ["null", "string"], "default": null },
+    { "name": "order_item_id", "type": ["null", "int"], "default": null },
     {
       "name": "shipping_limit_date",
-      "type": "string"
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
     },
-    {
-      "name": "price",
-      "type": "float"
-    },
-    {
-      "name": "freight_value",
-      "type": "float"
-    },
-    {
-      "name": "product_id",
-      "type": "string"
-    },
-    {
-      "name": "seller_id",
-      "type": "string"
-    }
+    { "name": "price", "type": ["null", "float"], "default": null },
+    { "name": "freight_value", "type": ["null", "float"], "default": null },
+    { "name": "product_id", "type": ["null", "string"], "default": null },
+    { "name": "seller_id", "type": ["null", "string"], "default": null }
   ]
 }
