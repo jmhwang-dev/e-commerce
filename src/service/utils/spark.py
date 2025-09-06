@@ -1,5 +1,6 @@
 from typing import Iterable
 
+from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
 
@@ -10,7 +11,7 @@ from pyspark.sql.avro.functions import from_avro
 from config.spark import *
 from config.kafka import *
 
-def get_spark_session(app_name: str) -> SparkSession:
+def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     """
     confs
 
@@ -24,9 +25,54 @@ def get_spark_session(app_name: str) -> SparkSession:
         : minIO에 업로드 시 멀티파트 크기. 큰 데이터 전송 성능 최적화.
 
     """
-    spark = SparkSession.builder \
-        .appName(app_name) \
-        .getOrCreate()
+    dev_conf = SparkConf().setAppName("MySparkApp") \
+        .set("spark.eventLog.enabled", "true") \
+        .set("spark.eventLog.dir", "file:///opt/spark/logs/") \
+        .set("spark.history.fs.logDirectory", "file:///opt/spark/logs/") \
+        .set("spark.history.ui.port", "18080") \
+        .set("spark.metrics.appStatusSource.enabled", "true") \
+        .set("spark.sql.adaptive.enabled", "false") \
+        .set("spark.sql.streaming.metricsEnabled", "true") \
+        .set("spark.driver.memory", "2g") \
+        .set("spark.driver.cores", "1") \
+        .set("spark.driver.maxResultSize", "2g") \
+        .set("spark.executor.instances", "1") \
+        .set("spark.executor.cores", "4") \
+        .set("spark.executor.memory", "3g") \
+        .set("spark.dynamicAllocation.enabled", "true") \
+        .set("spark.dynamicAllocation.minExecutors", "1") \
+        .set("spark.dynamicAllocation.maxExecutors", "3") \
+        .set("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+        .set("spark.sql.catalog.warehousedev", "org.apache.iceberg.spark.SparkCatalog") \
+        .set("spark.sql.catalog.warehousedev.type", "rest") \
+        .set("spark.sql.catalog.warehousedev.uri", "http://rest-catalog:8181") \
+        .set("spark.sql.catalog.warehousedev.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
+        .set("spark.sql.catalog.warehousedev.warehouse", "s3://warehousedev") \
+        .set("spark.sql.catalog.warehousedev.s3.endpoint", "http://minio:9000") \
+        .set("spark.sql.catalog.warehousedev.s3.path-style-access", "true") \
+        .set("spark.sql.catalog.warehousedev.s3.region", "us-east-1") \
+        .set("spark.sql.catalog.warehousedev.s3.access-key-id", "minioadmin") \
+        .set("spark.sql.catalog.warehousedev.s3.secret-access-key", "minioadmin") \
+        .set("spark.sql.defaultCatalog", "warehousedev") \
+        .set("spark.sql.catalogImplementation", "in-memory") \
+        .set("spark.executor.extraJavaOptions", "-Daws.region=us-east-1") \
+        .set("spark.executorEnv.AWS_REGION", "us-east-1") \
+        .set("spark.executorEnv.AWS_ACCESS_KEY_ID", "minioadmin") \
+        .set("spark.executorEnv.AWS_SECRET_ACCESS_KEY", "minioadmin") \
+        .set("spark.driver.extraJavaOptions", "-Daws.region=us-east-1") \
+        .set("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
+        .set("spark.hadoop.fs.s3a.path.style.access", "true") \
+        .set("spark.hadoop.fs.s3a.access.key", "minioadmin") \
+        .set("spark.hadoop.fs.s3a.secret.key", "minioadmin") \
+        .set("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
+        .set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .set("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+
+    if not dev:
+        spark = SparkSession.builder.appName(app_name).getOrCreate()
+            
+    else:
+        spark = SparkSession.builder.config(conf=dev_conf).getOrCreate()
     
     spark.sparkContext.setLogLevel("WARN")
     return spark

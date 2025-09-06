@@ -23,6 +23,7 @@ services:
       - ./configs/spark:/opt/spark/conf
       - ./notebooks/spark:/notebooks/
       - ./jobs/:/jobs/
+      - ./src/:/mnt/src
       - ./logs/spark/:/opt/spark/logs/
       - ./downloads/jmx_exporter:/mnt/jmx_exporter/
       - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
@@ -30,6 +31,8 @@ services:
     working_dir: /
     environment:
       - SPARK_NO_DAEMONIZE=true  # run foreground
+      - PYTHONPATH=/mnt/src
+
     
     mem_limit: 4g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
     cpus: 1.0  # 드라이버 코어 제한
