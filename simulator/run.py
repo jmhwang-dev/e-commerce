@@ -12,13 +12,20 @@ if __name__=="__main__":
     create_topics(admin_client, topic_names)
     register_schema()
 
-    interval = 0  # seconds
-    upper_limit_payload = 10
+    base_interval = 5  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
+    current_timestamp = order_status_df.iloc[0, 0] - pd.Timedelta(seconds=1)
     for i, order_status_series in order_status_df.iterrows():
+        new_timestamp = order_status_series['timestamp']
+        diff_time = new_timestamp - current_timestamp
 
-        if i > 1 and i % upper_limit_payload == 0:
-            time.sleep(interval)
+        # data replay: mock real-time
+        if diff_time > pd.Timedelta(seconds=base_interval):
+            time.sleep(base_interval)
+        else:
+            time.sleep(diff_time.total_seconds())
+
+        current_timestamp = new_timestamp
 
         order_status_log, status, order_id = \
             OrderStatusBronzeProducer.mock_order_status_log(order_status_series)
