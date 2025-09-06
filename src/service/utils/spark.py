@@ -1,15 +1,14 @@
 from typing import Iterable
 
-from config.kafka import *
+from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame
 
+from pyspark.sql.streaming import StreamingQuery
+from pyspark.sql.functions import col, expr, from_json
 from pyspark.sql.avro.functions import from_avro
-from pyspark.sql.functions import expr
-from pyspark.sql.dataframe import DataFrame
-from pyspark.sql.functions import expr
 
 from config.spark import *
-from pyspark.sql import SparkSession
-from pyspark.sql.streaming import StreamingQuery
+from config.kafka import *
 
 def get_spark_session(app_name: str) -> SparkSession:
     """
@@ -49,20 +48,28 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
     # .option("maxOffsetsPerTrigger", "20000")  # 배치당 최대 오프셋, 조정 필요
     # 추가: spark.streaming.kafka.maxRatePerPartition (파티션당 초당 메시지 수 제한, 예: 1000) 설정으로 입력 속도 제어.
     # .option("groupId", "bronze2silver") \
-    return spark_session.readStream.format("kafka") \
+    src_stream_df = spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
         .option("subscribe", ','.join(topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
         .option("maxOffsetsPerTrigger", "20000") \
         .load()
+    
+    return src_stream_df.select(col("key").cast("string"), col("value"), col("topic"))
 
-def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_str) -> DataFrame:
-    deserialized_column = from_avro(
-              expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
-              schema_str,
-              DESERIALIZE_OPTIONS
-          ).alias("data")
 
-    return kafka_stream_df.select(deserialized_column).select("data.*")
-
+def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_str: str) -> DataFrame:
+    if schema_str is not None:
+        deserialized_column = \
+            from_avro(
+                expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
+                schema_str,
+                DESERIALIZE_OPTIONS
+            ).alias("data")
+        return kafka_stream_df.select(deserialized_column).select("data.*")
+    
+    # 추론된 스키마를 사용해서 스트리밍 데이터 처리
+    return kafka_stream_df.select(
+        from_json(col("value").cast("string"), kafka_stream_df.schema).alias("data")
+    )

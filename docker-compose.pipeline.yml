@@ -47,7 +47,7 @@ services:
 
     environment:
       SPARK_WORKER_MEMORY: 12g  # upper limit of memory to use
-      SPARK_WORKER_CORES: 16    # upper limit of cores to use
+      SPARK_WORKER_CORES: 14    # upper limit of cores to use
     volumes:
       - ./configs/spark:/opt/spark/conf
       - ./downloads/jmx_exporter:/mnt/jmx_exporter/

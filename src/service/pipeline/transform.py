@@ -1,89 +1,163 @@
-# foreachBatch에 사용하는 함수 (transform.py)
-
-from typing import List 
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, struct, concat_ws
+from typing import List
+from pyspark.sql import DataFrame, Row
+from pyspark.sql.types import BinaryType
+from pyspark.sql.functions import col, struct, concat_ws, udf
+from confluent_kafka.serialization import SerializationContext, MessageField
 
 from service.common.topic import BronzeTopic
 from service.producer.silver import *
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_decoded_stream_df
+from service.utils.kafka import get_confluent_serializer_conf
 from service.pipeline.batch import *
 
-# ⭐️ Spark 세션을 인자로 받도록 수정
+def get_confluent_serializer_udf(subject: Optional[str] = None, use_internal=True):
+    def serialize_logic(row_struct: Row) -> bytes:
+        try:
+            # 초기화를 한 번에 처리
+            if not hasattr(serialize_logic, '_initialized'):
+                topic_name = subject.rsplit('-value', 1)[0] if subject else None
+                serializer, _ = get_confluent_serializer_conf(topic_name, use_internal)
+                
+                serialize_logic.topic_name = topic_name
+                serialize_logic.serializer = serializer
+                serialize_logic._initialized = True
+            
+            # json 직렬화 수행
+            row_dict = row_struct.asDict(recursive=True)
+            if serialize_logic.topic_name is None:
+                return serialize_logic.serializer(row_dict)
+            else:
+                ctx = SerializationContext(serialize_logic.topic_name, MessageField.VALUE)
+                return serialize_logic.serializer(row_dict, ctx)
+                
+        except Exception as e:
+            raise RuntimeError(f"Serialization failed: {str(e)}")
+    
+    return udf(serialize_logic, BinaryType())
+
+def get_transform_result(src_topic_name: str, deserialized_df: DataFrame) -> dict[str, DataFrame]:
+    transformer: BronzeJob
+    if src_topic_name == BronzeTopic.REVIEW:
+        transformer = ReviewBronzeJob()
+
+    elif src_topic_name == BronzeTopic.PAYMENT:
+        transformer = PaymentBronzeJob()
+
+    elif src_topic_name == BronzeTopic.ORDER_STATUS:
+        transformer = OrderStatusBronzeJob()
+
+    elif src_topic_name == BronzeTopic.PRODUCT:
+        transformer = ProductBronzeJob()
+
+    elif src_topic_name == BronzeTopic.CUSTOMER:
+        transformer = CustomerBronzeJob()
+
+    elif src_topic_name == BronzeTopic.SELLER:
+        transformer = SellerBronzeJob()
+
+    elif src_topic_name == BronzeTopic.GEOLOCATION:
+        transformer = GeolocationBronzeJob()
+
+    elif src_topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
+        transformer = EstimatedDeliveryDateBronzeJob()
+
+    elif src_topic_name == BronzeTopic.ORDER_ITEM:
+        transformer = OrderItemBronzeJob()
+
+    else:
+        raise ValueError("There is no job for bronze")
+
+    destination_dfs = transformer.transform(deserialized_df)
+    if len(destination_dfs) == 0:
+        raise ValueError("The # of transform: 0")
+    return destination_dfs
+
+def get_producer(dst_topic_name: str) -> SparkProducer:
+    if dst_topic_name == SilverTopic.REVIEW_CLEAN_COMMENT:
+        producer = ReviewCleanCommentSilverProducer
+
+    elif dst_topic_name == SilverTopic.REVIEW_METADATA:
+        producer = ReviewMetadataSilverProducer
+
+    elif dst_topic_name == SilverTopic.PAYMENT:
+        producer = PaymentSilverProducer
+
+    elif dst_topic_name == DeadLetterQueuerTopic.PAYMENT_DLQ:
+        producer = PaymentDeadLetterQueueSilverProducer
+
+    elif dst_topic_name == SilverTopic.ORDER_STATUS:
+        producer = OrderStatusSilverProducer
+
+    elif dst_topic_name == SilverTopic.PRODUCT:
+        producer = ProductSilverProducer
+
+    elif dst_topic_name == SilverTopic.CUSTOMER:
+        producer = CustomerSilverProducer
+
+    elif dst_topic_name == SilverTopic.SELLER:
+        producer = SellerSilverProducer
+
+    elif dst_topic_name == SilverTopic.GEOLOCATION:
+        producer = GeolocationSilverProducer
+
+    elif dst_topic_name == SilverTopic.ESTIMATED_DELIVERY_DATE:
+        producer = EstimatedDeliveryDateSilverProducer
+
+    elif dst_topic_name == SilverTopic.ORDER_ITEM:
+        producer = OrderItemSilverProducer
+    else:
+        raise ValueError("There is no producer for silver")
+
+    return producer
+
+def get_serialized_df(transformed_df: DataFrame, serializer_udf, key_columns: List[str]):
+    # DataFrame의 스키마를 순회하며 TimestampType인 컬럼을 모두 찾아서 string 변환: TimestampType는 직렬화 할 수 없음
+    # df_to_serialize = transformed_df
+    # for field in transformed_df.schema:
+    #     if isinstance(field.dataType, TimestampType):
+    #         print(f"Casting timestamp column '{field.name}' to string.")
+    #         df_to_serialize = df_to_serialize.withColumn(field.name, col(field.name).cast("string"))
+    
+    df_to_publish = transformed_df.select(
+        concat_ws("-", *[col(c).cast("string") for c in key_columns]).alias("key"),
+        # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
+        struct(*transformed_df.columns).alias("value_struct")
+    )
+
+    return df_to_publish.withColumn(
+        "value", serializer_udf(col("value_struct"))
+    )
+
 def transform_topic_stream(micro_batch_df:DataFrame, batch_id: int, serializer_udfs: dict):
     topics_in_batch = [row.topic for row in micro_batch_df.select("topic").distinct().collect()]
-    
     print(f"Processing Batch ID: {batch_id}, Topics: {topics_in_batch}")
-
-    # ⭐️ 토픽 이름과 처리 로직을 매핑하는 딕셔너리를 사용하여 if/elif 체인을 제거
-    JOB_MAP = {
-        BronzeTopic.CUSTOMER: (CustomerSilverJob, CustomerSilverProducer),
-        BronzeTopic.PAYMENT: (PaymentSilverJob, PaymentSilverProducer),
-        BronzeTopic.ORDER_STATUS: (OrderStatusSilverJob, OrderStatusSilverProducer),
-        # ... 다른 모든 단일 출력 토픽들을 여기에 추가 ...
-    }
 
     for topic_name in topics_in_batch:
         try:
-            avsc_reader = AvscReader(topic_name)
+            # debug
+            # BronzeTopic.CUSTOMER
+            # if topic_name not in [BronzeTopic.ORDER_ITEM]:
+            #     continue
+
             topic_df = micro_batch_df.filter(col("topic") == topic_name)
-            
-            deserialized_df = get_decoded_stream_df(topic_df, avsc_reader.schema_str)        
+            avsc_reader = AvscReader(topic_name)            
+            deserialized_df = get_decoded_stream_df(topic_df, avsc_reader.schema_str)
 
-            publish_map = {}
+            destination_dfs = get_transform_result(topic_name, deserialized_df) # key: dst_table_name(topic_name), value: DataFrame
 
-            # ⭐️ Review 토픽처럼 출력이 여러 개인 경우는 특별 처리
-            if topic_name == BronzeTopic.REVIEW:
-                destination_dfs = ReviewSilverJob().transform(deserialized_df)
-                publish_map[ReviewCleanCommentSilverProducer] = destination_dfs.get(ReviewCleanCommentSilverProducer.topic)
-                publish_map[ReviewMetadataSilverProducer] = destination_dfs.get(ReviewMetadataSilverProducer.topic)
-            
-            # ⭐️ 나머지 모든 토픽은 맵을 사용하여 일반적인 방식으로 처리
-            elif topic_name in JOB_MAP:
-                job_class, producer_class = JOB_MAP[topic_name]
-                destination_dfs = job_class().transform(deserialized_df)
-                publish_map[producer_class] = destination_dfs.get(producer_class.topic)
+            for dst_topic_name, transformed_df in destination_dfs.items():
 
-            if not publish_map or len(destination_dfs) == 0:
-                continue
+                producer_class = get_producer(dst_topic_name)
+                serializer_udf = serializer_udfs.get(producer_class.topic)
 
-            for producer_class, transformed_df in publish_map.items():
-                if transformed_df is None or transformed_df.isEmpty():
-                    continue
-                key_columns = producer_class.pk_column
-                if isinstance(key_columns, str):
-                    key_columns = [key_columns]
-                
-                # value_columns = [c for c in transformed_df.columns if c not in key_columns]
-                
-                # ⭐️ (수정) UDF를 목적지 Silver 토픽 이름으로 조회
-                dest_topic_name = producer_class.topic
-                serializer_udf = serializer_udfs.get(dest_topic_name)
                 if not serializer_udf:
-                    print(f"Warning: Serializer UDF for destination topic '{dest_topic_name}' not found. Skipping.")
+                    print(f"Warning: Serializer UDF for destination topic '{producer_class.topic}' not found. Skipping.")
                     continue
 
-                df_to_serialize = transformed_df
-                
-                # 1. DataFrame의 스키마를 순회하며 TimestampType인 컬럼을 모두 찾습니다.
-                for field in df_to_serialize.schema:
-                    if isinstance(field.dataType, TimestampType):
-                        print(f"Casting timestamp column '{field.name}' to string.")
-                        df_to_serialize = df_to_serialize.withColumn(field.name, col(field.name).cast("string"))
-                
-                df_to_publish = df_to_serialize.select(
-                    concat_ws("-", *[col(c).cast("string") for c in key_columns]).alias("key"),
-                    # ⭐️ struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듭니다.
-                    struct(*df_to_serialize.columns).alias("value_struct")
-                )
-
-                serialized_df = df_to_publish.withColumn(
-                    "value", serializer_udf(col("value_struct"))
-                )
-
+                serialized_df = get_serialized_df(transformed_df, serializer_udf, producer_class.pk_column)
                 producer_class.publish(serialized_df.select("key", "value"))
-                print(f"Published {transformed_df.count()} records for destination topic {dest_topic_name}")
+                print(f"Published {transformed_df.count()} records for destination topic {dst_topic_name}")
 
         except Exception as e:
             print(f"Error processing source topic {topic_name} in batch {batch_id}: {e}")

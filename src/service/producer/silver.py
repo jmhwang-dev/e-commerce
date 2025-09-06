@@ -1,9 +1,8 @@
 from service.producer.base.spark import SparkProducer
-from service.common.topic import SilverTopic
+from service.common.topic import SilverTopic, DeadLetterQueuerTopic
 
 class PaymentSilverProducer(SparkProducer):
     topic = SilverTopic.PAYMENT
-    topic_dlq = SilverTopic.PAYMENT_DLQ
     pk_column = ['order_id', 'payment_sequential']
 
 class ReviewCleanCommentSilverProducer(SparkProducer):
@@ -41,3 +40,12 @@ class OrderItemSilverProducer(SparkProducer):
 class EstimatedDeliveryDateSilverProducer(SparkProducer):
     topic = SilverTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
+
+# DLQ
+class ProductDeadLetterQueueSilverProducer(SparkProducer):
+    topic = DeadLetterQueuerTopic.PRODUCT_DLQ
+    pk_column = ['product_id']
+
+class PaymentDeadLetterQueueSilverProducer(SparkProducer):
+    topic = DeadLetterQueuerTopic.PAYMENT_DLQ
+    pk_column = ['order_id', 'payment_sequential']

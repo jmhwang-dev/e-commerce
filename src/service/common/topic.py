@@ -14,8 +14,6 @@ class IngestionType(Enum):
 
 class BaseTopic:
     """Base class for Kafka topic definitions with common methods."""
-    TOPIC_PREFIX: str = ""
-
     @classmethod
     def get_all_topics(cls) -> List[str]:
         """모든 토픽 이름을 prefix와 함께 반환"""
@@ -40,8 +38,6 @@ class BaseTopic:
 
 class BronzeTopic(BaseTopic):
     """Topics for raw data ingestion (raw to bronze)."""
-    TOPIC_PREFIX = "bronze"
-    
     # CDC Topics
     PRODUCT = "cdc_product" 
     CUSTOMER = "cdc_customer"
@@ -57,8 +53,6 @@ class BronzeTopic(BaseTopic):
 
 class SilverTopic(BaseTopic):
     """Topics for bronze to silver processing."""
-    TOPIC_PREFIX = "silver"
-
     PRODUCT = "product"
     CUSTOMER = "customer" 
     SELLER = "seller"
@@ -70,8 +64,11 @@ class SilverTopic(BaseTopic):
     
     REVIEW_METADATA = "review_metadata"
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
+    
+class DeadLetterQueuerTopic(BaseTopic):
+    PAYMENT_DLQ = "payment_dlq"
+    PRODUCT_DLQ = "product_dlq"
+
+class InferenceTopic(BaseTopic):
     REVIEW_CONSISTENT_SENTIMENT = "review_consistent_sentiment"
     REVIEW_CONFLICT_SENTIMENT = "review_conflict_sentiment"
-    
-    # DLQ topic
-    PAYMENT_DLQ = "payment_dlq"

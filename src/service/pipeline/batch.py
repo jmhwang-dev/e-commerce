@@ -1,19 +1,21 @@
 from typing import Optional, Union, Dict
-from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame
-from pyspark.sql.types import StructType
-from pyspark.sql.functions import col, isnull, isnan, trim, lower, lit
+from pyspark.sql.functions import col, isnull, isnan, lower, lit, when
 from functools import reduce
 from operator import or_
 
 from schema.silver import *
+from service.common.topic import SilverTopic, DeadLetterQueuerTopic
 from service.utils.iceberg import *
 from service.pipeline.review import PortuguessPreprocessor, get_review_metadata
 
-class SilverJob:
-    # ... (SilverJob base class remains mostly the same as before) ...
-    clean_namespace = "warehousedev.silver"
-    quarantine_namespace = "warehousedev.silver.quarantine"
+class BronzeJob:
+    """
+    Jobs for Bronze to Silver
+    Input: DataFrame
+    Output: Table
+    """
+    # ... (BronzeJob base class remains mostly the same as before) ...
+    dst_namesapce = "warehousedev.silver"
     watermark_table = "warehousedev.silver.watermarks"
 
     def __init__(self, spark: SparkSession = None):
@@ -23,7 +25,8 @@ class SilverJob:
         self.end_snapshot_id: Optional[int] = None
         self.src_table_identifier: str = ''
         self.dst_table_name: str = ''
-        self.clean_schema: Union[Dict[str, StructType], StructType] = {}
+        self.dst_table_name_dlq: str = ''
+        self.dst_schema: Union[Dict[str, StructType], StructType]
 
     def set_incremental_df(self):
         print(f"[{self.job_name}] Setting incremental dataframe...")
@@ -53,134 +56,117 @@ class SilverJob:
             print(f"[{self.job_name}] Incremental load from after {last_id} to {self.end_snapshot_id}")
             self.incremental_df = self.spark.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
 
-    def transform(self, _df:DataFrame) -> dict[str, DataFrame]:
+    def transform(self, _df: DataFrame) -> dict[str, DataFrame]:
         print(f"[{self.job_name}] Starting ETL...")
-        # 3. Efficient and robust null/NaN/whitespace handling
-        # df_trimmed = _df
-        # for c, dtype in df.dtypes:
-        #     if dtype == 'string':
-        #         df_trimmed = df_trimmed.withColumn(c, trim(col(c)))
-        
         df = _df.dropDuplicates()
+
+        expressions = []
+        for field in self.dst_schema.fields:
+            field_name = field.name
+            target_type = field.dataType
+            
+            if field_name not in df.columns:
+                expressions.append(lit(None).cast(target_type).alias(field_name))
+                continue
+
+            current_col = col(field_name)
+            expression = current_col
+            source_type = df.schema[field_name].dataType
+
+            # 실수 타입 처리: NaN -> null
+            if isinstance(source_type, (FloatType, DoubleType)):
+                expression = when(isnan(current_col), None).otherwise(current_col)
+            # 문자열 타입 처리: 'null', 'nan', '' -> null
+            elif isinstance(source_type, StringType):
+                expression = when(lower(current_col).isin('null', 'nan', ''), None).otherwise(current_col)
+
+            # 최종적으로 대상 스키마의 데이터 타입으로 변환
+            expressions.append(expression.cast(target_type).alias(field_name))
+
+        cleaned_df = df.select(*expressions)
+
+        # Null 포함 여부에 따라 데이터프레임 분리
+        null_conditions = [isnull(c) for c in cleaned_df.columns]
+        final_null_condition = reduce(or_, null_conditions)
+
+        df_null: DataFrame = cleaned_df.filter(final_null_condition)
+        df_not_null: DataFrame = cleaned_df.filter(~final_null_condition)
+
+        destination_dfs = {
+            self.dst_table_name: df_not_null,
+            self.dst_table_name_dlq: df_null
+        }
         
-        conditions = []
-        for c, dtype in df.dtypes:
-            if dtype in ('float', 'double'): conditions.append(isnull(c) | isnan(c))
-            elif dtype == 'string': conditions.append(isnull(c) | (lower(col(c)).isin('null', 'nan', '')))
-            else: conditions.append(isnull(c))
-        
-        null_condition = reduce(or_, conditions) if conditions else lit(False)
-        df_null: DataFrame = df.filter(null_condition)
-        df_not_null: DataFrame = df.filter(~null_condition)
-
-        destination_dfs = {}
-
-        if not df_not_null.isEmpty():
-            # clean_table_identifier = f"{self.clean_namespace}.{self.dst_table_name}"
-            applied_df = df_not_null.select([col(f.name).cast(f.dataType) for f in self.clean_schema.fields])
-            destination_dfs[self.dst_table_name] = applied_df
-            # print(f"Writing {df_not_null.count()} clean records to {clean_table_identifier}...")
-            # append_or_create_table(self.spark, applied_df, clean_table_identifier)
-
-        if not df_null.isEmpty():
-            # error_table_identifier = f"{self.quarantine_namespace}.{self.dst_table_name}"
-            destination_dfs[self.dst_table_name] = df_null
-            # print(f"Writing {df_null.count()} bad records to {error_table_identifier}...")
-            # append_or_create_table(self.spark, df_null, error_table_identifier)
         print(f"[{self.job_name}] Finish ETL...")
         return destination_dfs
-
-
-    # def run(self):
-    #     print(f"============== [{self.job_name}] Job Started ==============")
-    #     self.set_incremental_df()
-
-    #     if self.incremental_df and not self.incremental_df.isEmpty():
-    #         self.etl_pipeline()
-    #         if self.end_snapshot_id:
-    #             update_watermark(self.spark, self.watermark_table, self.job_name, self.end_snapshot_id)
-    #     else:
-    #         print(f"[{self.job_name}] No new data found. Skipping ETL.")
-    #     print(f"============== [{self.job_name}] Job Finished ==============")
-
 # --- Concrete Job Implementation ---
 
-class CustomerSilverJob(SilverJob):
+class CustomerBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_customer'
-        self.dst_table_name = 'customer'
-        self.clean_schema = CUSTOMER_SCHEMA
+        self.dst_table_name = SilverTopic.CUSTOMER
+        self.dst_schema = CUSTOMER_SCHEMA
 
-class EstimatedDeliveryDateSilverJob(SilverJob):
+class EstimatedDeliveryDateBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_estimated_delivery_date'
-        self.dst_table_name = 'estimated_delivery_date'
-        self.clean_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
+        self.dst_table_name = SilverTopic.ESTIMATED_DELIVERY_DATE
+        self.dst_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
 
-class GeolocationSilverJob(SilverJob):
+class GeolocationBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_geolocation'
-        self.dst_table_name = 'geolocation'
-        self.clean_schema = GEOLOCATION_SCHEMA
+        self.dst_table_name = SilverTopic.GEOLOCATION
+        self.dst_schema = GEOLOCATION_SCHEMA
 
-class OrderItemSilverJob(SilverJob):
+class OrderItemBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_order_item'
-        self.dst_table_name = 'order_item'
-        self.clean_schema = ORDER_ITEM_SCHEMA
+        self.dst_table_name = SilverTopic.ORDER_ITEM
+        self.dst_schema = ORDER_ITEM_SCHEMA
 
-class ProductSilverJob(SilverJob):
+class ProductBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_product'
-        self.dst_table_name = 'product'
-        self.clean_schema = PRODUCT_SCHEMA
+        self.dst_table_name = SilverTopic.PRODUCT
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.PRODUCT_DLQ
+        self.dst_schema = PRODUCT_SCHEMA
 
-class SellerSilverJob(SilverJob):
+class SellerBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_seller'
-        self.dst_table_name = 'seller'
-        self.clean_schema = SELLER_SCHEMA
+        self.dst_table_name = SilverTopic.SELLER
+        self.dst_schema = SELLER_SCHEMA
 
-class OrderStatusSilverJob(SilverJob):
+class OrderStatusBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_order_status'
-        self.dst_table_name = 'order_status'
-        self.clean_schema = ORDER_STATUS_SCHEMA
+        self.dst_table_name = SilverTopic.ORDER_STATUS
+        self.dst_schema = ORDER_STATUS_SCHEMA
 
-class PaymentSilverJob(SilverJob):
+class PaymentBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_payment'
-        self.dst_table_name = 'payment'
-        self.clean_schema = PAYMENT_SCHEMA
+        self.dst_table_name = SilverTopic.PAYMENT
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.PAYMENT_DLQ
+        self.dst_schema = PAYMENT_SCHEMA
 
-class ReviewSilverJob(SilverJob):
-    class TableName(Enum):
-        REVIEW_CLEAN_COMMENT = "review_clean_comment"
-        REVIEW_METADATA = "review_metadata"
-
+class ReviewBronzeJob(BronzeJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_review'
-        self.clean_schema = {
-            self.TableName.REVIEW_CLEAN_COMMENT.value: REVIEW_CLEAN_COMMENT_SCHEMA,
-            self.TableName.REVIEW_METADATA.value: REVIEW_METADATA_SCHEMA
-        }
 
-    def transform(self, _df) -> dict[str, DataFrame]:
+    def transform(self, df) -> dict[str, DataFrame]:
         """Custom ETL logic for review data."""
         print(f"[{self.job_name}] Starting custom ETL pipeline...")
-        
-        # Pre-processing can be done here before complex transformations
-        # df = self.incremental_df.dropDuplicates(["review_id"]) # Example: deduplicate by a key
-        df = _df
 
         melted_df = PortuguessPreprocessor.melt_reviews(df)
         clean_comment_df = PortuguessPreprocessor.clean_review_comment(melted_df)
@@ -188,20 +174,8 @@ class ReviewSilverJob(SilverJob):
 
         # A dictionary to hold the final DataFrames for each destination table
         destination_dfs = {
-            self.TableName.REVIEW_CLEAN_COMMENT.value: clean_comment_df,
-            self.TableName.REVIEW_METADATA.value: metadata_df
+            SilverTopic.REVIEW_CLEAN_COMMENT: clean_comment_df,
+            SilverTopic.REVIEW_METADATA: metadata_df
         }
         print(f"[{self.job_name}] Finish ETL...")
         return destination_dfs
-        
-        # for table_name_enum in self.TableName:
-        #     table_name = table_name_enum.value
-        #     _df = destination_dfs.get(table_name)
-        #     if _df and not _df.isEmpty():
-        #         table_identifier = f"{self.clean_namespace}.{table_name}"
-        #         schema = self.clean_schema[table_name]
-                
-        #         print(f"Writing {_df.count()} records to {table_identifier}...")
-        #         # Null/error handling can be applied here before writing
-        #         applied_df = _df.select([col(f.name).cast(f.dataType) for f in schema.fields])
-        #         append_or_create_table(self.spark, applied_df, table_identifier)

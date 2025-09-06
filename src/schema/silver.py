@@ -21,7 +21,7 @@ CUSTOMER_SCHEMA = StructType([
 
 ESTIMATED_DELIVERY_DATE_SCHEMA = StructType([
     StructField("order_id", StringType(), True),
-    StructField("estimated_delivery_date", StringType(), True)
+    StructField("estimated_delivery_date", TimestampType(), True)
 ])
 
 GEOLOCATION_SCHEMA = StructType([
@@ -35,7 +35,7 @@ GEOLOCATION_SCHEMA = StructType([
 ORDER_ITEM_SCHEMA = StructType([
     StructField("order_id", StringType(), True),
     StructField("order_item_id", IntegerType(), True),
-    StructField("shipping_limit_date", StringType(), True),
+    StructField("shipping_limit_date", TimestampType(), True),
     StructField("price", FloatType(), True),
     StructField("freight_value", FloatType(), True),
     StructField("product_id", StringType(), True),
@@ -45,7 +45,7 @@ ORDER_ITEM_SCHEMA = StructType([
 ORDER_STATUS_SCHEMA = StructType([
     StructField("order_id", StringType(), True),
     StructField("status", StringType(), True),
-    StructField("timestamp", StringType(), True)
+    StructField("timestamp", TimestampType(), True)
 ])
 
 PAYMENT_SCHEMA = StructType([
