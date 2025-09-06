@@ -1,14 +1,15 @@
-from typing import Iterable
-from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
+from typing import Iterable, Union
 
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import NewTopic, AdminClient
 from confluent_kafka import SerializingProducer, DeserializingConsumer
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
+from confluent_kafka import KafkaException
+from confluent_kafka.error import KafkaError
 
 from service.common.topic import *
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from config.kafka import *
 
 import time
@@ -43,14 +44,21 @@ def get_confluent_kafka_consumer(group_id: str, topic_names:list, use_internal=F
     consumer.subscribe(topic_names)
     return consumer
 
-def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False) -> SerializingProducer:
+def get_confluent_serializer_conf(topic: str, use_internal=False) -> Tuple[Union[AvroSerializer, StringSerializer], List[str]]:
     if not use_internal:
         bootstrap_server_list = BOOTSTRAP_SERVERS_EXTERNAL.split(',')
     else:
         bootstrap_server_list = BOOTSTRAP_SERVERS_INTERNAL.split(',')
 
-    if topic is None or len(topic) == 0:
-        serializer = StringSerializer('utf_8')
+    if topic is None or topic == '':
+        # JSON 직렬화 함수 반환
+        # Confluent 라이브러리의 규칙: AvroSerializer와 같은 Confluent의 공식 직렬화기(Serializer)들은 데이터를 직렬화할 때 항상 2개의 인자를 받도록 설계됨
+        def json_serializer(data, ctx):
+            if isinstance(data, dict):
+                return json.dumps(data).encode('utf-8')
+            else:
+                return json.dumps(str(data)).encode('utf-8')
+        serializer = json_serializer
     else:
         client = SchemaRegistryManager._get_client(use_internal)
         schema_obj = client.get_latest_version(topic).schema
@@ -63,7 +71,9 @@ def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False
                 'subject.name.strategy': lambda ctx, record_name: topic
                 }
         )
+    return serializer, bootstrap_server_list
 
+def get_confluent_kafka_producer(bootstrap_server_list: List[str], serializer: Union[AvroSerializer, StringSerializer]) -> SerializingProducer:
     producer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],
         'key.serializer': StringSerializer('utf_8'),
@@ -74,27 +84,54 @@ def get_confluent_kafka_producer(topic: Optional[str] = None, use_internal=False
     return SerializingProducer(producer_conf)
 
 def delete_topics(admin_client: AdminClient, topic_names_to_delete: Iterable[str]):
-    for topic_name in topic_names_to_delete:
+    """
+    Asynchronously deletes topics. The call returns a dict of futures.
+    We wait for each future to finish to check for errors.
+    """
+    
+    # delete_topics는 토픽 이름과 Future 객체를 담은 딕셔너리를 반환합니다.
+    fs = admin_client.delete_topics(topic_names_to_delete)
+
+    # 각 토픽의 Future 결과를 기다리며 성공/실패를 확인합니다.
+    for topic, f in fs.items():
         try:
-            admin_client.delete_topics(topics=[topic_name])
-            print(f"Deleted topic: {topic_name}")
-        except UnknownTopicOrPartitionError:
-            print(f"Topic {topic_name} does not exist, skipping deletion.")
-        except Exception as e:  # 기타 예외 (e.g., 지연/연결 문제)
-            print(f"Error deleting topic {topic_name}: {e}")
+            # f.result()를 호출하여 작업이 완료될 때까지 기다립니다.
+            f.result()
+            print(f"Deleted topic: {topic}")
+        except KafkaException as e:
+            # f.result()에서 예외가 발생한 경우입니다.
+            # 에러 코드를 확인하여 존재하지 않는 토픽인지 확인합니다.
+            if e.args[0].code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
+                print(f"Topic {topic} does not exist, skipping deletion.")
+            else:
+                # 그 외 다른 카프카 에러
+                print(f"Error deleting topic {topic}: {e}")
 
 def create_topics(admin_client: AdminClient, topics_names_to_create: Iterable[str]):
-    for topic_name in topics_names_to_create:
-        topic = NewTopic(
-            topic_name,
-            num_partitions=1,
-            replication_factor=2
-        )
+    """
+    Asynchronously creates topics. The call returns a dict of futures.
+    We wait for each future to finish to check for errors.
+    """
+    new_topics = [NewTopic(topic, num_partitions=1, replication_factor=2) for topic in topics_names_to_create]
+    
+    # create_topics는 토픽 이름과 Future 객체를 담은 딕셔너리를 반환합니다.
+    fs = admin_client.create_topics(new_topics)
+
+    # 각 토픽의 Future 결과를 기다리며 성공/실패를 확인합니다.
+    for topic, f in fs.items():
         try:
-            admin_client.create_topics(new_topics=[topic], validate_only=False)
-            print(f"Created topic: {topic_name}")
-        except TopicAlreadyExistsError:
-            print(f"Topic {topic_name} already exists, skipping creation.")
+            # f.result()를 호출하면 작업이 완료될 때까지 기다립니다.
+            # 성공하면 아무것도 반환하지 않습니다.
+            f.result()
+            print(f"Created topic: {topic}")
+        except KafkaException as e:
+            # f.result()에서 예외가 발생한 경우입니다.
+            # 에러 코드를 확인하여 이미 존재하는 토픽인지 확인합니다.
+            if e.args[0].code() == KafkaError.TOPIC_ALREADY_EXISTS:
+                print(f"Topic {topic} already exists, skipping creation.")
+            else:
+                # 그 외 다른 카프카 에러
+                print(f"Failed to create topic {topic}: {e}")
 
 def wait_for_partition_assignment(consumer):
     max_attempts = 10

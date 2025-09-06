@@ -1,7 +1,7 @@
 {
-  "namespace": "warehousedev.bronze",
+  "namespace": "warehousedev.silver",
   "type": "record",
-  "name": "cdc_product",
+  "name": "product_dlq",
   "fields": [
     { "name": "product_id", "type": ["null", "string"], "default": null },
     { "name": "weight_g", "type": ["null", "float"], "default": null },

@@ -1,25 +1,29 @@
 from service.common.topic import *
-from service.common.schema import *
+from service.utils.schema.registry_manager import *
 from service.producer.bronze import *
 from service.utils.kafka import *
 
 import time
 
 if __name__=="__main__":
-    
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    topic_names = BronzeTopic.get_all_topics()
+    topic_names = BronzeTopic.get_all_topics() + SilverTopic.get_all_topics() + DeadLetterQueuerTopic.get_all_topics() + InferenceTopic.get_all_topics()
     delete_topics(admin_client, topic_names)
     create_topics(admin_client, topic_names)
-    
     register_schema()
-    interval = 0  # seconds
-    upper_limit_payload = 10
-    order_status_df = OrderStatusBronzeProducer.get_df()
-    for i, order_status_series in order_status_df.iterrows():
 
-        if i > 1 and i % upper_limit_payload == 0:
-            time.sleep(interval)
+    base_interval = 5  # seconds
+    order_status_df = OrderStatusBronzeProducer.get_df()
+    current_timestamp = order_status_df.iloc[0, 0] - pd.Timedelta(seconds=1)
+    for i, order_status_series in order_status_df.iterrows():
+        new_timestamp = order_status_series['timestamp']
+        diff_time = new_timestamp - current_timestamp
+
+        # transaction replay: mock real-time transaction
+        if diff_time > pd.Timedelta(seconds=base_interval):
+            time.sleep(base_interval)
+        else:
+            time.sleep(diff_time.total_seconds())
 
         order_status_log, status, order_id = \
             OrderStatusBronzeProducer.mock_order_status_log(order_status_series)
@@ -61,9 +65,12 @@ if __name__=="__main__":
             geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
             GeolocationBronzeProducer.publish(geolcation)
 
+            # TODO: select review_log based on `current_timestamp`
+            review_log = ReviewBronzeProducer.select('order_id', order_id)
+            ReviewBronzeProducer.publish(review_log)
+
         elif status == 'approved':
             estimated_date = EstimatedDeliberyDateBronzeProducer.select('order_id', order_id)
             EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
 
-        review_log = ReviewBronzeProducer.select('order_id', order_id)
-        ReviewBronzeProducer.publish(review_log)
+        current_timestamp = new_timestamp

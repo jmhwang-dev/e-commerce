@@ -3,13 +3,10 @@
   "type": "record",
   "name": "estimated_delivery_date",
   "fields": [
-    {
-      "name": "order_id",
-      "type": "string"
-    },
+    { "name": "order_id", "type": "string" },
     {
       "name": "estimated_delivery_date",
-      "type": "string"
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
     }
   ]
 }

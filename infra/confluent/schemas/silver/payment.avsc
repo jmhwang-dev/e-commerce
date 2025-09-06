@@ -3,33 +3,15 @@
   "type": "record",
   "name": "payment",
   "fields": [
-    {
-      "name": "order_id",
-      "type": "string"
-    },
-    {
-      "name": "payment_sequential",
-      "type": "int"
-    },
+    { "name": "order_id", "type": "string" },
+    { "name": "payment_sequential", "type": "int" },
     {
       "name": "timestamp",
-      "type": "string"
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
     },
-    {
-      "name": "payment_value",
-      "type": "float"
-    },
-    {
-      "name": "payment_type",
-      "type": "string"
-    },
-    {
-      "name": "payment_installments",
-      "type": "int"
-    },
-    {
-      "name": "customer_id",
-      "type": "string"
-    }
+    { "name": "payment_value", "type": "float" },
+    { "name": "payment_type", "type": "string" },
+    { "name": "payment_installments", "type": "int" },
+    { "name": "customer_id", "type": "string" }
   ]
 }

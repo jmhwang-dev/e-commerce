@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from service.producer.base.pandas import PandasProducer
 from service.common.topic import *
+from config.kafka import DATASET_DIR
 
 class BronzeProducer(PandasProducer):
     file_path: Path = Path()
@@ -14,7 +15,13 @@ class BronzeProducer(PandasProducer):
         """TSV 파일 로드"""
         try:
             cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
+            timestamp_cols = ['estimated_delivery_date', 'shipping_limit_date', 'timestamp', 'review_creation_date', 'review_answer_timestamp']
             df = pd.read_csv(cls.file_path, sep='\t')
+            for col in df.columns:
+                if col not in timestamp_cols:
+                    continue
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+
             for pk_col in cls.pk_column:
                 if pk_col not in df.columns:
                     raise ValueError(f"Column {pk_col} not found in {cls.file_path}")
