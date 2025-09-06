@@ -19,13 +19,11 @@ if __name__=="__main__":
         new_timestamp = order_status_series['timestamp']
         diff_time = new_timestamp - current_timestamp
 
-        # data replay: mock real-time
+        # transaction replay: mock real-time transaction
         if diff_time > pd.Timedelta(seconds=base_interval):
             time.sleep(base_interval)
         else:
             time.sleep(diff_time.total_seconds())
-
-        current_timestamp = new_timestamp
 
         order_status_log, status, order_id = \
             OrderStatusBronzeProducer.mock_order_status_log(order_status_series)
@@ -67,6 +65,7 @@ if __name__=="__main__":
             geolcation = GeolocationBronzeProducer.select('zip_code', zip_code)
             GeolocationBronzeProducer.publish(geolcation)
 
+            # TODO: select review_log based on `current_timestamp`
             review_log = ReviewBronzeProducer.select('order_id', order_id)
             ReviewBronzeProducer.publish(review_log)
 
@@ -74,4 +73,4 @@ if __name__=="__main__":
             estimated_date = EstimatedDeliberyDateBronzeProducer.select('order_id', order_id)
             EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
 
-        
+        current_timestamp = new_timestamp
