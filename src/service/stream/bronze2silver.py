@@ -1,15 +1,15 @@
-from typing import List
+from typing import List, Optional
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import BinaryType
 from pyspark.sql.functions import col, struct, concat_ws, udf
 from confluent_kafka.serialization import SerializationContext, MessageField
 
-from service.common.topic import BronzeTopic
+from service.stream.topic import BronzeTopic
 from service.producer.silver import *
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_decoded_stream_df
 from service.utils.kafka import get_confluent_serializer_conf
-from service.pipeline.batch import *
+from service.batch.bronze2silver import *
 
 def get_confluent_serializer_udf(subject: Optional[str] = None, use_internal=True):
     def serialize_logic(row_struct: Row) -> bytes:
@@ -37,33 +37,33 @@ def get_confluent_serializer_udf(subject: Optional[str] = None, use_internal=Tru
     return udf(serialize_logic, BinaryType())
 
 def get_transform_result(src_topic_name: str, deserialized_df: DataFrame) -> dict[str, DataFrame]:
-    transformer: BronzeJob
+    transformer: BronzeToSilverJob
     if src_topic_name == BronzeTopic.REVIEW:
-        transformer = ReviewBronzeJob()
+        transformer = ReviewBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.PAYMENT:
-        transformer = PaymentBronzeJob()
+        transformer = PaymentBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ORDER_STATUS:
-        transformer = OrderStatusBronzeJob()
+        transformer = OrderStatusBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.PRODUCT:
-        transformer = ProductBronzeJob()
+        transformer = ProductBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.CUSTOMER:
-        transformer = CustomerBronzeJob()
+        transformer = CustomerBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.SELLER:
-        transformer = SellerBronzeJob()
+        transformer = SellerBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.GEOLOCATION:
-        transformer = GeolocationBronzeJob()
+        transformer = GeolocationBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
-        transformer = EstimatedDeliveryDateBronzeJob()
+        transformer = EstimatedDeliveryDateBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ORDER_ITEM:
-        transformer = OrderItemBronzeJob()
+        transformer = OrderItemBronzeToSilverJob()
 
     else:
         raise ValueError("There is no job for bronze")

@@ -1,16 +1,15 @@
 from functools import partial
 
-from service.common.topic import BronzeTopic, SilverTopic, DeadLetterQueuerTopic
+from service.stream.topic import BronzeTopic, SilverTopic, DeadLetterQueuerTopic
 from service.utils.spark import get_spark_session, get_kafka_stream_df
-from service.utils.schema.reader import AvscReader
 from service.utils.schema.registry_manager import SchemaRegistryManager
-from service.pipeline.transform import transform_topic_stream, get_confluent_serializer_udf
+from service.stream.bronze2silver import transform_topic_stream, get_confluent_serializer_udf
 
 SRC_TOPIC_NAMES = BronzeTopic.get_all_topics()
 DST_TOPIC_NAMES = SilverTopic.get_all_topics() + DeadLetterQueuerTopic.get_all_topics()
 
 if __name__ == "__main__":
-    spark_session = get_spark_session("TransformBronzeTopicsJob")
+    spark_session = get_spark_session("TransformBronzeTopicToSilverTopicJob")
     client = SchemaRegistryManager._get_client(use_internal=True)
     src_stream_df = get_kafka_stream_df(spark_session, SRC_TOPIC_NAMES)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 from functools import lru_cache
 
 from service.producer.base.pandas import PandasProducer
-from service.common.topic import *
+from service.stream.topic import *
 from config.kafka import DATASET_DIR
 
 class BronzeProducer(PandasProducer):

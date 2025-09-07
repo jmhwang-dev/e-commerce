@@ -18,8 +18,9 @@ services:
 
     volumes:
       - ./configs/spark:/opt/spark/conf
-      - ./notebooks/spark:/notebooks/
+      - ./notebooks/spark:/opt/spark/work-dir
       - ./jobs/:/jobs/
+      - ./src/:/mnt/src
       - ./logs/spark/:/opt/spark/logs/
       - ./downloads/jmx_exporter:/mnt/jmx_exporter/
       - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
@@ -28,6 +29,8 @@ services:
     environment:
       - SPARK_NO_DAEMONIZE=true # run foreground
       - AWS_REGION=us-east-1    # tmp value to load minio. TODO: thrift-server만 워커로 전달하는지 확인. 잡 제출할 때는 명시적으로 넘겨줘야 함
+      - PYTHONPATH=/mnt/src
+
     
     mem_limit: 4g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
     cpus: 1.0  # 드라이버 코어 제한

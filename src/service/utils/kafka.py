@@ -8,7 +8,7 @@ from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerialize
 from confluent_kafka import KafkaException
 from confluent_kafka.error import KafkaError
 
-from service.common.topic import *
+from service.stream.topic import *
 from service.utils.schema.registry_manager import *
 from config.kafka import *
 

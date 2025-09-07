@@ -1,5 +1,5 @@
 from service.producer.base.spark import SparkProducer
-from service.common.topic import SilverTopic, DeadLetterQueuerTopic
+from service.stream.topic import SilverTopic, DeadLetterQueuerTopic
 
 class PaymentSilverProducer(SparkProducer):
     topic = SilverTopic.PAYMENT

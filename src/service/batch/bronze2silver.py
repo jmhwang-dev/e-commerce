@@ -4,17 +4,17 @@ from functools import reduce
 from operator import or_
 
 from schema.silver import *
-from service.common.topic import SilverTopic, DeadLetterQueuerTopic
+from service.stream.topic import SilverTopic, DeadLetterQueuerTopic
 from service.utils.iceberg import *
-from service.pipeline.review import PortuguessPreprocessor, get_review_metadata
+from service.batch.review import PortuguessPreprocessor, get_review_metadata
 
-class BronzeJob:
+class BronzeToSilverJob:
     """
     Jobs for Bronze to Silver
     Input: DataFrame
     Output: Table
     """
-    # ... (BronzeJob base class remains mostly the same as before) ...
+    # ... (BronzeToSilverJob base class remains mostly the same as before) ...
     dst_namesapce = "warehousedev.silver"
     watermark_table = "warehousedev.silver.watermarks"
 
@@ -101,35 +101,35 @@ class BronzeJob:
         return destination_dfs
 # --- Concrete Job Implementation ---
 
-class CustomerBronzeJob(BronzeJob):
+class CustomerBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_customer'
         self.dst_table_name = SilverTopic.CUSTOMER
         self.dst_schema = CUSTOMER_SCHEMA
 
-class EstimatedDeliveryDateBronzeJob(BronzeJob):
+class EstimatedDeliveryDateBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_estimated_delivery_date'
         self.dst_table_name = SilverTopic.ESTIMATED_DELIVERY_DATE
         self.dst_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
 
-class GeolocationBronzeJob(BronzeJob):
+class GeolocationBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_geolocation'
         self.dst_table_name = SilverTopic.GEOLOCATION
         self.dst_schema = GEOLOCATION_SCHEMA
 
-class OrderItemBronzeJob(BronzeJob):
+class OrderItemBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_order_item'
         self.dst_table_name = SilverTopic.ORDER_ITEM
         self.dst_schema = ORDER_ITEM_SCHEMA
 
-class ProductBronzeJob(BronzeJob):
+class ProductBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_product'
@@ -137,21 +137,21 @@ class ProductBronzeJob(BronzeJob):
         self.dst_table_name_dlq = DeadLetterQueuerTopic.PRODUCT_DLQ
         self.dst_schema = PRODUCT_SCHEMA
 
-class SellerBronzeJob(BronzeJob):
+class SellerBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_seller'
         self.dst_table_name = SilverTopic.SELLER
         self.dst_schema = SELLER_SCHEMA
 
-class OrderStatusBronzeJob(BronzeJob):
+class OrderStatusBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_order_status'
         self.dst_table_name = SilverTopic.ORDER_STATUS
         self.dst_schema = ORDER_STATUS_SCHEMA
 
-class PaymentBronzeJob(BronzeJob):
+class PaymentBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_payment'
@@ -159,7 +159,7 @@ class PaymentBronzeJob(BronzeJob):
         self.dst_table_name_dlq = DeadLetterQueuerTopic.PAYMENT_DLQ
         self.dst_schema = PAYMENT_SCHEMA
 
-class ReviewBronzeJob(BronzeJob):
+class ReviewBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self, spark: SparkSession = None):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_review'
