@@ -6,7 +6,7 @@ from operator import or_
 from schema.silver import *
 from service.stream.topic import SilverTopic, DeadLetterQueuerTopic
 from service.utils.iceberg import *
-from service.batch.review import PortuguessPreprocessor, get_review_metadata
+from service.stream.review import PortuguessPreprocessor, get_review_metadata
 
 class BronzeToSilverJob:
     """

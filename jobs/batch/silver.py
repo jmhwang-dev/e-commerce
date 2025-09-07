@@ -1,6 +1,6 @@
 from typing import List
 from service.utils.spark import get_spark_session
-from service.batch.bronze2silver import *
+from service.stream.common import *
 from service.utils.iceberg import append_or_create_table
 
 

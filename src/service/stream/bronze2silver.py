@@ -9,7 +9,7 @@ from service.producer.silver import *
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_decoded_stream_df
 from service.utils.kafka import get_confluent_serializer_conf
-from service.batch.bronze2silver import *
+from service.stream.common import *
 
 def get_confluent_serializer_udf(subject: Optional[str] = None, use_internal=True):
     def serialize_logic(row_struct: Row) -> bytes:
