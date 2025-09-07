@@ -1,15 +1,27 @@
-from typing import Iterable
+from typing import Iterable, List, Optional
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Row
 
 from pyspark.sql.streaming import StreamingQuery
-from pyspark.sql.functions import col, expr, from_json
+from pyspark.sql.functions import col, expr, from_json, udf, concat_ws, struct
 from pyspark.sql.avro.functions import from_avro
+from pyspark.sql.types import BinaryType
 
 from config.spark import *
 from config.kafka import *
+
+def get_serialized_df(transformed_df: DataFrame, serializer_udf, key_columns: List[str]):
+    df_to_publish = transformed_df.select(
+        concat_ws("-", *[col(c).cast("string") for c in key_columns]).alias("key"),
+        # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
+        struct(*transformed_df.columns).alias("value_struct")
+    )
+
+    return df_to_publish.withColumn(
+        "value", serializer_udf(col("value_struct"))
+    )
 
 def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     """
