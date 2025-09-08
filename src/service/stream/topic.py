@@ -53,21 +53,28 @@ class BronzeTopic(BaseTopic):
 
 class SilverTopic(BaseTopic):
     """Topics for bronze to silver processing."""
+    PAYMENT = "payment"
     PRODUCT = "product"
     CUSTOMER = "customer" 
     SELLER = "seller"
     GEOLOCATION = "geolocation"
-    PAYMENT = "payment"
     ORDER_ITEM = "order_item"
     ORDER_STATUS = "order_status"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
-    
+
     REVIEW_METADATA = "review_metadata"
     REVIEW_CLEAN_COMMENT = "review_clean_comment"
     
 class DeadLetterQueuerTopic(BaseTopic):
+    """ Bronze topic -> Silver topic 에서 `Review` 데이터는 전처리 과정에서 null 처리하므로 dlq가 없음 """
     PAYMENT_DLQ = "payment_dlq"
     PRODUCT_DLQ = "product_dlq"
+    CUSTOMER_DLQ = "customer_dlq"
+    SELLER_DLQ = "seller_dlq"
+    GEOLOCATION_DLQ = "geolocation_dlq"
+    ORDER_ITEM_DLQ = "order_item_dlq"
+    ORDER_STATUS_DLQ = "order_status_dlq"
+    ESTIMATED_DELIVERY_DATE_DLQ = "estimated_delivery_date_dlq"
 
 class InferenceTopic(BaseTopic):
     REVIEW_CONSISTENT_SENTIMENT = "review_consistent_sentiment"

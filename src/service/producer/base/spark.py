@@ -26,6 +26,9 @@ class SparkProducer(BaseProducer):
             .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL)
             .option("topic", cls.topic) # .value 추가 (Enum 객체이므로)
             .save())
+        
+        print(f"# of published records: {serialized_df.count()}. Topic name: {cls.topic}")
+
 
 
     # @classmethod

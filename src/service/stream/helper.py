@@ -1,52 +1,40 @@
-from typing import List, Optional
-from pyspark.sql import DataFrame, Row
-from pyspark.sql.types import BinaryType
-from pyspark.sql.functions import col, struct, concat_ws, udf
-from confluent_kafka.serialization import SerializationContext, MessageField
-
 from service.stream.topic import BronzeTopic
 from service.producer.silver import *
-from service.utils.schema.reader import AvscReader
-from service.utils.spark import get_decoded_stream_df
-from service.utils.kafka import get_confluent_serializer_conf
-from service.job.base import *
+from service.stream.base import *
 
-def get_transform_result(src_topic_name: str, deserialized_df: DataFrame) -> dict[str, DataFrame]:
-    transformer: BronzeToSilverJob
+def get_job(src_topic_name: str) -> BronzeToSilverJob:
+    job: BronzeToSilverJob
     if src_topic_name == BronzeTopic.REVIEW:
-        transformer = ReviewBronzeToSilverJob()
+        job = ReviewBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.PAYMENT:
-        transformer = PaymentBronzeToSilverJob()
+        job = PaymentBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ORDER_STATUS:
-        transformer = OrderStatusBronzeToSilverJob()
+        job = OrderStatusBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.PRODUCT:
-        transformer = ProductBronzeToSilverJob()
+        job = ProductBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.CUSTOMER:
-        transformer = CustomerBronzeToSilverJob()
+        job = CustomerBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.SELLER:
-        transformer = SellerBronzeToSilverJob()
+        job = SellerBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.GEOLOCATION:
-        transformer = GeolocationBronzeToSilverJob()
+        job = GeolocationBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
-        transformer = EstimatedDeliveryDateBronzeToSilverJob()
+        job = EstimatedDeliveryDateBronzeToSilverJob()
 
     elif src_topic_name == BronzeTopic.ORDER_ITEM:
-        transformer = OrderItemBronzeToSilverJob()
+        job = OrderItemBronzeToSilverJob()
 
     else:
         raise ValueError("There is no job for bronze")
-
-    destination_dfs = transformer.transform(deserialized_df)
-    if len(destination_dfs) == 0:
-        raise ValueError("The # of transform: 0")
-    return destination_dfs
+    
+    return job
 
 def get_producer(dst_topic_name: str) -> SparkProducer:
     if dst_topic_name == SilverTopic.REVIEW_CLEAN_COMMENT:
@@ -82,6 +70,6 @@ def get_producer(dst_topic_name: str) -> SparkProducer:
     elif dst_topic_name == SilverTopic.ORDER_ITEM:
         producer = OrderItemSilverProducer
     else:
-        raise ValueError("There is no producer for silver")
+        raise ValueError("This topic is not destination")
 
     return producer

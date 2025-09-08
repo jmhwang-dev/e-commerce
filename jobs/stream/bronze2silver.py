@@ -1,9 +1,15 @@
 from functools import partial
+from pyspark.sql import Row
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BinaryType
+from confluent_kafka.serialization import SerializationContext, MessageField
 
 from service.stream.topic import BronzeTopic, SilverTopic, DeadLetterQueuerTopic
-from service.utils.spark import get_spark_session, get_kafka_stream_df, get_serialized_df
+from service.utils.spark import get_spark_session, get_kafka_stream_df, get_serialized_df, get_decoded_stream_df
 from service.utils.schema.registry_manager import SchemaRegistryManager
-from service.stream.processor import *
+from service.utils.schema.reader import AvscReader
+from service.utils.kafka import get_confluent_serializer_conf
+from service.stream.helper import *
 
 SRC_TOPIC_NAMES = BronzeTopic.get_all_topics()
 DST_TOPIC_NAMES = SilverTopic.get_all_topics() + DeadLetterQueuerTopic.get_all_topics()
@@ -48,23 +54,16 @@ def transform_topic_stream(micro_batch_df:DataFrame, batch_id: int, serializer_u
             avsc_reader = AvscReader(topic_name)            
             deserialized_df = get_decoded_stream_df(topic_df, avsc_reader.schema_str)
 
-            destination_dfs = get_transform_result(topic_name, deserialized_df) # key: dst_table_name(topic_name), value: DataFrame
+            job_instance = get_job(topic_name) # key: dst_table_name(topic_name), value: DataFrame
+            destination_dfs = job_instance.transform(deserialized_df)
 
             for dst_topic_name, transformed_df in destination_dfs.items():
-
                 producer_class = get_producer(dst_topic_name)
-                serializer_udf = serializer_udfs.get(producer_class.topic)
-
-                if not serializer_udf:
-                    print(f"Warning: Serializer UDF for destination topic '{producer_class.topic}' not found. Skipping.")
-                    continue
-
-                serialized_df = get_serialized_df(transformed_df, serializer_udf, producer_class.pk_column)
+                serialized_df = get_serialized_df(serializer_udfs, transformed_df, producer_class)
                 producer_class.publish(serialized_df.select("key", "value"))
-                print(f"Published {transformed_df.count()} records for destination topic {dst_topic_name}")
-
+                
         except Exception as e:
-            print(f"Error processing source topic {topic_name} in batch {batch_id}: {e}")
+            print(f"{topic_name} in batch {batch_id}: {e}")
 
 if __name__ == "__main__":
     spark_session = get_spark_session("TransformBronzeTopicToSilverTopicJob")

@@ -92,10 +92,11 @@ class BronzeToSilverJob:
         df_null: DataFrame = cleaned_df.filter(final_null_condition)
         df_not_null: DataFrame = cleaned_df.filter(~final_null_condition)
 
-        destination_dfs = {
-            self.dst_table_name: df_not_null,
-            self.dst_table_name_dlq: df_null
-        }
+        destination_dfs = {}
+        if not df_null.isEmpty():
+            destination_dfs[self.dst_table_name_dlq] = df_null
+        if not df_not_null.isEmpty():
+            destination_dfs[self.dst_table_name] = df_not_null
         
         print(f"[{self.job_name}] Finish ETL...")
         return destination_dfs
@@ -106,6 +107,7 @@ class CustomerBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_customer'
         self.dst_table_name = SilverTopic.CUSTOMER
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.CUSTOMER_DLQ
         self.dst_schema = CUSTOMER_SCHEMA
 
 class EstimatedDeliveryDateBronzeToSilverJob(BronzeToSilverJob):
@@ -113,6 +115,7 @@ class EstimatedDeliveryDateBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_estimated_delivery_date'
         self.dst_table_name = SilverTopic.ESTIMATED_DELIVERY_DATE
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
         self.dst_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
 
 class GeolocationBronzeToSilverJob(BronzeToSilverJob):
@@ -120,6 +123,7 @@ class GeolocationBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_geolocation'
         self.dst_table_name = SilverTopic.GEOLOCATION
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
         self.dst_schema = GEOLOCATION_SCHEMA
 
 class OrderItemBronzeToSilverJob(BronzeToSilverJob):
@@ -127,6 +131,7 @@ class OrderItemBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_order_item'
         self.dst_table_name = SilverTopic.ORDER_ITEM
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.ORDER_ITEM_DLQ
         self.dst_schema = ORDER_ITEM_SCHEMA
 
 class ProductBronzeToSilverJob(BronzeToSilverJob):
@@ -142,6 +147,7 @@ class SellerBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.cdc_seller'
         self.dst_table_name = SilverTopic.SELLER
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.SELLER_DLQ
         self.dst_schema = SELLER_SCHEMA
 
 class OrderStatusBronzeToSilverJob(BronzeToSilverJob):
@@ -149,6 +155,7 @@ class OrderStatusBronzeToSilverJob(BronzeToSilverJob):
         super().__init__(spark)
         self.src_table_identifier = 'warehousedev.bronze.stream_order_status'
         self.dst_table_name = SilverTopic.ORDER_STATUS
+        self.dst_table_name_dlq = DeadLetterQueuerTopic.ORDER_STATUS_DLQ
         self.dst_schema = ORDER_STATUS_SCHEMA
 
 class PaymentBronzeToSilverJob(BronzeToSilverJob):

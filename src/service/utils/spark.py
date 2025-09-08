@@ -12,9 +12,15 @@ from pyspark.sql.types import BinaryType
 from config.spark import *
 from config.kafka import *
 
-def get_serialized_df(transformed_df: DataFrame, serializer_udf, key_columns: List[str]):
+from service.producer.silver import SparkProducer
+
+def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
+    serializer_udf = serializer_udfs.get(producer_class.topic)
+    if not serializer_udf:
+        raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.topic}' not found. Skipping.")
+        
     df_to_publish = transformed_df.select(
-        concat_ws("-", *[col(c).cast("string") for c in key_columns]).alias("key"),
+        concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
         # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
         struct(*transformed_df.columns).alias("value_struct")
     )
