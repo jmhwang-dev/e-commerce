@@ -1,7 +1,4 @@
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from operator import or_
-from functools import reduce
 
 from .base import BatchJob
 from service.utils.iceberg import append_or_create_table
