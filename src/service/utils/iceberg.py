@@ -1,19 +1,21 @@
 from enum import Enum
+
 from pyspark.sql import SparkSession
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.streaming import  StreamingQuery
 from pyspark.sql.functions import col, min, max
 
 from service.utils.schema.registry_manager import *
-from schema.silver import WATERMARK_SCHEMA
 
 class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
 
-def append_or_create_table(spark: SparkSession, df: DataFrame, table: str):
-    if not spark.catalog.tableExists(table): df.writeTo(table).create()
-    else: df.writeTo(table).append()
+def append_or_create_table(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str):
+    if not spark_session.catalog.tableExists(dst_table_identifier):
+        df.writeTo(dst_table_identifier).create()
+    else:
+        df.writeTo(dst_table_identifier).append()
 
 def get_snapshot_details(df: DataFrame, boundary: str) -> Optional[dict]:
     if df.isEmpty(): return None
@@ -25,12 +27,6 @@ def get_last_processed_snapshot_id(spark: SparkSession, table: str, job: str) ->
     if not spark.catalog.tableExists(table): return None
     row = spark.read.table(table).filter(f"job_name = '{job}'").first()
     return row["last_processed_snapshot_id"] if row else None
-    
-def update_watermark(spark: SparkSession, table: str, job: str, snapshot_id: int):
-    df = spark.createDataFrame([(job, snapshot_id)], WATERMARK_SCHEMA)
-    df.createOrReplaceTempView("new_watermark")
-    spark.sql(f"MERGE INTO {table} t USING new_watermark s ON t.job_name = s.job_name "
-              f"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *")
 
 def get_snapshot_df(spark: SparkSession, table: str) -> DataFrame:
     return spark.sql(f"SELECT * FROM {table}.snapshots")
