@@ -2,50 +2,51 @@ from service.producer.base.spark import SparkProducer
 from service.stream.topic import SilverTopic, DeadLetterQueuerTopic
 
 class PaymentSilverProducer(SparkProducer):
-    topic = SilverTopic.PAYMENT
+    dst_topic = SilverTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']
 
 class ReviewCleanCommentSilverProducer(SparkProducer):
-    topic = SilverTopic.REVIEW_CLEAN_COMMENT
+    dst_topic = SilverTopic.REVIEW_CLEAN_COMMENT
     pk_column = ['review_id']
 
 class ReviewMetadataSilverProducer(SparkProducer):
-    topic = SilverTopic.REVIEW_METADATA
+    dst_topic = SilverTopic.REVIEW_METADATA
     pk_column = ['review_id']
 
 class GeolocationSilverProducer(SparkProducer):
-    topic = SilverTopic.GEOLOCATION
+    dst_topic = SilverTopic.GEOLOCATION
     pk_column = ['zip_code']
 
 class CustomerSilverProducer(SparkProducer):
-    topic = SilverTopic.CUSTOMER
+    dst_topic = SilverTopic.CUSTOMER
     pk_column = ['customer_id']
 
 class SellerSilverProducer(SparkProducer):
-    topic = SilverTopic.SELLER
+    dst_topic = SilverTopic.SELLER
     pk_column = ['seller_id']
 
 class ProductSilverProducer(SparkProducer):
-    topic = SilverTopic.PRODUCT
+    dst_topic = SilverTopic.PRODUCT
     pk_column = ['product_id']
 
 class OrderStatusSilverProducer(SparkProducer):
-    topic = SilverTopic.ORDER_STATUS
+    dst_topic = SilverTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
 
 class OrderItemSilverProducer(SparkProducer):
-    topic = SilverTopic.ORDER_ITEM
+    dst_topic = SilverTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']
 
 class EstimatedDeliveryDateSilverProducer(SparkProducer):
-    topic = SilverTopic.ESTIMATED_DELIVERY_DATE
+    dst_topic = SilverTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
 
 # DLQ
+# TODO-producer: add schema(.avsc) and producer class for other topics,
 class ProductDeadLetterQueueSilverProducer(SparkProducer):
-    topic = DeadLetterQueuerTopic.PRODUCT_DLQ
+    dst_topic = DeadLetterQueuerTopic.PRODUCT_DLQ
     pk_column = ['product_id']
 
 class PaymentDeadLetterQueueSilverProducer(SparkProducer):
-    topic = DeadLetterQueuerTopic.PAYMENT_DLQ
+    dst_topic = DeadLetterQueuerTopic.PAYMENT_DLQ
     pk_column = ['order_id', 'payment_sequential']

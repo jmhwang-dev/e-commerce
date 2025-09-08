@@ -46,9 +46,6 @@ def get_producer(dst_topic_name: str) -> SparkProducer:
     elif dst_topic_name == SilverTopic.PAYMENT:
         producer = PaymentSilverProducer
 
-    elif dst_topic_name == DeadLetterQueuerTopic.PAYMENT_DLQ:
-        producer = PaymentDeadLetterQueueSilverProducer
-
     elif dst_topic_name == SilverTopic.ORDER_STATUS:
         producer = OrderStatusSilverProducer
 
@@ -69,6 +66,15 @@ def get_producer(dst_topic_name: str) -> SparkProducer:
 
     elif dst_topic_name == SilverTopic.ORDER_ITEM:
         producer = OrderItemSilverProducer
+
+    # DLQ
+    # TODO: add condition after complete `TODO-producer`
+    elif dst_topic_name == DeadLetterQueuerTopic.PRODUCT_DLQ:
+        producer = ProductDeadLetterQueueSilverProducer
+
+    elif dst_topic_name == DeadLetterQueuerTopic.PAYMENT_DLQ:
+        producer = PaymentDeadLetterQueueSilverProducer
+
     else:
         raise ValueError("This topic is not destination")
 

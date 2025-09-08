@@ -15,9 +15,9 @@ from config.kafka import *
 from service.producer.silver import SparkProducer
 
 def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
-    serializer_udf = serializer_udfs.get(producer_class.topic)
+    serializer_udf = serializer_udfs.get(producer_class.dst_topic)
     if not serializer_udf:
-        raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.topic}' not found. Skipping.")
+        raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.dst_topic}' not found. Skipping.")
         
     df_to_publish = transformed_df.select(
         concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
