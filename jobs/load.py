@@ -3,7 +3,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from service.utils.schema.reader import AvscReader
-from service.utils.spark import get_decoded_stream_df
+from service.utils.spark import get_deserialized_stream_df
 from service.utils.schema.registry_manager import SchemaRegistryManager
 from service.utils.spark import get_spark_session, get_kafka_stream_df
 from service.stream.topic import BronzeTopic, SilverTopic, DeadLetterQueuerTopic, InferenceTopic
@@ -20,7 +20,7 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
         try:
             avsc_reader = AvscReader(topic_name)
             topic_df = micro_batch_df.filter(col("topic") == topic_name)
-            deserialized_df = get_decoded_stream_df(topic_df, avsc_reader.schema_str)
+            deserialized_df = get_deserialized_stream_df(topic_df, avsc_reader.schema_str)
 
             record_count = deserialized_df.count()
             if record_count == 0:

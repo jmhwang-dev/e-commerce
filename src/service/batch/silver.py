@@ -24,10 +24,10 @@ class OrderProduct(SilverBatchJob):
 
         select_exprs = [
             "o.shipping_limit_date",
-            "p.category",
-            "o.seller_id",
             "o.order_id",
             "o.order_item_id",
+            "o.seller_id",
+            "p.category",
             "o.price as unit_price",
             "o.freight_value as unit_freight",
             "p.weight_g",
@@ -35,9 +35,9 @@ class OrderProduct(SilverBatchJob):
             "p.height_cm",
             "p.width_cm"
         ]
+
         
         # gold 집계시 전체 중복제거 필요
-        # self.output_df = \
         self.output_df = \
             order_item_df.alias('o').join(product_df.alias('p'), on='product_id', how='left').selectExpr(select_exprs) \
                 .na.drop(how='any') \

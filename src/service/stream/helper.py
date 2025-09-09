@@ -1,8 +1,21 @@
-from service.stream.topic import BronzeTopic
+from service.stream.topic import BronzeTopic, SilverTopic
 from service.producer.silver import *
 from service.stream.base import *
 
-def get_job(src_topic_name: str) -> BronzeToSilverJob:
+def get_silver2gold_job(src_topic_name: str) -> BronzeToSilverJob:
+    job: BronzeToSilverJob
+    if src_topic_name == SilverTopic.PAYMENT:
+        job = PaymentBronzeToSilverJob()
+
+    elif src_topic_name == SilverTopic.ORDER_STATUS:
+        job = OrderStatusBronzeToSilverJob()
+        
+    else:
+        raise ValueError("There is no job for bronze")
+    
+    return job
+
+def get_bronze2silver_job(src_topic_name: str) -> BronzeToSilverJob:
     job: BronzeToSilverJob
     if src_topic_name == BronzeTopic.REVIEW:
         job = ReviewBronzeToSilverJob()
@@ -36,7 +49,7 @@ def get_job(src_topic_name: str) -> BronzeToSilverJob:
     
     return job
 
-def get_producer(dst_topic_name: str) -> SparkProducer:
+def get_bronze2silver_producer(dst_topic_name: str) -> SparkProducer:
     if dst_topic_name == SilverTopic.REVIEW_CLEAN_COMMENT:
         producer = ReviewCleanCommentSilverProducer
 

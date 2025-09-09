@@ -6,7 +6,7 @@ from pyspark.sql.types import BinaryType
 from confluent_kafka.serialization import SerializationContext, MessageField
 
 from service.stream.topic import BronzeTopic, SilverTopic, DeadLetterQueuerTopic
-from service.utils.spark import get_spark_session, get_kafka_stream_df, get_serialized_df, get_decoded_stream_df, start_console_stream
+from service.utils.spark import get_spark_session, get_kafka_stream_df, get_serialized_df, get_deserialized_stream_df, start_console_stream
 from service.utils.schema.registry_manager import SchemaRegistryManager
 from service.utils.schema.reader import AvscReader
 from service.utils.kafka import get_confluent_serializer_conf
@@ -48,13 +48,13 @@ def transform_topic_stream(micro_batch_df:DataFrame, batch_id: int, serializer_u
         try:
             topic_df = micro_batch_df.filter(col("topic") == src_topic_name)
             avsc_reader = AvscReader(src_topic_name)            
-            deserialized_df = get_decoded_stream_df(topic_df, avsc_reader.schema_str)
+            deserialized_df = get_deserialized_stream_df(topic_df, avsc_reader.schema_str)
 
-            job_instance = get_job(src_topic_name)
+            job_instance = get_bronze2silver_job(src_topic_name)
             destination_dfs = job_instance.transform(deserialized_df)   # key: dst_table_name(src_topic_name), value: DataFrame
 
             for dst_topic_name, transformed_df in destination_dfs.items():
-                producer_class = get_producer(dst_topic_name)
+                producer_class = get_bronze2silver_producer(dst_topic_name)
                 serialized_df = get_serialized_df(serializer_udfs, transformed_df, producer_class)
                 producer_class.publish(serialized_df.select("key", "value"))
                 
