@@ -1,4 +1,4 @@
-from service.common.topic import *
+from service.stream.topic import *
 from service.utils.schema.registry_manager import *
 from service.producer.bronze import *
 from service.utils.kafka import *
@@ -12,7 +12,7 @@ if __name__=="__main__":
     create_topics(admin_client, topic_names)
     register_schema()
 
-    base_interval = 5  # seconds
+    base_interval = 10  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
     current_timestamp = order_status_df.iloc[0, 0] - pd.Timedelta(seconds=1)
     for i, order_status_series in order_status_df.iterrows():

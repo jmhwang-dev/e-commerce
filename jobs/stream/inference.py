@@ -1,5 +1,5 @@
-from service.consumer.inference import *
-from service.common.topic import SilverTopic
+from service.stream.inference import *
+from service.stream.topic import SilverTopic
 from service.utils.kafka import *
 from service.producer.inference import ReviewConflictSentimentSilverProducer, ReviewConsistentSentimentSilverProducer
 

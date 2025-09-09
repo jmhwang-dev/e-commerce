@@ -1,15 +1,33 @@
-from typing import Iterable
+from typing import Iterable, List, Optional
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Row
 
 from pyspark.sql.streaming import StreamingQuery
-from pyspark.sql.functions import col, expr, from_json
+from pyspark.sql.functions import col, expr, from_json, udf, concat_ws, struct
 from pyspark.sql.avro.functions import from_avro
+from pyspark.sql.types import BinaryType
 
 from config.spark import *
 from config.kafka import *
+
+from service.producer.silver import SparkProducer
+
+def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
+    serializer_udf = serializer_udfs.get(producer_class.dst_topic)
+    if not serializer_udf:
+        raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.dst_topic}' not found. Skipping.")
+        
+    df_to_publish = transformed_df.select(
+        concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
+        # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
+        struct(*transformed_df.columns).alias("value_struct")
+    )
+
+    return df_to_publish.withColumn(
+        "value", serializer_udf(col("value_struct"))
+    )
 
 def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     """
@@ -105,7 +123,7 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
     return src_stream_df.select(col("key").cast("string"), col("value"), col("topic"))
 
 
-def get_decoded_stream_df(kafka_stream_df: DataFrame, schema_str: str) -> DataFrame:
+def get_deserialized_stream_df(kafka_stream_df: DataFrame, schema_str: str) -> DataFrame:
     if schema_str is not None:
         deserialized_column = \
             from_avro(
