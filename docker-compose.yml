@@ -39,7 +39,7 @@ services:
         # echo "init-minio ready; keeping container alive" &&
         # tail -f /dev/null
       '
-  postgres:
+  catalog-db:
     container_name: iceberg-metastore
     image: postgres:16
     environment:
@@ -60,7 +60,7 @@ services:
       dockerfile: Dockerfile
     container_name: rest-catalog
     depends_on:
-      postgres:
+      airflow-metadata-db:
         condition: service_healthy
     ports: ["8181:8181"]
 

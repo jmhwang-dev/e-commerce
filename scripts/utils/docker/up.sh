@@ -4,4 +4,5 @@ docker compose \
     -f docker-compose.pipeline.yml \
     -f docker-compose.inference.yml \
     -f docker-compose.thrift.yml \
+    -f docker-compose.airflow.yml \
     up -d --force-recreate
