@@ -67,16 +67,6 @@ class OrderStatusBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
 
-    # @staticmethod
-    # def mock_order_status_log(order_status_series: pd.Series) -> tuple[pd.DataFrame, str, str]:
-    #     """
-    #     Convert a pandas Series to a single-row DataFrame and extract status and order_id.
-    #     """
-    #     status = order_status_series['status']
-    #     order_id = order_status_series['order_id']
-    #     order_status_log = pd.DataFrame([order_status_series], index=[0])
-    #     return order_status_log, status, order_id
-
 class PaymentBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']

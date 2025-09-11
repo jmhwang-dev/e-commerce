@@ -47,9 +47,6 @@ if __name__=="__main__":
             seller_log = SellerBronzeProducer.select(order_item_log, 'seller_id')
             SellerBronzeProducer.publish(seller_log)
 
-            geolcation = GeolocationBronzeProducer.select(seller_log, 'zip_code')
-            GeolocationBronzeProducer.publish(geolcation)
-
         elif status == 'approved':
             estimated_date = EstimatedDeliberyDateBronzeProducer.select(order_status_series, 'order_id')
             EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
