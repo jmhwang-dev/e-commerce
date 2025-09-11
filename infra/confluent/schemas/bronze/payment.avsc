@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "stream_payment",
+  "name": "payment",
   "fields": [
     { "name": "order_id", "type": ["null", "string"], "default": null },
     { "name": "payment_sequential", "type": ["null", "float"], "default": null },

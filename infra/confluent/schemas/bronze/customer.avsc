@@ -1,9 +1,9 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "cdc_seller",
+  "name": "customer",
   "fields": [
-    { "name": "seller_id", "type": ["null", "string"], "default": null },
+    { "name": "customer_id", "type": ["null", "string"], "default": null },
     { "name": "zip_code", "type": ["null", "int"], "default": null }
   ]
 }

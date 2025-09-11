@@ -1,9 +1,0 @@
-{
-  "namespace": "warehousedev.silver",
-  "type": "record",
-  "name": "customer",
-  "fields": [
-    { "name": "customer_id", "type": "string" },
-    { "name": "zip_code", "type": "int" }
-  ]
-}

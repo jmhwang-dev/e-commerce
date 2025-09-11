@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "cdc_order_item",
+  "name": "order_item",
   "fields": [
     { "name": "order_id", "type": ["null", "string"], "default": null },
     { "name": "order_item_id", "type": ["null", "int"], "default": null },

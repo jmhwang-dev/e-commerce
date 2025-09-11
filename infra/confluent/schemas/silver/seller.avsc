@@ -1,9 +1,0 @@
-{
-  "namespace": "warehousedev.silver",
-  "type": "record",
-  "name": "seller",
-  "fields": [
-    { "name": "seller_id", "type": "string" },
-    { "name": "zip_code", "type": "int" }
-  ]
-}

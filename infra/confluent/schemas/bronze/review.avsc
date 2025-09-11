@@ -1,7 +1,7 @@
 {
   "namespace": "warehousedev.bronze",
   "type": "record",
-  "name": "stream_review",
+  "name": "review",
   "fields": [
     { "name": "review_id", "type": ["null", "string"], "default": null },
     {
