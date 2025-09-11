@@ -60,7 +60,7 @@ services:
       dockerfile: Dockerfile
     container_name: rest-catalog
     depends_on:
-      airflow-metadata-db:
+      catalog-db:
         condition: service_healthy
     ports: ["8181:8181"]
 

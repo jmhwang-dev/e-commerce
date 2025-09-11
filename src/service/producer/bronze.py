@@ -1,3 +1,4 @@
+from typing import Union
 import pandas as pd
 from pathlib import Path
 from functools import lru_cache
@@ -14,9 +15,10 @@ class BronzeProducer(PandasProducer):
     def get_df(cls) -> pd.DataFrame:
         """TSV 파일 로드"""
         try:
-            cls.file_path = DATASET_DIR / f"{cls.topic}.tsv"
+            cls.file_path = DATASET_DIR / f"{cls.dst_topic}.tsv"
             timestamp_cols = ['estimated_delivery_date', 'shipping_limit_date', 'timestamp', 'review_creation_date', 'review_answer_timestamp']
             df = pd.read_csv(cls.file_path, sep='\t')
+
             for col in df.columns:
                 if col not in timestamp_cols:
                     continue
@@ -30,63 +32,81 @@ class BronzeProducer(PandasProducer):
             raise ValueError(f"File {cls.file_path} not found")
 
     @classmethod
-    def select(cls, col, value: str) -> pd.DataFrame:
-        df = cls.get_df()
-        return df[df[col] == value]
-
-# CDC
+    def select(cls, log: Union[pd.Series, pd.DataFrame], fk_col: str) -> Optional[pd.DataFrame]:
+        if log.empty:
+            return pd.DataFrame()
+        
+        if isinstance(log, pd.Series):
+            value = log[fk_col]
+        else:
+            value = log[fk_col].iloc[0]
+        
+        try:
+            df = cls.get_df()
+            return df[df[fk_col] == value]
+        except:
+            return None
+            
 class GeolocationBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.GEOLOCATION
+    dst_topic = BronzeTopic.GEOLOCATION
     pk_column = ['zip_code']
-    ingestion_type = IngestionType.CDC
-
+    
 class CustomerBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.CUSTOMER
+    dst_topic = BronzeTopic.CUSTOMER
     pk_column = ['customer_id']
-    ingestion_type = IngestionType.CDC
-
+    
 class SellerBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.SELLER
+    dst_topic = BronzeTopic.SELLER
     pk_column = ['seller_id']
-    ingestion_type = IngestionType.CDC
 
 class ProductBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.PRODUCT
+    dst_topic = BronzeTopic.PRODUCT
     pk_column = ['product_id']
-    ingestion_type = IngestionType.CDC
-
-# STREAM
+    
 class OrderStatusBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.ORDER_STATUS
+    dst_topic = BronzeTopic.ORDER_STATUS
     pk_column = ['order_id', 'status']
-    ingestion_type = IngestionType.STREAM
 
-    @staticmethod
-    def mock_order_status_log(order_status_series: pd.Series) -> tuple[pd.DataFrame, str, str]:
-        """
-        Convert a pandas Series to a single-row DataFrame and extract status and order_id.
-        """
-        status = order_status_series['status']
-        order_id = order_status_series['order_id']
-        order_status_log = pd.DataFrame([order_status_series], index=[0])
-        return order_status_log, status, order_id
+    # @staticmethod
+    # def mock_order_status_log(order_status_series: pd.Series) -> tuple[pd.DataFrame, str, str]:
+    #     """
+    #     Convert a pandas Series to a single-row DataFrame and extract status and order_id.
+    #     """
+    #     status = order_status_series['status']
+    #     order_id = order_status_series['order_id']
+    #     order_status_log = pd.DataFrame([order_status_series], index=[0])
+    #     return order_status_log, status, order_id
 
 class PaymentBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.PAYMENT
+    dst_topic = BronzeTopic.PAYMENT
     pk_column = ['order_id', 'payment_sequential']
-    ingestion_type = IngestionType.STREAM
-
+    
 class OrderItemBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.ORDER_ITEM
+    dst_topic = BronzeTopic.ORDER_ITEM
     pk_column = ['order_id', 'order_item_id']
-    ingestion_type = IngestionType.STREAM
 
 class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.ESTIMATED_DELIVERY_DATE
+    dst_topic = BronzeTopic.ESTIMATED_DELIVERY_DATE
     pk_column = ['order_id']
-    ingestion_type = IngestionType.STREAM
-
+    
 class ReviewBronzeProducer(BronzeProducer):
-    topic = BronzeTopic.REVIEW
+    dst_topic = BronzeTopic.REVIEW
     pk_column = ['review_id']
-    ingestion_type = IngestionType.STREAM
+    end_timestamp: Optional[pd.Timestamp] = None
+
+    @classmethod
+    def select(cls, log: Union[pd.Series, pd.DataFrame], new_timestamp) -> Optional[pd.DataFrame]:
+        if log.empty:
+            return None
+        
+        df = cls.get_df()
+        if cls.end_timestamp is None:
+            review_in_scope = df[df['review_creation_date'] < new_timestamp]
+        else:
+            condition = (cls.end_timestamp <= df['review_creation_date']) & ( df['review_creation_date'] < new_timestamp)
+            review_in_scope = df[condition]
+
+        if not review_in_scope.empty:
+            cls.end_timestamp = new_timestamp
+            
+        return review_in_scope
