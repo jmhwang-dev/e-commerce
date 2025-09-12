@@ -1,0 +1,13 @@
+{
+  "namespace": "warehousedev.silver",
+  "type": "record",
+  "name": "stream_order_status",
+  "fields": [
+    { "name": "order_id", "type": "string" },
+    { "name": "status", "type": "string" },
+    {
+      "name": "timestamp",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    }
+  ]
+}
