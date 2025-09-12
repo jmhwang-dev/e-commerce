@@ -6,7 +6,7 @@ from functools import reduce
 from operator import or_
 
 from schema.silver import *
-from service.stream.topic import SilverTopic, DeadLetterQueuerTopic
+from service.stream.topic import SilverTopic
 from service.stream.review import PortuguessPreprocessor, get_review_metadata
 
 class BronzeToSilverJob:
@@ -66,78 +66,79 @@ class BronzeToSilverJob:
         return destination_dfs
     
 # --- Concrete Job Implementation ---
-class CustomerBronzeToSilverJob(BronzeToSilverJob):
+class PaymentBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self):
         super().__init__()
-        self.dst_topic_name = SilverTopic.CUSTOMER
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.CUSTOMER_DLQ
-        self.dst_schema = CUSTOMER_SCHEMA
-
-class EstimatedDeliveryDateBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.ESTIMATED_DELIVERY_DATE
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
-        self.dst_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
-
-class GeolocationBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.GEOLOCATION
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
-        self.dst_schema = GEOLOCATION_SCHEMA
-
-class OrderItemBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.ORDER_ITEM
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.ORDER_ITEM_DLQ
-        self.dst_schema = ORDER_ITEM_SCHEMA
-
-class ProductBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.PRODUCT
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.PRODUCT_DLQ
-        self.dst_schema = PRODUCT_SCHEMA
-
-class SellerBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.SELLER
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.SELLER_DLQ
-        self.dst_schema = SELLER_SCHEMA
+        self.dst_topic_name = SilverTopic.STREAM_PAYMENT
+        self.dst_topic_name_dlq = SilverTopic.STREAM_PAYMENT_DLQ
+        self.dst_schema = PAYMENT_SCHEMA
 
 class OrderStatusBronzeToSilverJob(BronzeToSilverJob):
     def __init__(self):
         super().__init__()
-        self.dst_topic_name = SilverTopic.ORDER_STATUS
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.ORDER_STATUS_DLQ
+        self.dst_topic_name = SilverTopic.STREAM_ORDER_STATUS
+        ## `self.dst_topic_name_dlq` is not required, as the bronze topic is derived from the order_status topic initially.
+        # self.dst_topic_name_dlq = SilverTopic.STREAM_ORDER_STATUS 
         self.dst_schema = ORDER_STATUS_SCHEMA
 
-class PaymentBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
-        self.dst_topic_name = SilverTopic.PAYMENT
-        self.dst_topic_name_dlq = DeadLetterQueuerTopic.PAYMENT_DLQ
-        self.dst_schema = PAYMENT_SCHEMA
+# class CustomerBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.CUSTOMER
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.CUSTOMER_DLQ
+#         self.dst_schema = CUSTOMER_SCHEMA
 
-class ReviewBronzeToSilverJob(BronzeToSilverJob):
-    def __init__(self):
-        super().__init__()
+# class EstimatedDeliveryDateBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.ESTIMATED_DELIVERY_DATE
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
+#         self.dst_schema = ESTIMATED_DELIVERY_DATE_SCHEMA
 
-    def transform(self, df) -> dict[str, DataFrame]:
-        """Custom ETL logic for review data."""
-        print(f"[{self.job_name}] Starting custom ETL pipeline...")
+# class GeolocationBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.GEOLOCATION
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.GEOLOCATION_DLQ
+#         self.dst_schema = GEOLOCATION_SCHEMA
 
-        melted_df = PortuguessPreprocessor.melt_reviews(df)
-        clean_comment_df = PortuguessPreprocessor.clean_review_comment(melted_df)
-        metadata_df = get_review_metadata(df)
+# class OrderItemBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.ORDER_ITEM
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.ORDER_ITEM_DLQ
+#         self.dst_schema = ORDER_ITEM_SCHEMA
 
-        # A dictionary to hold the final DataFrames for each destination table
-        destination_dfs = {
-            SilverTopic.REVIEW_CLEAN_COMMENT: clean_comment_df,
-            SilverTopic.REVIEW_METADATA: metadata_df
-        }
-        print(f"[{self.job_name}] Finish ETL...")
-        return destination_dfs
+# class ProductBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.PRODUCT
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.PRODUCT_DLQ
+#         self.dst_schema = PRODUCT_SCHEMA
+
+# class SellerBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+#         self.dst_topic_name = SilverTopic.SELLER
+#         self.dst_topic_name_dlq = DeadLetterQueuerTopic.SELLER_DLQ
+#         self.dst_schema = SELLER_SCHEMA
+
+# class ReviewBronzeToSilverJob(BronzeToSilverJob):
+#     def __init__(self):
+#         super().__init__()
+
+#     def transform(self, df) -> dict[str, DataFrame]:
+#         """Custom ETL logic for review data."""
+#         print(f"[{self.job_name}] Starting custom ETL pipeline...")
+
+#         melted_df = PortuguessPreprocessor.melt_reviews(df)
+#         clean_comment_df = PortuguessPreprocessor.clean_review_comment(melted_df)
+#         metadata_df = get_review_metadata(df)
+
+#         # A dictionary to hold the final DataFrames for each destination table
+#         destination_dfs = {
+#             SilverTopic.REVIEW_CLEAN_COMMENT: clean_comment_df,
+#             SilverTopic.REVIEW_METADATA: metadata_df
+#         }
+#         print(f"[{self.job_name}] Finish ETL...")
+#         return destination_dfs

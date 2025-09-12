@@ -37,5 +37,11 @@ class BronzeTopic(BaseTopic):
     REVIEW = "review"
 
 class SilverTopic(BaseTopic):
-    REVIEW_CLEAN_COMMENT = "review_clean_comment"
-    REVIEW_INFERENCE = "review_inference"
+    STREAM_PAYMENT = "stream_payment"
+    STREAM_PAYMENT_DLQ = "stream_payment_dlq"
+    STREAM_ORDER_STATUS = "stream_order_status"
+
+    # # TODO: add consumer
+    # REVIEW = "stream_review"
+    # REVIEW_CLEAN_COMMENT = "stream_review_clean_comment"
+    # REVIEW_INFERENCE = "stream_review_inference"

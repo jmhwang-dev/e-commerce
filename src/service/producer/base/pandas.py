@@ -57,7 +57,7 @@ class PandasProducer(BaseProducer):
             try:
                 cls.producer.produce(cls.dst_topic, key=producer_record['key'], value=producer_record['value'])
                 cls.producer.flush()
+                print(f"Published to {cls.dst_topic} - {cls.pk_column}: {producer_record['key']}")
+
             except SerializationError:
                 print(f'[{cls.producer_class_name}]: schema 검증 실패')
-
-        print(f'Published to {cls.dst_topic}')

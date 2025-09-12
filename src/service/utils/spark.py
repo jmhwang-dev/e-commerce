@@ -1,33 +1,32 @@
-from typing import Iterable, List, Optional
+from typing import Iterable
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame, Row
+from pyspark.sql import DataFrame
 
 from pyspark.sql.streaming import StreamingQuery
-from pyspark.sql.functions import col, expr, from_json, udf, concat_ws, struct
+from pyspark.sql.functions import col, expr, from_json, concat_ws, struct
 from pyspark.sql.avro.functions import from_avro
 
 from config.spark import *
 from config.kafka import *
 
-# from pyspark.sql.types import BinaryType
-# from service.producer.silver import SparkProducer
+from service.producer.silver import SparkProducer
 
-# def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
-#     serializer_udf = serializer_udfs.get(producer_class.dst_topic)
-#     if not serializer_udf:
-#         raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.dst_topic}' not found. Skipping.")
+def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
+    serializer_udf = serializer_udfs.get(producer_class.dst_topic)
+    if not serializer_udf:
+        raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.dst_topic}' not found. Skipping.")
         
-#     df_to_publish = transformed_df.select(
-#         concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
-#         # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
-#         struct(*transformed_df.columns).alias("value_struct")
-#     )
+    df_to_publish = transformed_df.select(
+        concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
+        # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
+        struct(*transformed_df.columns).alias("value_struct")
+    )
 
-#     return df_to_publish.withColumn(
-#         "value", serializer_udf(col("value_struct"))
-#     )
+    return df_to_publish.withColumn(
+        "value", serializer_udf(col("value_struct"))
+    )
 
 def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     """
