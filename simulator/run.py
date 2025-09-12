@@ -14,10 +14,10 @@ if __name__=="__main__":
 
     base_interval = 0  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
-    current_timestamp = order_status_df.loc[0, 'timestamp'] - pd.Timedelta(seconds=1)
+    end_timestamp = order_status_df.loc[0, 'timestamp'] - pd.Timedelta(seconds=1)
     for i, order_status_series in order_status_df.iterrows():
-        new_timestamp = order_status_series['timestamp']
-        diff_time = new_timestamp - current_timestamp
+        current_timestamp = order_status_series['timestamp']
+        diff_time = current_timestamp - end_timestamp
 
         # transaction replay: mock real-time transaction
         if diff_time > pd.Timedelta(seconds=base_interval):
@@ -54,4 +54,4 @@ if __name__=="__main__":
         review_log = ReviewBronzeProducer.select(order_status_series, current_timestamp)
         ReviewBronzeProducer.publish(review_log)
 
-        current_timestamp = new_timestamp
+        end_timestamp = current_timestamp

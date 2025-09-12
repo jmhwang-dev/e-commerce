@@ -32,15 +32,15 @@ services:
     entrypoint: >
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
-        mc mb --ignore-existing local/warehousedev/bronze/checkpoints &&
-        mc mb --ignore-existing local/warehousedev/silver/checkpoints &&
-        mc mb --ignore-existing local/warehousedev/gold/checkpoints
+        mc mb --ignore-existing local/warehousedev/bronze &&
+        mc mb --ignore-existing local/warehousedev/silver &&
+        mc mb --ignore-existing local/warehousedev/gold
         # mc cp /mnt/downloads/olist/*.csv local/warehousedev/bronze || true &&
         # echo "init-minio ready; keeping container alive" &&
         # tail -f /dev/null
       '
-  catalog-db:
-    container_name: iceberg-metastore
+  catalog-metastore:
+    container_name: catalog-metastore
     image: postgres:16
     environment:
       POSTGRES_USER: postgres
@@ -60,12 +60,12 @@ services:
       dockerfile: Dockerfile
     container_name: rest-catalog
     depends_on:
-      catalog-db:
+      catalog-metastore:
         condition: service_healthy
     ports: ["8181:8181"]
 
     environment:
-      CATALOG_URI: jdbc:postgresql://postgres:5432/iceberg
+      CATALOG_URI: jdbc:postgresql://catalog-metastore:5432/iceberg
       CATALOG_JDBC_USER: iceberg
       CATALOG_JDBC_PASSWORD: iceberg
       CATALOG_WAREHOUSE: s3://warehousedev/

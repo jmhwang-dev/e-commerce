@@ -6,6 +6,8 @@ from pyspark.sql.streaming import  StreamingQuery
 from pyspark.sql.functions import col, min, max
 
 from service.utils.schema.registry_manager import *
+from service.utils.schema.reader import AvscReader
+
 
 class TimeBoundary(Enum):
     EARLIEST = "Earlies"
@@ -50,7 +52,7 @@ def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: Tim
         print(f"오류가 발생했습니다: {e}")
         return None, None
 
-def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFrame, schema_str:str, process_time="10 seconds") -> StreamingQuery:
+def write_stream_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -67,15 +69,15 @@ def write_stream_iceberg(spark_session: SparkSession, decoded_stream_df: DataFra
         - spark.sql("CALL iceberg_catalog.system.rewrite_data_files('your_table')") // OPTIMIZE
         - spark.sql("CALL iceberg_catalog.system.expire_snapshots('your_table', TIMESTAMP '2025-08-13 00:00:00')") // expire_snapshots
     """
+
     # s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)    
-    # return decoded_stream_df.writeStream \
-    #     .outputMode("append") \
-    #     .format("iceberg") \
-    #     .option("checkpointLocation", f"s3a://{s3_uri}/checkpoints/{table_name}") \
-    #     .option("fanout.enabled", "false") \
-    #     .trigger(processingTime=process_time) \
-    #     .toTable(table_identifier)
-    pass
+    return deserialized_df.writeStream \
+        .outputMode("append") \
+        .format("iceberg") \
+        .option("checkpointLocation", f"s3a://{avsc_reader.s3_uri}/checkpoints/{avsc_reader.table_name}") \
+        .option("fanout.enabled", "false") \
+        .trigger(processingTime=process_time) \
+        .toTable(avsc_reader.dst_table_identifier)
 
     # fanout.enabled=false
     # OPTIMIZE TABLE / expire_snapshots
