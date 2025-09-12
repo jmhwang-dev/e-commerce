@@ -12,7 +12,7 @@ if __name__=="__main__":
     create_topics(admin_client, topic_names)
     register_schema()
 
-    base_interval = 0  # seconds
+    base_interval = 10  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
     end_timestamp = order_status_df.loc[0, 'timestamp'] - pd.Timedelta(seconds=1)
     for i, order_status_series in order_status_df.iterrows():
