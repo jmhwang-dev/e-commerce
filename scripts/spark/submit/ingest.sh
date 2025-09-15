@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BRONZE_LAYER_DIR="data/minio/warehousedev/checkpoints/bronze"
+BRONZE_LAYER_DIR="data/minio/warehousedev/bronze/checkpoints"
 if [ -d "$BRONZE_LAYER_DIR" ]; then
   # 테스트 실행을 위해 이전 체크포인트 내용을 모두 삭제합니다.
   echo "Checkpoint directory found. Removing all contents within '$BRONZE_LAYER_DIR'..."

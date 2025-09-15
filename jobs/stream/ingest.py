@@ -1,4 +1,4 @@
-
+import time
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
@@ -9,13 +9,11 @@ from service.utils.spark import *
 
 SRC_TOPIC_NAMES = BronzeTopic.get_all_topics()
 
-def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
-    topics_in_batch = [row.topic for row in micro_batch_df.select("topic").distinct().collect()]
+def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):    
     
-    print(f"Processing Batch ID: {batch_id}")
-    print(f"Topics in Batch: {topics_in_batch}")
     print()
-    for topic_name in topics_in_batch:
+    print(f"Processing Batch ID: {batch_id}")
+    for topic_name in SRC_TOPIC_NAMES:
         try:
             avsc_reader = AvscReader(topic_name)
             topic_df = micro_batch_df.filter(col("topic") == topic_name)
@@ -26,11 +24,13 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
                 print(f"No records to write for topic {topic_name} in this batch.")
                 continue
             
-            print(f"Writing {record_count} rows to Iceberg table: {avsc_reader.dst_table_identifier}")
+            start = time.time()
             deserialized_df.write \
                 .format("iceberg") \
                 .mode("append") \
                 .saveAsTable(avsc_reader.dst_table_identifier)
+            end = time.time()
+            print(f"[Processing time: {end-start} sec] Saved {record_count} rows to the Iceberg table: {avsc_reader.dst_table_identifier}")
 
         except Exception as e:
             print(f"Error processing topic {topic_name} in batch {batch_id}: {e}")
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         .foreachBatch(load_medallion_layer) \
         .queryName("load_cdc") \
         .option("checkpointLocation", f"s3a://warehousedev/bronze/checkpoints") \
-        .trigger(processingTime="10 seconds") \
+        .trigger(processingTime="90 seconds") \
         .start()
         
     query.awaitTermination()
