@@ -5,13 +5,13 @@ services:
       dockerfile: Dockerfile
     image: ecommerce-inference:latest
     container_name: inference
-    command: python inference.py
-    # command: bash -c "tail -f /dev/null"
+    # command: python inference.py
+    command: bash -c "tail -f /dev/null"
     environment:
       - PYTHONPATH=/mnt/src
     volumes:
       - ./src/:/mnt/src/
-      - ./jobs/stream/inference.py:/mnt/app/inference.py
+      # - ./jobs/stream/inference.py:/mnt/app/inference.py
       - ./downloads/models/:/mnt/models/
       - ./logs/:/mnt/logs/
     deploy:

@@ -15,7 +15,7 @@ if [ -f "$SRC_ZIP" ]; then
   sudo rm -f "$SRC_ZIP"
 fi
 
-PYTHON_SCRIPT="${1:-jobs/bronze.py}"
+PYTHON_SCRIPT="${1:-jobs/stream/ingest.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성
@@ -25,31 +25,12 @@ zip -r ../$SRC_ZIP service config schema > /dev/null
 cd ..
 # 컨테이너에 복사
 docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
-
-BRONZE_TOPIC_NAMES=(
-  "customer"
-  "estimated_delivery_date"
-  "geolocation"
-  "order_item"
-  "order_status"
-  "payment"
-  "product"
-  "review"
-  "seller"
-)
-
-for TOPIC_NAME in "${BRONZE_TOPIC_NAMES[@]}"
-do
-  echo ""
-  echo ">>> Submitting Spark job for TOPIC: $TOPIC_NAME -> TABLE: warehousdedev.bronze.$TOPIC_NAME"
   
-  # Spark 실행: -T 옵션을 추가하여 TTY 할당 비활성화
-  docker compose exec -T spark-client spark-submit \
-    --master spark://spark-master:7077 \
-    --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1" \
-    --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1" \
-    --deploy-mode client \
-    --py-files /opt/spark/work-dir/$SRC_ZIP \
-    "$PYTHON_SCRIPT" \
-    --topic-name "$TOPIC_NAME" &
-done
+# Spark 실행: -T 옵션을 추가하여 TTY 할당 비활성화
+docker compose exec spark-client spark-submit \
+  --master spark://spark-master:7077 \
+  --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1" \
+  --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1" \
+  --deploy-mode client \
+  --py-files /opt/spark/work-dir/$SRC_ZIP \
+  "$PYTHON_SCRIPT"
