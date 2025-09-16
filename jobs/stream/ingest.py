@@ -24,6 +24,7 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
                 print(f"No records to write for topic {topic_name} in this batch.")
                 continue
             
+            # TODO: check `LAG` at Kafka and `Processing Time` at Spark with prometheus and grafana
             start = time.time()
             deserialized_df.write \
                 .format("iceberg") \

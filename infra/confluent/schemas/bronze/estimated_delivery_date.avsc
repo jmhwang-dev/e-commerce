@@ -8,6 +8,11 @@
       "name": "estimated_delivery_date",
       "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
       "default": null
+    },
+    {
+      "name": "ingest_time",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
     }
   ]
 }

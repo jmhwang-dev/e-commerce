@@ -14,46 +14,53 @@ if __name__=="__main__":
 
     base_interval = 10  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
-    past_timestamp = pd.to_datetime("2016-09-04 21:15:19.000000")   # first timestamp in order_status
+    past_event_timestamp = pd.to_datetime("2016-09-04 21:15:19.000000")   # first timestamp in order_status
     for i, order_status_series in order_status_df.iterrows():
-        current_timestamp = order_status_series['timestamp']
-        diff_time = current_timestamp - past_timestamp
+        current_event_timestamp = order_status_series['timestamp']
+        event_term = current_event_timestamp - past_event_timestamp
 
         # transaction replay: mock real-time transaction
-        if diff_time > pd.Timedelta(seconds=base_interval):
+        if event_term > pd.Timedelta(seconds=base_interval):
             time.sleep(base_interval)
         else:
-            time.sleep(diff_time.total_seconds())
-
-        status = order_status_series['status']
-
+            time.sleep(event_term.total_seconds())
+        
+        mock_order_status_series, current_ingest_time = PandasProducer.add_mock_ingest_time(order_status_series, current_event_timestamp)
+        OrderStatusBronzeProducer.publish(mock_order_status_series)
+        status = mock_order_status_series['status']
+        
         if status == 'purchase':
             payment_log = PaymentBronzeProducer.select(order_status_series, 'order_id')
-            PaymentBronzeProducer.publish(payment_log)
-
-            OrderStatusBronzeProducer.publish(order_status_series)
+            mock_payment_log = PandasProducer.calc_mock_ingest_time(payment_log)
+            PaymentBronzeProducer.publish(mock_payment_log)
 
             order_item_log = OrderItemBronzeProducer.select(order_status_series, 'order_id')
-            print(order_item_log)
-            OrderItemBronzeProducer.publish(order_item_log)
+            mock_order_item_log, current_ingest_time = PandasProducer.add_mock_ingest_time(order_item_log, current_ingest_time)
+            OrderItemBronzeProducer.publish(mock_order_item_log)
 
             customer_log = CustomerBronzeProducer.select(payment_log, 'customer_id')
-            CustomerBronzeProducer.publish(customer_log)
+            mock_customer_log, current_ingest_time = PandasProducer.add_mock_ingest_time(customer_log, current_ingest_time)
+            CustomerBronzeProducer.publish(mock_customer_log)
 
             geolcation = GeolocationBronzeProducer.select(customer_log, 'zip_code')
-            GeolocationBronzeProducer.publish(geolcation)
+            mock_geolcation, current_ingest_time = PandasProducer.add_mock_ingest_time(geolcation, current_ingest_time)
+            GeolocationBronzeProducer.publish(mock_geolcation)
 
             proudct_log = ProductBronzeProducer.select(order_item_log, 'product_id')
-            ProductBronzeProducer.publish(proudct_log)
+            mock_proudct_log, current_ingest_time = PandasProducer.add_mock_ingest_time(proudct_log, current_ingest_time)
+            ProductBronzeProducer.publish(mock_proudct_log)
 
             seller_log = SellerBronzeProducer.select(order_item_log, 'seller_id')
-            SellerBronzeProducer.publish(seller_log)
+            mock_seller_log, current_ingest_time = PandasProducer.add_mock_ingest_time(seller_log, current_ingest_time)
+            SellerBronzeProducer.publish(mock_seller_log)
 
         elif status == 'approved':
             estimated_date = EstimatedDeliberyDateBronzeProducer.select(order_status_series, 'order_id')
-            EstimatedDeliberyDateBronzeProducer.publish(estimated_date)
+            mock_estimated_date, _ = PandasProducer.add_mock_ingest_time(estimated_date, current_ingest_time)
+            EstimatedDeliberyDateBronzeProducer.publish(mock_estimated_date)
 
-        review_log = ReviewBronzeProducer.select(order_status_series, current_timestamp)
-        ReviewBronzeProducer.publish(review_log)
+        review_log = ReviewBronzeProducer.select(order_status_series, current_event_timestamp)
+        mock_review_log = PandasProducer.calc_mock_ingest_time(review_log)
+        ReviewBronzeProducer.publish(mock_review_log)
 
-        past_timestamp = current_timestamp
+        past_event_timestamp = current_event_timestamp
