@@ -17,15 +17,14 @@ services:
     - KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE=false
     - KAFKA_MESSAGE_MAX_BYTES=5242880
     - KAFKA_MAX_MESSAGE_BYTES=5242880
-    - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
     healthcheck:
       interval: 1s
       retries: 5
       start_period: 60s
-      test: nc -z broker ${DATAHUB_KAFKA_BROKER_PORT:-9092}
+      test: nc -z broker $${DATAHUB_KAFKA_BROKER_PORT:-9092}
       timeout: 5s
     hostname: broker
-    image: ${DATAHUB_CONFLUENT_KAFKA_IMAGE:-confluentinc/cp-kafka}:${DATAHUB_CONFLUENT_VERSION:-7.4.0}
+    image: ${DATAHUB_CONFLUENT_KAFKA_IMAGE:-confluentinc/cp-kafka}:${DATAHUB_CONFLUENT_VERSION:-7.9.2}
     ports:
     - ${DATAHUB_MAPPED_KAFKA_BROKER_PORT:-9092}:9092
     volumes:
@@ -249,7 +248,7 @@ services:
       test: nc -z schema-registry ${DATAHUB_SCHEMA_REGISTRY_PORT:-8081}
       timeout: 5s
     hostname: schema-registry
-    image: ${DATAHUB_CONFLUENT_SCHEMA_REGISTRY_IMAGE:-confluentinc/cp-schema-registry}:${DATAHUB_CONFLUENT_VERSION:-7.4.0}
+    image: ${DATAHUB_CONFLUENT_SCHEMA_REGISTRY_IMAGE:-confluentinc/cp-schema-registry}:${DATAHUB_CONFLUENT_VERSION:-7.9.2}
     ports:
     - ${DATAHUB_MAPPED_SCHEMA_REGISTRY_PORT:-8081}:8081
   zookeeper:
@@ -260,7 +259,7 @@ services:
       interval: 5s
       retries: 3
       start_period: 30s
-      test: echo srvr | nc zookeeper ${DATAHUB_ZK_PORT:-2181}
+      test: echo srvr | nc zookeeper $${DATAHUB_ZK_PORT:-2181}
       timeout: 5s
     hostname: zookeeper
     image: ${DATAHUB_CONFLUENT_ZOOKEEPER_IMAGE:-confluentinc/cp-zookeeper}:${DATAHUB_CONFLUENT_VERSION:-7.9.2}
