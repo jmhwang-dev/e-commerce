@@ -11,7 +11,7 @@ from service.utils.schema.reader import AvscReader
 from service.utils.spark import *  # 모든 spark 유틸리티 함수 임포트
 
 # 단일 Iceberg 저장 함수
-def load_to_iceberg(batch_df: DataFrame, batch_id: int, table_name: str, checkpoint_path: str) -> None:
+def load_to_iceberg(batch_df: DataFrame, table_name: str) -> None:
     batch_df.writeTo(table_name).createOrReplace()
 
 # Kafka 토픽 로드 함수
@@ -21,7 +21,7 @@ def load_kafka_topic(spark: SparkSession, topic_name: str) -> DataFrame:
     return get_deserialized_stream_df(topic_stream_df, avsc_reader.schema_str)
 
 # 1. order_timestamp 처리 (Silver)
-def process_order_timestamp(spark: SparkSession, silver_namespace: str) -> DataFrame:
+def process_order_timestamp(spark: SparkSession) -> DataFrame:
     payment_df: DataFrame = load_kafka_topic(spark, BronzeTopic.PAYMENT)
     order_customer_id: DataFrame = payment_df.select('order_id', 'customer_id').distinct()
 
@@ -56,7 +56,7 @@ def process_order_product(spark: SparkSession, silver_namespace: str) -> DataFra
     return order_product
 
 # 3. delivered_order_timestamp 처리 (Silver)
-def process_delivered_order_timestamp(spark: SparkSession, silver_namespace: str, gold_namespace: str) -> DataFrame:
+def process_delivered_order_timestamp(spark: SparkSession, silver_namespace: str) -> DataFrame:
     estimated_delivery_date_df: DataFrame = load_kafka_topic(spark, BronzeTopic.ESTIMATED_DELIVERY_DATE)
     shipping_limit_date: DataFrame = spark.read.table(f"{silver_namespace}.order_product").select('order_id', 'shipping_limit_date').withColumn('shipping_limit_date', F.to_timestamp('shipping_limit_date', 'yyyy-MM-dd HH:mm:ss'))
 
@@ -145,12 +145,9 @@ def process_order_location(spark: SparkSession, silver_namespace: str) -> DataFr
     return order_location
 
 # 11. review_metatdata_product 처리 (Gold)
-def process_review_metatdata_product(spark: SparkSession, silver_namespace: str) -> DataFrame:
-    review_metadata_df: DataFrame = load_kafka_topic(spark, BronzeTopic.REVIEW)
-    review_inference_df: DataFrame = load_kafka_topic(spark, BronzeTopic.REVIEW)
-    review_metadata_inference_df: DataFrame = review_metadata_df.join(review_inference_df, on='review_id', how='inner')
-    review_metatdata_product: DataFrame = review_metadata_inference_df.join(spark.read.table(f"{silver_namespace}.delivered_order_product_bcg").select('order_id', 'product_id'), on='order_id', how='inner').dropDuplicates()
-    return review_metatdata_product
+def process_review_metatdata(spark: SparkSession) -> DataFrame:
+    review_df: DataFrame = load_kafka_topic(spark, BronzeTopic.REVIEW)
+    return review_df.select('review_id', 'review_creation_date', 'review_answer_timestamp', 'review_score', 'order_id')
 
 # 메인 로직
 if __name__ == "__main__":
@@ -163,10 +160,15 @@ if __name__ == "__main__":
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {silver_namespace}")
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {gold_namespace}")
 
+    for table in [row.tableName for row in spark.sql('show tables in gold').collect()]:
+        spark.sql(f'drop table if exists gold.{table}')
+
+    exit()
+
     # 각 단계별 스트리밍 쿼리 실행
-    order_timestamp: DataFrame = process_order_timestamp(spark, silver_namespace)
+    order_timestamp: DataFrame = process_order_timestamp(spark)
     order_timestamp.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.order_timestamp", "s3a://warehousedev/bronze/checkpoints/order_timestamp")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.order_timestamp")) \
         .queryName("load_order_timestamp") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/order_timestamp") \
         .trigger(processingTime="90 seconds") \
@@ -174,15 +176,15 @@ if __name__ == "__main__":
 
     order_product: DataFrame = process_order_product(spark, silver_namespace)
     order_product.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.order_product", "s3a://warehousedev/bronze/checkpoints/order_product")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.order_product")) \
         .queryName("load_order_product") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/order_product") \
         .trigger(processingTime="90 seconds") \
         .start()
 
-    delivered_order_timestamp: DataFrame = process_delivered_order_timestamp(spark, silver_namespace, gold_namespace)
+    delivered_order_timestamp: DataFrame = process_delivered_order_timestamp(spark, silver_namespace)
     delivered_order_timestamp.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.delivered_order_timestamp", "s3a://warehousedev/bronze/checkpoints/delivered_order_timestamp")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.delivered_order_timestamp")) \
         .queryName("load_delivered_order_timestamp") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/delivered_order_timestamp") \
         .trigger(processingTime="90 seconds") \
@@ -190,7 +192,7 @@ if __name__ == "__main__":
 
     delivered_order_product: DataFrame = process_delivered_order_product(spark, silver_namespace)
     delivered_order_product.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.delivered_order_product", "s3a://warehousedev/bronze/checkpoints/delivered_order_product")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.delivered_order_product")) \
         .queryName("load_delivered_order_product") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/delivered_order_product") \
         .trigger(processingTime="90 seconds") \
@@ -198,7 +200,7 @@ if __name__ == "__main__":
 
     sale_stats: DataFrame = process_sale_stats(spark, silver_namespace)
     sale_stats.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{gold_namespace}.sale_stats", "s3a://warehousedev/bronze/checkpoints/sale_stats")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{gold_namespace}.sale_stats")) \
         .queryName("load_sale_stats") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/sale_stats") \
         .trigger(processingTime="90 seconds") \
@@ -206,7 +208,7 @@ if __name__ == "__main__":
 
     health_beauty_sales_stats_bcg: DataFrame = process_health_beauty_sales_stats_bcg(spark, gold_namespace)
     health_beauty_sales_stats_bcg.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{gold_namespace}.health_beauty_sales_stats_bcg", "s3a://warehousedev/bronze/checkpoints/health_beauty_sales_stats_bcg")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{gold_namespace}.health_beauty_sales_stats_bcg")) \
         .queryName("load_health_beauty_sales_stats_bcg") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/health_beauty_sales_stats_bcg") \
         .trigger(processingTime="90 seconds") \
@@ -214,7 +216,7 @@ if __name__ == "__main__":
 
     delivered_order_product_bcg: DataFrame = process_delivered_order_product_bcg(spark, silver_namespace, gold_namespace)
     delivered_order_product_bcg.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.delivered_order_product_bcg", "s3a://warehousedev/bronze/checkpoints/delivered_order_product_bcg")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.delivered_order_product_bcg")) \
         .queryName("load_delivered_order_product_bcg") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/delivered_order_product_bcg") \
         .trigger(processingTime="90 seconds") \
@@ -222,7 +224,7 @@ if __name__ == "__main__":
 
     timestamp_stats_long: DataFrame = process_timestamp_stats_long(spark, silver_namespace)
     timestamp_stats_long.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{gold_namespace}.timestamp_stats_long", "s3a://warehousedev/bronze/checkpoints/timestamp_stats_long")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{gold_namespace}.timestamp_stats_long")) \
         .queryName("load_timestamp_stats_long") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/timestamp_stats_long") \
         .trigger(processingTime="90 seconds") \
@@ -230,7 +232,7 @@ if __name__ == "__main__":
 
     user_location: DataFrame = process_user_location(spark)
     user_location.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{silver_namespace}.user_location", "s3a://warehousedev/bronze/checkpoints/user_location")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.user_location")) \
         .queryName("load_user_location") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/user_location") \
         .trigger(processingTime="90 seconds") \
@@ -238,17 +240,18 @@ if __name__ == "__main__":
 
     order_location: DataFrame = process_order_location(spark, silver_namespace)
     order_location.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{gold_namespace}.order_location", "s3a://warehousedev/bronze/checkpoints/order_location")) \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{gold_namespace}.order_location")) \
         .queryName("load_order_location") \
         .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/order_location") \
         .trigger(processingTime="90 seconds") \
         .start()
 
-    review_metatdata_product: DataFrame = process_review_metatdata_product(spark, silver_namespace)
-    review_metatdata_product.writeStream \
-        .foreachBatch(lambda df, id: load_to_iceberg(df, id, f"{gold_namespace}.review_metatdata_product", "s3a://warehousedev/bronze/checkpoints/review_metatdata_product")) \
-        .queryName("load_review_metatdata_product") \
-        .option("checkpointLocation", "s3a://warehousedev/bronze/checkpoints/review_metatdata_product") \
+    # TODO: 로직 수정
+    review_metatdata: DataFrame = process_review_metatdata(spark)
+    review_metatdata.writeStream \
+        .foreachBatch(lambda df, id: load_to_iceberg(df, f"{silver_namespace}.review_metatdata")) \
+        .queryName("load_review_metatdata") \
+        .option("checkpointLocation", "s3a://warehousedev/silver/checkpoints/review_metatdata") \
         .trigger(processingTime="90 seconds") \
         .start()
 
