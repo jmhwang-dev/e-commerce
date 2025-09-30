@@ -3,7 +3,7 @@ source:
   config:
     env: dev
     catalog:
-      demo:
+      warehousedev:
         type: rest
         uri: 'http://192.168.45.191:8181'
         s3.endpoint: 'http://192.168.45.191:9000'

@@ -151,7 +151,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
     environment:
     - discovery.type=single-node
     - ${XPACK_SECURITY_ENABLED:-xpack.security.enabled=false}
