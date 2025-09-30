@@ -42,11 +42,11 @@ Health & Beauty 카테고리의 핵심 제품 매출을 극대화하기 위해, 
 - 제품명은 비식별화되어 있었으나, 카테고리는 식별할 수 있었으므로 카테고리를 기준으로 제품 자체를 정의할 수 있었습니다.
 - 데이터를 통해 총 72개의 판매 상품 카테고리가 있음을 파악헀습니다.
 - 이 중에서 `Health Beauty` 제품군이 가장 많이 팔리는 제품군을 데이터로부터 확인할 수 있었습니다.
-![img-description](./docs/assets/img/portfolio/top3_sales_category.png)
+![img-description](./docs/assets/top3_sales_category.png)
 _top3_sales_category_
 - `Health Beauty` 제품군의 전체 매출에서 각 제품이 차지하는 비중을 확인했습니다.
 - 여기서 상위 20% 상품이 매출의 80%를 차지하는 파레토 법칙을 확인하였으며, 소수의 핵심 상품 관리가 매출에 결정적임을 도출하였습니다.
-![img-description](./docs/assets/img/portfolio/cumul_sales.png)
+![img-description](./docs/assets/cumul_sales.png)
 _cumul_sales_
 - 위 결과로 잘 팔리는 제품 대신 제품군으로서 `Health & Beauty` 카테고리를 선정하였습니다.
 
@@ -59,10 +59,10 @@ _cumul_sales_
 - `가장 많이 팔리는 제품 카테고리에서 왜 모든 제품이 잘팔리지는 않을까?` 라는 질문으로 자연스럽게 이어졌습니다.
 - 그 원인은 거래 트랜잭션이 아닌 후행 지표인 리뷰에 있다고 생각했고 여기서 원인을 찾아보기로 했습니다.
 - 고객 리뷰 분석 결과, 평점 1-2점의 부정 리뷰에서 **배송 지연**이 주요 키워드로 나타났습니다.
-![img-description](./docs/assets/img/portfolio/low_rate_review.png)
+![img-description](./docs/assets/low_rate_review.png)
 _low_rate_review_
 - 평점 4-5점의 긍정 리뷰에서는 관련 언급이 적음을 워드클라우드를 통해 확인하였습니다.
-![img-description](./docs/assets/img/portfolio/high_rate_review.png)
+![img-description](./docs/assets/high_rate_review.png)
 _high_rate_review_
 - 위 결과를 통해 **배송 문제**가 핵심 상품의 매출 성장을 저해하는 주요 원인 중 하나임을 도출하였습니다.
 
@@ -89,7 +89,7 @@ _high_rate_review_
 
 - 전처리 후 스키마는 아래와 같이 변경됩니다.
 
-![img-description](./docs/assets/img/portfolio/erd_redefined.svg)
+![img-description](./docs/assets/erd_redefined.svg)
 _전처리 후 스키마_
     
 ## 파이프라인 아키텍쳐
@@ -98,7 +98,7 @@ _전처리 후 스키마_
     2. BCG Matrix를 계산하기 위한 `평균 판매액`과 `주문 수` 집계 필요
 
 - 요구사항을 기반으로 아래와 같이 아키텍쳐를 설계하였습니다.
-    ![img-description](./docs/assets/img/portfolio/pipeline.png)
+    ![img-description](./docs/assets/pipeline.png)
     _pipeline architecture_
 
 ### Data Ingestion
@@ -151,7 +151,7 @@ spark.dynamicAllocation.maxExecutors 10
 
 ### Storage (MinIO)
 
-![img-description](./docs/assets/img/portfolio/medallion.png)
+![img-description](./docs/assets/medallion.png)
 _medallion architecture (datahub 요약)_
 
 - 데이터 저장소로 minio를 사용하였습니다.
@@ -219,13 +219,13 @@ _medallion architecture (datahub 요약)_
 
 <!-- | _sales_trend_and_BCG_segment_ | _top10_detail_ |
 |:---:|:---:|
-| ![img-description](./docs/assets/img/portfolio/dashboard1.png) | ![img-description](./docs/assets/img/portfolio/dashboard2.png) | -->
+| ![img-description](./docs/assets/dashboard1.png) | ![img-description](./docs/assets/dashboard2.png) | -->
 
 
-![img-description](./docs/assets/img/portfolio/dashboard1.png)
+![img-description](./docs/assets/dashboard1.png)
 _sales_trend_and_BCG_segment_
 
-![img-description](./docs/assets/img/portfolio/dashboard2.png)
+![img-description](./docs/assets/dashboard2.png)
 _top10_detail_
 
 ## 회고
