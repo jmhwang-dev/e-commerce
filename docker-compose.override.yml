@@ -1,7 +1,9 @@
 x-health-kafka: &kafka-healthcheck
-  test: ["CMD-SHELL",
-         "/opt/kafka/bin/kafka-broker-api-versions.sh \
-          --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+  test: [
+    "CMD-SHELL",
+    "KAFKA_JMX_OPTS='' \
+    /opt/kafka/bin/kafka-broker-api-versions.sh \
+    --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
   interval: 10s
   timeout: 5s
   retries: 10
@@ -59,9 +61,9 @@ services:
     container_name: schema-registry
     # hostname: schema-registry
     depends_on:
-      - kafka1
-      - kafka2
-      - kafka3
+      kafka1: {condition: service_healthy }
+      kafka2: {condition: service_healthy }
+      kafka3: {condition: service_healthy }
     environment:
       # Kafka 클러스터 연결
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: |
