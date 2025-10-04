@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Tuple
 
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import NewTopic, AdminClient

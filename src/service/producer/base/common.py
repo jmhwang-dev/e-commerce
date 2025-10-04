@@ -3,7 +3,7 @@ from confluent_kafka import SerializingProducer
 
 class BaseProducer:
     dst_topic: str = ''
-    pk_column: Iterable[str] = []
+    pk_column: str = ''
     producer: Optional[SerializingProducer] = None
     message_key_col: str = 'message_key'
     producer_class_name: str = ''

@@ -24,9 +24,8 @@ class BronzeProducer(PandasProducer):
                     continue
                 df[col] = pd.to_datetime(df[col], errors='coerce')
 
-            for pk_col in cls.pk_column:
-                if pk_col not in df.columns:
-                    raise ValueError(f"Column {pk_col} not found in {cls.file_path}")
+            if not cls.pk_column in df.columns:
+                raise ValueError(f"Column {cls.pk_column} not found in {cls.file_path}")
             return df
         except FileNotFoundError:
             raise ValueError(f"File {cls.file_path} not found")
