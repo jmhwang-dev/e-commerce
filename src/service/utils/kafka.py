@@ -74,6 +74,7 @@ def get_confluent_serializer_conf(topic: str, use_internal=False) -> Tuple[Union
     return serializer, bootstrap_server_list
 
 def get_confluent_kafka_producer(bootstrap_server_list: List[str], serializer: Union[AvroSerializer, StringSerializer]) -> SerializingProducer:
+    # TODO: Refactor `*BronzeProducer` to use an AVSC file for key schema instead of hard-coding in Python class.
     producer_conf = {
         'bootstrap.servers': bootstrap_server_list[0],
         'key.serializer': StringSerializer('utf_8'),

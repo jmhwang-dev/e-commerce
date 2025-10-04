@@ -12,8 +12,8 @@ class PandasProducer(BaseProducer):
         message = dataum.where(pd.notnull(dataum), None)
 
         return {
-            'key': str(message[cls.pk_column]),
-            'value': message.drop(index=cls.pk_column).to_dict()
+            'key': str(message[cls.key_column]),
+            'value': message.drop(index=cls.key_column).to_dict()
         }
 
     @classmethod
@@ -55,7 +55,7 @@ class PandasProducer(BaseProducer):
         for producer_record in producer_record_list:
             try:
                 cls.producer.produce(cls.dst_topic, key=producer_record['key'], value=producer_record['value'])
-                print(f"Published to {cls.dst_topic} - {cls.pk_column}: {producer_record['key']}")
+                print(f"Published to {cls.dst_topic} - {cls.key_column}: {producer_record['key']}")
 
             except SerializationError:
                 print(f'[{cls.producer_class_name}]: schema 검증 실패')

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
@@ -19,7 +19,7 @@ def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, p
         raise ValueError(f"Warning: Serializer UDF for destination topic '{producer_class.dst_topic}' not found. Skipping.")
         
     df_to_publish = transformed_df.select(
-        concat_ws("-", *[col(c).cast("string") for c in producer_class.pk_column]).alias("key"),
+        concat_ws("-", *[col(c).cast("string") for c in producer_class.key_column]).alias("key"),
         # struct('*')를 사용하여 데이터프레임의 모든 컬럼을 value_struct로 만듬
         struct(*transformed_df.columns).alias("value_struct")
     )
@@ -42,16 +42,16 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
         : minIO에 업로드 시 멀티파트 크기. 큰 데이터 전송 성능 최적화.
 
     """
+        # .set("spark.eventLog.enabled", "true") \
+        # .set("spark.eventLog.dir", "file:///opt/spark/logs/") \
+        # .set("spark.history.fs.logDirectory", "file:///opt/spark/logs/") \
+        # .set("spark.history.ui.port", "18080") \
+        # .set("spark.metrics.appStatusSource.enabled", "true") \
     dev_conf = SparkConf().setAppName("MySparkApp") \
-        .set("spark.eventLog.enabled", "true") \
-        .set("spark.eventLog.dir", "file:///opt/spark/logs/") \
-        .set("spark.history.fs.logDirectory", "file:///opt/spark/logs/") \
-        .set("spark.history.ui.port", "18080") \
-        .set("spark.metrics.appStatusSource.enabled", "true") \
         .set("spark.sql.adaptive.enabled", "false") \
         .set("spark.sql.streaming.metricsEnabled", "true") \
         .set("spark.driver.memory", "2g") \
-        .set("spark.driver.cores", "1") \
+        .set("spark.driver.cores", "2") \
         .set("spark.driver.maxResultSize", "2g") \
         .set("spark.executor.instances", "1") \
         .set("spark.executor.cores", "4") \
@@ -84,6 +84,7 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
         .set("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
         .set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
         .set("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        # .set("spark.sql.legacy.timeParserPolicy", "CORRECTED")  # 추가
 
     if not dev:
         spark = SparkSession.builder.appName(app_name).getOrCreate()
@@ -102,7 +103,7 @@ def start_console_stream(df: DataFrame) -> StreamingQuery:
         .trigger(processingTime="10 seconds") \
         .start()
 
-def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str]) -> DataFrame:
+def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterable[str], str]) -> DataFrame:
     """
     - .option("maxOffsetsPerTrigger", "10000")
         : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
@@ -111,6 +112,12 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
     # .option("maxOffsetsPerTrigger", "20000")  # 배치당 최대 오프셋, 조정 필요
     # 추가: spark.streaming.kafka.maxRatePerPartition (파티션당 초당 메시지 수 제한, 예: 1000) 설정으로 입력 속도 제어.
     # .option("groupId", "bronze2silver") \
+
+    if isinstance(_topic_names, str):
+        topic_names = [_topic_names]
+    else:
+        topic_names = _topic_names
+        
     src_stream_df = spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
         .option("subscribe", ','.join(topic_names)) \
@@ -118,21 +125,22 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Iterable[str])
         .option("failOnDataLoss", "false") \
         .option("maxOffsetsPerTrigger", "20000") \
         .load()
-    
-    return src_stream_df.select(col("key").cast("string"), col("value"), col("topic"))
+    return src_stream_df.select(col("key"), col("value"), col("topic"))
 
 
-def get_deserialized_stream_df(kafka_stream_df: DataFrame, schema_str: str) -> DataFrame:
+def get_deserialized_stream_df(kafka_stream_df: DataFrame, schema_str: str, key_column: str) -> DataFrame:
     if schema_str is not None:
-        deserialized_column = \
+        deserialized_key = col('key').cast("string").alias(key_column)
+        deserialized_value = \
             from_avro(
                 expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
                 schema_str,
                 DESERIALIZE_OPTIONS
             ).alias("data")
-        return kafka_stream_df.select(deserialized_column).select("data.*")
+        return kafka_stream_df.select(deserialized_key, deserialized_value).select(key_column, "data.*")
     
     # 추론된 스키마를 사용해서 스트리밍 데이터 처리
     return kafka_stream_df.select(
+        col('key').cast('string').alias(key_column),
         from_json(col("value").cast("string"), kafka_stream_df.schema).alias("data")
     )

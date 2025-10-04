@@ -8,7 +8,7 @@ class SparkProducer(BaseProducer):
     @classmethod
     def generate_message(cls, data: DataFrame) -> DataFrame:
         """Generate Kafka message by adding a message key column."""
-        return data.withColumn(cls.message_key_col, concat_ws('-', *[col(c).cast("string") for c in cls.pk_column]))
+        return data.withColumn(cls.message_key_col, concat_ws('-', *[col(c).cast("string") for c in cls.key_column]))
 
     @classmethod
     def publish(cls, serialized_df: DataFrame):

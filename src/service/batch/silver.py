@@ -18,6 +18,11 @@ class OrderProduct(SilverBatchJob):
         append_or_create_table(spark, self.spark_session.createDataFrame([], WATERMARK_SCHEMA), self.wartermark_table_identifier)
 
     def generate(self,):
+        product_df = self.spark_session.read.table('warehousedev.bronze.product').drop_duplicates() # always read all
+        product_df.show()
+        return
+
+
         # TODO: compaction using airflow
         order_item_df = self.get_incremental_df('warehousedev.silver.order_item')
         product_df = self.spark_session.read.table('warehousedev.silver.product').drop_duplicates() # always read all

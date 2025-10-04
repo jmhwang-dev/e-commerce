@@ -24,8 +24,8 @@ class BronzeProducer(PandasProducer):
                     continue
                 df[col] = pd.to_datetime(df[col], errors='coerce')
 
-            if not cls.pk_column in df.columns:
-                raise ValueError(f"Column {cls.pk_column} not found in {cls.file_path}")
+            if not cls.key_column in df.columns:
+                raise ValueError(f"Column {cls.key_column} not found in {cls.file_path}")
             return df
         except FileNotFoundError:
             raise ValueError(f"File {cls.file_path} not found")
@@ -48,41 +48,41 @@ class BronzeProducer(PandasProducer):
             
 class GeolocationBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.GEOLOCATION
-    pk_column = 'zip_code'
+    key_column = 'zip_code'
     
 class CustomerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.CUSTOMER
-    pk_column = 'zip_code'
+    key_column = 'zip_code'
     
 class SellerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.SELLER
-    pk_column = 'zip_code'
+    key_column = 'zip_code'
 
 ###
 class ProductBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PRODUCT
-    pk_column = 'category'
+    key_column = 'category'
 
 class OrderStatusBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_STATUS
-    pk_column = 'order_id'
+    key_column = 'order_id'
 
 class PaymentBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PAYMENT
-    pk_column = 'order_id'
+    key_column = 'order_id'
     
 class OrderItemBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_ITEM
-    pk_column = 'order_id'
+    key_column = 'order_id'
 ###
 
 class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ESTIMATED_DELIVERY_DATE
-    pk_column = 'order_id'
+    key_column = 'order_id'
     
 class ReviewBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.REVIEW
-    pk_column = 'order_id'
+    key_column = 'order_id'
     end_timestamp: Optional[pd.Timestamp] = None
 
     @classmethod
