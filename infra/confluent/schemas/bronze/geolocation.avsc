@@ -3,7 +3,6 @@
   "type": "record",
   "name": "geolocation",
   "fields": [
-    { "name": "zip_code", "type": ["null", "int"], "default": null },
     { "name": "lat", "type": ["null", "float"], "default": null },
     { "name": "lng", "type": ["null", "float"], "default": null },
     { "name": "state", "type": ["null", "string"], "default": null },

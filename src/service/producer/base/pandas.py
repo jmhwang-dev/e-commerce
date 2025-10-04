@@ -12,8 +12,8 @@ class PandasProducer(BaseProducer):
         message = dataum.where(pd.notnull(dataum), None)
 
         return {
-            'key': '-'.join(message[cls.pk_column].astype(str)),
-            'value': message.to_dict()
+            'key': message[cls.pk_column],
+            'value': message.drop(columns=[cls.pk_column]).to_dict()
         }
 
     @classmethod

@@ -3,7 +3,6 @@
   "type": "record",
   "name": "order_status",
   "fields": [
-    { "name": "order_id", "type": ["null", "string"], "default": null },
     { "name": "status", "type": ["null", "string"], "default": null },
     {
       "name": "timestamp",
