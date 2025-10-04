@@ -52,16 +52,16 @@ class GeolocationBronzeProducer(BronzeProducer):
     
 class CustomerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.CUSTOMER
-    key_column = 'zip_code'
+    key_column = 'customer_id'
     
 class SellerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.SELLER
-    key_column = 'zip_code'
+    key_column = 'seller_id'
 
 ###
 class ProductBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PRODUCT
-    key_column = 'category'
+    key_column = 'product_id'
 
 class OrderStatusBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_STATUS
@@ -82,7 +82,7 @@ class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
     
 class ReviewBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.REVIEW
-    key_column = 'order_id'
+    key_column = 'review_id'
     end_timestamp: Optional[pd.Timestamp] = None
 
     @classmethod

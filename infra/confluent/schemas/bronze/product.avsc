@@ -3,7 +3,7 @@
   "type": "record",
   "name": "product",
   "fields": [
-    { "name": "product_id", "type": ["null", "string"], "default": null },
+    { "name": "category", "type": ["null", "string"], "default": null },
     { "name": "weight_g", "type": ["null", "float"], "default": null },
     { "name": "length_cm", "type": ["null", "float"], "default": null },
     { "name": "height_cm", "type": ["null", "float"], "default": null },
