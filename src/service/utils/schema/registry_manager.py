@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from typing import Tuple
+from typing import List
 from functools import wraps
 from dotenv import load_dotenv
 from typing import Optional, Callable, Any
@@ -102,27 +102,23 @@ class SchemaRegistryManager:
         return versions
 
     @classmethod
-    @_handle_sr_errors
-    def delete_subject(cls, subject_name: str) -> list[int]:
+    def delete_subject(cls, subject_name_list: List[str], use_internal: bool) -> None:
         """
         주제(Subject)와 관련된 모든 버전의 스키마를 영구적으로 삭제합니다. (Hard Delete)
         !!주의!! 이 작업은 되돌릴 수 없으며 관련 데이터를 읽지 못하게 할 수 있습니다.
         
-        :param subject_name: 삭제할 주제
-        :return: 삭제된 버전들의 리스트
+        :param subject_name_list: 삭제할 주제
+        :use_internal: 클라이언트 네트워크 위치가 외부인지 내부인지
         """
-        client = cls._get_client()
-        logger.critical(f"'{subject_name}' 주제의 모든 스키마를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.")
-
-        # 사용자 확인 절차
-        # proceed = input(f"정말로 '{subject_name}' 주제를 삭제하시겠습니까? [y/N]: ")
-        # if proceed.lower() != 'y':
-        #     logger.info("삭제 작업을 취소했습니다.")
-        #     return []
-        
-        deleted_versions = client.delete_subject(subject_name, permanent=True)
-        logger.info(f"'{subject_name}' 주제가 영구적으로 삭제되었습니다. 삭제된 버전: {deleted_versions}")
-        return deleted_versions
+        client = cls._get_client(use_internal)
+        for subject_name in subject_name_list:
+            try:
+                deleted_versions = client.delete_subject(subject_name, permanent=False) # soft delete
+                deleted_versions = client.delete_subject(subject_name, permanent=True)  # hard delete
+                print(f'Deleted Schema version: {deleted_versions} {subject_name}')
+            except SchemaRegistryError as e:
+                print(e)
+        return
     
 # TODO: logger 정리
 import json

@@ -24,9 +24,8 @@ class BronzeProducer(PandasProducer):
                     continue
                 df[col] = pd.to_datetime(df[col], errors='coerce')
 
-            for pk_col in cls.pk_column:
-                if pk_col not in df.columns:
-                    raise ValueError(f"Column {pk_col} not found in {cls.file_path}")
+            if not cls.pk_column in df.columns:
+                raise ValueError(f"Column {cls.pk_column} not found in {cls.file_path}")
             return df
         except FileNotFoundError:
             raise ValueError(f"File {cls.file_path} not found")
@@ -49,39 +48,41 @@ class BronzeProducer(PandasProducer):
             
 class GeolocationBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.GEOLOCATION
-    pk_column = ['zip_code']
+    pk_column = 'zip_code'
     
 class CustomerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.CUSTOMER
-    pk_column = ['customer_id']
+    pk_column = 'zip_code'
     
 class SellerBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.SELLER
-    pk_column = ['seller_id']
+    pk_column = 'zip_code'
 
+###
 class ProductBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PRODUCT
-    pk_column = ['product_id']
-    
+    pk_column = 'category'
+
 class OrderStatusBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_STATUS
-    pk_column = ['order_id', 'status']
+    pk_column = 'order_id'
 
 class PaymentBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.PAYMENT
-    pk_column = ['order_id', 'payment_sequential']
+    pk_column = 'order_id'
     
 class OrderItemBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ORDER_ITEM
-    pk_column = ['order_id', 'order_item_id']
+    pk_column = 'order_id'
+###
 
 class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.ESTIMATED_DELIVERY_DATE
-    pk_column = ['order_id']
+    pk_column = 'order_id'
     
 class ReviewBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.REVIEW
-    pk_column = ['review_id']
+    pk_column = 'order_id'
     end_timestamp: Optional[pd.Timestamp] = None
 
     @classmethod
