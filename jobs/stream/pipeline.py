@@ -173,16 +173,16 @@ def transform_topic_stream(micro_batch_df: DataFrame, batch_id: int):
     spark = micro_batch_df.sparkSession
 
     process_order_timestamp(topic_df_dict, silver_namespace)
-    process_order_product(topic_df_dict, spark, silver_namespace)
-    process_delivered_order_timestamp(topic_df_dict, spark, silver_namespace)
-    process_delivered_order_product(spark, silver_namespace)
-    process_sale_stats(spark, silver_namespace, gold_namespace)
-    process_health_beauty_sales_stats_bcg(spark, gold_namespace)
-    process_delivered_order_product_bcg(spark, silver_namespace, gold_namespace)
-    process_timestamp_stats_long(spark, silver_namespace, gold_namespace)
-    process_user_location(topic_df_dict, silver_namespace)
-    process_order_location(spark, silver_namespace, gold_namespace)
-    process_review_metatdata(topic_df_dict, silver_namespace)
+    # process_order_product(topic_df_dict, spark, silver_namespace)
+    # process_delivered_order_timestamp(topic_df_dict, spark, silver_namespace)
+    # process_delivered_order_product(spark, silver_namespace)
+    # process_sale_stats(spark, silver_namespace, gold_namespace)
+    # process_health_beauty_sales_stats_bcg(spark, gold_namespace)
+    # process_delivered_order_product_bcg(spark, silver_namespace, gold_namespace)
+    # process_timestamp_stats_long(spark, silver_namespace, gold_namespace)
+    # process_user_location(topic_df_dict, silver_namespace)
+    # process_order_location(spark, silver_namespace, gold_namespace)
+    # process_review_metatdata(topic_df_dict, silver_namespace)
 
 if __name__ == "__main__":
     spark_session = get_spark_session("Process stream")
