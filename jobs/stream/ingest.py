@@ -10,8 +10,6 @@ from service.utils.spark import *
 SRC_TOPIC_NAMES = BronzeTopic.get_all_topics()
 
 def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):    
-    
-    print()
     print(f"Processing Batch ID: {batch_id}")
     for topic_name in SRC_TOPIC_NAMES:
         try:
@@ -38,13 +36,12 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
 
 if __name__ == "__main__":
     spark_session = get_spark_session("Load CDC to bronze layer Job")
-    client = SchemaRegistryManager._get_client(use_internal=True)
     src_stream_df = get_kafka_stream_df(spark_session, SRC_TOPIC_NAMES)
 
     query = src_stream_df.writeStream \
         .foreachBatch(load_medallion_layer) \
         .queryName("load_cdc") \
-        .option("checkpointLocation", f"s3a://warehousedev/bronze/checkpoints") \
+        .option("checkpointLocation", f"s3a://warehousedev/checkpoint/ingest") \
         .trigger(processingTime="90 seconds") \
         .start()
         
