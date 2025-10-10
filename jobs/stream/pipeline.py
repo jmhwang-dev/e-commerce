@@ -1,4 +1,5 @@
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from service.producer.bronze import *
 from service.utils.spark import get_spark_session, get_kafka_stream_df, get_deserialized_stream_df, start_console_stream
@@ -12,7 +13,7 @@ GOLD_NAMESPACE = 'gold'
 
 def load_iceberg(stream_df: DataFrame, namespace:str, table_name: str):
     table_identifier = f"{namespace}.{table_name}"
-    checkpoint_path = f"checkpoint/{table_identifier.replace('.', '/')}"
+    checkpoint_path = f"s3a://warehousedev/checkpoint/{table_identifier.replace('.', '/')}"
 
     # # TODO: partition 유무 성능 확인
     # SPARK_SESSION.sql(f"""
@@ -43,6 +44,8 @@ def get_deser_stream_df(producer_class: BronzeProducer) -> DataFrame:
     return get_deserialized_stream_df(stream_df, avsc_reader.schema_str, producer_class.key_column)
 
 if __name__ == "__main__":
+    # SPARK_SESSION.sql('select * from bronze.order_status').show()
+    # exit()
     reset()
     
     order_status_stream = get_deser_stream_df(OrderStatusBronzeProducer)    
@@ -54,10 +57,15 @@ if __name__ == "__main__":
         OrderItemBronzeProducer.dst_topic: order_item_stream,
         ProductBronzeProducer.dst_topic: product_stream,
     }
-        
+    queries = []
     try:
-        queries = [load_iceberg(stream_df, BRONZE_NAMESPACE, table_name) 
+        delivered_order_id = order_status_stream.filter(F.col('status') == 'delivered_customer').select('order_id', 'status')
+        queries += [start_console_stream(delivered_order_id, 'append')]
+        queries += [load_iceberg(stream_df, BRONZE_NAMESPACE, table_name) 
                    for table_name, stream_df in stream_dict.items()]
+        
+        iceberg_test = SPARK_SESSION.readStream.format('iceberg').load('warehousedev.bronze.order_status')
+        queries += [start_console_stream(iceberg_test, 'append', 's3a://warehousedev/checkpoint/console/bronze/order_status')]
         for query in queries:
             query.awaitTermination()
     except KeyboardInterrupt:

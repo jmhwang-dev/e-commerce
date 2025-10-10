@@ -3,6 +3,7 @@ set -e
 
 SRC_ZIP="src.zip"
 sudo rm -f "$SRC_ZIP"
+sudo rm -rf data/minio/warehousedev/checkpoint
 
 CHECKPOINT_DIR="./data/minio/warehousedev/silver/checkpoints/stream"
 # -d 옵션으로 해당 경로가 디렉터리인지 확인합니다.

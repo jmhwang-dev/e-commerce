@@ -95,12 +95,21 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     spark.sparkContext.setLogLevel("WARN")
     return spark
 
-def start_console_stream(df: DataFrame) -> StreamingQuery:
+def start_console_stream(df: DataFrame, output_mode: str, checkpoint_path:str ='') -> StreamingQuery:
+    # .queryName(query_name)
+    if len(checkpoint_path) == 0:
+        return df.writeStream \
+            .outputMode(output_mode) \
+            .format("console") \
+            .option("truncate", "false") \
+            .trigger(processingTime="1 seconds") \
+            .start()
+    
     return df.writeStream \
-        .outputMode("append") \
         .format("console") \
-        .option("truncate", "false") \
-        .trigger(processingTime="10 seconds") \
+        .outputMode("append") \
+        .option("checkpointLocation", checkpoint_path) \
+        .trigger(processingTime="1 second") \
         .start()
 
 def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterable[str], str]) -> DataFrame:
@@ -123,7 +132,7 @@ def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterabl
         .option("subscribe", ','.join(topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
-        .option("maxOffsetsPerTrigger", "20000") \
+        .option("maxOffsetsPerTrigger", "1000") \
         .load()
     return src_stream_df.select(col("key"), col("value"), col("topic"))
 
