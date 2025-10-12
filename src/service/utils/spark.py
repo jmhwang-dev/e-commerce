@@ -1,17 +1,25 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, List
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
 
 from pyspark.sql.streaming import StreamingQuery
-from pyspark.sql.functions import col, expr, from_json, concat_ws, struct
+from pyspark.sql.functions import col, expr, concat_ws, struct
 from pyspark.sql.avro.functions import from_avro
 
 from config.spark import *
 from config.kafka import *
 
 from service.producer.silver import SparkProducer
+from service.producer.base.common import BaseProducer
+from service.utils.schema.reader import AvscReader
+
+def stop_streams(spark_session: SparkSession, query_list: List[StreamingQuery]):
+    for query in query_list:
+        if query.isActive:
+            query.stop()
+    spark_session.stop()
 
 def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
     serializer_udf = serializer_udfs.get(producer_class.dst_topic)
@@ -132,24 +140,17 @@ def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterabl
         .option("subscribe", ','.join(topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
-        .option("maxOffsetsPerTrigger", "1000") \
+        .option("maxOffsetsPerTrigger", "50") \
         .load()
     return src_stream_df.select(col("key"), col("value"), col("topic"))
 
 
-def get_deserialized_stream_df(kafka_stream_df: DataFrame, schema_str: str, key_column: str) -> DataFrame:
-    if schema_str is not None:
-        deserialized_key = col('key').cast("string").alias(key_column)
-        deserialized_value = \
-            from_avro(
-                expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
-                schema_str,
-                DESERIALIZE_OPTIONS
-            ).alias("data")
-        return kafka_stream_df.select(deserialized_key, deserialized_value).select(key_column, "data.*")
-    
-    # 추론된 스키마를 사용해서 스트리밍 데이터 처리
-    return kafka_stream_df.select(
-        col('key').cast('string').alias(key_column),
-        from_json(col("value").cast("string"), kafka_stream_df.schema).alias("data")
-    )
+def get_deserialized_avro_stream_df(kafka_stream_df:DataFrame, producer_class: BaseProducer, avsc_reader: AvscReader) -> DataFrame:
+    deserialized_key = col('key').cast("string").alias(producer_class.key_column)
+    deserialized_value = \
+        from_avro(
+            expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
+            avsc_reader.schema_str,
+            DESERIALIZE_OPTIONS
+        ).alias("data")
+    return kafka_stream_df.select(deserialized_key, deserialized_value).select(producer_class.key_column, "data.*")

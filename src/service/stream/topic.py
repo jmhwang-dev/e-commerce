@@ -31,17 +31,6 @@ class BronzeTopic(BaseTopic):
     GEOLOCATION = "geolocation"
     ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
     ORDER_ITEM = "order_item"    
-    
     ORDER_STATUS = "order_status"
     PAYMENT = "payment"
     REVIEW = "review"
-
-class SilverTopic(BaseTopic):
-    STREAM_PAYMENT = "stream_payment"
-    STREAM_PAYMENT_DLQ = "stream_payment_dlq"
-    STREAM_ORDER_STATUS = "stream_order_status"
-
-    # # TODO: add consumer
-    # REVIEW = "stream_review"
-    # REVIEW_CLEAN_COMMENT = "stream_review_clean_comment"
-    # REVIEW_INFERENCE = "stream_review_inference"

@@ -1,95 +1,31 @@
-from service.stream.topic import BronzeTopic, SilverTopic
-from service.producer.silver import *
-from service.stream.base import *
+from service.producer.bronze import *
 
-def get_silver2gold_job(src_topic_name: str) -> BronzeToSilverJob:
-    job: BronzeToSilverJob
-    if src_topic_name == SilverTopic.PAYMENT:
-        job = PaymentBronzeToSilverJob()
-
-    elif src_topic_name == SilverTopic.ORDER_STATUS:
-        job = OrderStatusBronzeToSilverJob()
-        
-    else:
-        raise ValueError("There is no job for bronze")
+def get_producer(topic_name):
+    if topic_name == OrderStatusBronzeProducer.dst_topic:
+        return OrderStatusBronzeProducer
     
-    return job
-
-def get_bronze2silver_job(src_topic_name: str) -> BronzeToSilverJob:
-    job: BronzeToSilverJob
-
-    if src_topic_name == BronzeTopic.PAYMENT:
-        job = PaymentBronzeToSilverJob()
-
-    elif src_topic_name == BronzeTopic.ORDER_STATUS:
-        job = OrderStatusBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.REVIEW:
-    #     job = ReviewBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.PRODUCT:
-    #     job = ProductBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.CUSTOMER:
-    #     job = CustomerBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.SELLER:
-    #     job = SellerBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.GEOLOCATION:
-    #     job = GeolocationBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.ESTIMATED_DELIVERY_DATE:
-    #     job = EstimatedDeliveryDateBronzeToSilverJob()
-
-    # elif src_topic_name == BronzeTopic.ORDER_ITEM:
-    #     job = OrderItemBronzeToSilverJob()
-
-    else:
-        raise ValueError("There is no job for bronze")
+    elif topic_name == ProductBronzeProducer.dst_topic:
+        return ProductBronzeProducer
     
-    return job
-
-def get_bronze2silver_producer(dst_topic_name: str) -> SparkProducer:
-    if dst_topic_name == SilverTopic.STREAM_PAYMENT:
-        producer = PaymentSilverProducer
-
-    elif dst_topic_name == SilverTopic.STREAM_ORDER_STATUS:
-        producer = OrderStatusSilverProducer
+    elif topic_name == CustomerBronzeProducer.dst_topic:
+        return CustomerBronzeProducer
     
-    elif dst_topic_name == SilverTopic.STREAM_PAYMENT_DLQ:
-        producer = PaymentDeadLetterQueueSilverProducer
-
-    # elif dst_topic_name == SilverTopic.REVIEW_CLEAN_COMMENT:
-    #     producer = ReviewCleanCommentSilverProducer
-
-    # elif dst_topic_name == SilverTopic.REVIEW_METADATA:
-    #     producer = ReviewMetadataSilverProducer
-
-    # elif dst_topic_name == SilverTopic.PRODUCT:
-    #     producer = ProductSilverProducer
-
-    # elif dst_topic_name == SilverTopic.CUSTOMER:
-    #     producer = CustomerSilverProducer
-
-    # elif dst_topic_name == SilverTopic.SELLER:
-    #     producer = SellerSilverProducer
-
-    # elif dst_topic_name == SilverTopic.GEOLOCATION:
-    #     producer = GeolocationSilverProducer
-
-    # elif dst_topic_name == SilverTopic.ESTIMATED_DELIVERY_DATE:
-    #     producer = EstimatedDeliveryDateSilverProducer
-
-    # elif dst_topic_name == SilverTopic.ORDER_ITEM:
-    #     producer = OrderItemSilverProducer
-
-    # # DLQ
-    # # TODO: add condition after complete `TODO-producer`
-    # elif dst_topic_name == DeadLetterQueuerTopic.PRODUCT_DLQ:
-    #     producer = ProductDeadLetterQueueSilverProducer
-
+    elif topic_name == SellerBronzeProducer.dst_topic:
+        return SellerBronzeProducer
+    
+    elif topic_name == GeolocationBronzeProducer.dst_topic:
+        return GeolocationBronzeProducer
+    
+    elif topic_name == EstimatedDeliberyDateBronzeProducer.dst_topic:
+        return EstimatedDeliberyDateBronzeProducer
+    
+    elif topic_name == OrderItemBronzeProducer.dst_topic:
+        return OrderItemBronzeProducer
+    
+    elif topic_name == PaymentBronzeProducer.dst_topic:
+        return PaymentBronzeProducer
+    
+    elif topic_name == ReviewBronzeProducer.dst_topic:
+        return ReviewBronzeProducer
     else:
-        raise ValueError("This topic is not destination")
-
-    return producer
+        raise ValueError(f"Topic does not exsits: {topic_name}")

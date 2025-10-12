@@ -15,7 +15,7 @@ if [ -f "$SRC_ZIP" ]; then
   sudo rm -f "$SRC_ZIP"
 fi
 
-PYTHON_SCRIPT="${1:-jobs/stream/ingest.py}"
+PYTHON_SCRIPT="${1:-jobs/stream/bronze.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성

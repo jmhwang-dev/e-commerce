@@ -8,10 +8,16 @@ from pyspark.sql.functions import col, min, max
 from service.utils.schema.registry_manager import *
 from service.utils.schema.reader import AvscReader
 
-
 class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
+
+def reset(spark:SparkSession, namespace:str):
+    spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
+    for table in [row.tableName for row in spark.sql(f'show tables in {namespace}').collect()]:
+        spark.sql(f'drop table if exists {namespace}.{table} purge')
+        print(f'drop done: {namespace}.{table}')
+        # SPARK_SESSION.sql(f'DESCRIBE FORMATTED {namespace}.{table}').show()    
 
 def append_or_create_table(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str):
     if not spark_session.catalog.tableExists(dst_table_identifier):
@@ -52,7 +58,7 @@ def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: Tim
         print(f"오류가 발생했습니다: {e}")
         return None, None
 
-def write_stream_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, process_time="10 seconds") -> StreamingQuery:
+def load_stream_to_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -70,8 +76,15 @@ def write_stream_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, pr
         - spark.sql("CALL iceberg_catalog.system.expire_snapshots('your_table', TIMESTAMP '2025-08-13 00:00:00')") // expire_snapshots
     """
 
+    # # TODO: partition 유무 성능 확인
+    # SPARK_SESSION.sql(f"""
+    #     CREATE TABLE IF NOT EXISTS {table_identifier}
+    #     USING iceberg
+    # """)
+
     # s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)    
     return deserialized_df.writeStream \
+        .queryName(f"load_{avsc_reader.dst_table_identifier}") \
         .outputMode("append") \
         .format("iceberg") \
         .option("checkpointLocation", f"s3a://{avsc_reader.s3_uri}/checkpoints/{avsc_reader.table_name}") \
