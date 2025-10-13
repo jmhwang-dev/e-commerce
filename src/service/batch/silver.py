@@ -1,21 +1,21 @@
 from pyspark.sql import SparkSession
 
 from .base import BatchJob
-from service.utils.iceberg import append_or_create_table
+from service.utils.iceberg import write_iceberg
 from schema.silver import WATERMARK_SCHEMA
 
 class SilverBatchJob(BatchJob):
     dst_namesapce: str = "warehousedev.silver.batch"
     watermark_namespace: str = "warehousedev.silver.watermarks"
 
-class OrderProduct(SilverBatchJob):
+class OrderTimeline(SilverBatchJob):
     def __init__(self, spark: SparkSession):
         self.spark_session: SparkSession = spark
         self.job_name = self.__class__.__name__
-        self.dst_table_name = 'order_product'
+        self.dst_table_name = 'order_timeline'
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
-        append_or_create_table(spark, self.spark_session.createDataFrame([], WATERMARK_SCHEMA), self.wartermark_table_identifier)
+        write_iceberg(spark, self.spark_session.createDataFrame([], WATERMARK_SCHEMA), self.wartermark_table_identifier, mode='w')
 
     def generate(self,):
         product_df = self.spark_session.read.table('warehousedev.bronze.product').drop_duplicates() # always read all

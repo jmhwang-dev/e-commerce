@@ -21,11 +21,25 @@ def reset_namespace(spark:SparkSession, namespace:str, is_drop:bool = False):
         print(f'drop done: {namespace}.{table}')
         # SPARK_SESSION.sql(f'DESCRIBE FORMATTED {namespace}.{table}').show()    
 
-def append_or_create_table(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str):
+def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str, mode:str = '') -> None:
+    if mode == '':
+        raise TypeError(f"write_iceberg() missing 1 required positional argument: 'mode'. mode must be one of 'w' or 'a'")
+    
     if not spark_session.catalog.tableExists(dst_table_identifier):
+        print(f"{dst_table_identifier} does not exist")
         df.writeTo(dst_table_identifier).create()
-    else:
+        print(f"{dst_table_identifier} has created")
+        return
+
+    if mode == 'w':
+        df.writeTo(dst_table_identifier).overwrite()
+        print(f"{dst_table_identifier} has overwrited")
+
+    elif mode == 'a':
         df.writeTo(dst_table_identifier).append()
+        print(f"{dst_table_identifier} has append")
+
+    return
 
 def get_snapshot_details(df: DataFrame, boundary: str) -> Optional[dict]:
     if df.isEmpty(): return None

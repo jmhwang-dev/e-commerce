@@ -33,3 +33,5 @@ if __name__ == "__main__":
     
     for table_name in src_table_names:
         deduplicates_bronze(table_name)
+    
+    SPARK_SESSION.stop()
