@@ -34,7 +34,7 @@ with DAG(
 
     submit_spark_job = SparkSubmitOperator(
         task_id='submit_spark_job_task',
-        application='/opt/airflow/jobs/batch/silver.py',  # The path to your Spark application file
+        application='/opt/airflow/jobs/batch_test.py',  # The path to your Spark application file
         conn_id='spark_default',  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',

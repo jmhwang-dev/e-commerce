@@ -15,7 +15,7 @@ else
   echo "Checkpoint directory not found. No action taken."
 fi
 
-PYTHON_SCRIPT="${1:-jobs/stream/silver.py}"
+PYTHON_SCRIPT="${1:-jobs/batch_test.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성

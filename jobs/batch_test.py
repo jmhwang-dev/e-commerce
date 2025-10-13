@@ -1,22 +1,27 @@
+
 from typing import List
 
-from service.utils.spark import get_spark_session
 from service.batch.silver import *
 from schema.silver import *
 
+from service.utils.spark import get_spark_session
+from service.producer.bronze import BronzeTopic
+from service.utils.iceberg import reset_namespace
 
-
+SPARK_SESSION = get_spark_session("Silver")
+BRONZE_NAMESPACE = 'bronze'
+SILVER_NAMESPACE = 'silver'
 
 if __name__ == "__main__":
+    reset_namespace()
     # TODO: 워크플로우 관리도구 추가, 증분처리 로그 추가
     spark = get_spark_session("Silver Batch Job", dev=True)
     silver_batch_job_list: List[SilverBatchJob] = [
         OrderProduct,
     ]
 
-    i = 0
-    end = 2
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {SilverBatchJob.dst_namesapce}")
+
 
     df = spark.read.table('warehousedev.bronze.product').drop_duplicates() # always read all
     df.show()
