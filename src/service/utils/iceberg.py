@@ -12,14 +12,14 @@ class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
 
-def reset_namespace(spark:SparkSession, namespace:str, is_drop:bool = False):
+def initialize_namespace(spark:SparkSession, namespace:str, is_drop:bool = False):
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
     if not is_drop:
         return
     for table in [row.tableName for row in spark.sql(f'show tables in {namespace}').collect()]:
         spark.sql(f'drop table if exists {namespace}.{table} purge')
         print(f'drop done: {namespace}.{table}')
-        # SPARK_SESSION.sql(f'DESCRIBE FORMATTED {namespace}.{table}').show()    
+        # spark.sql(f'DESCRIBE FORMATTED {namespace}.{table}').show()
 
 def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str, mode:str = '') -> None:
     if mode == '':
@@ -37,7 +37,7 @@ def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifi
 
     elif mode == 'a':
         df.writeTo(dst_table_identifier).append()
-        print(f"{dst_table_identifier} has append")
+        print(f"{dst_table_identifier} has appended")
 
     return
 
