@@ -21,20 +21,24 @@ class OrderTimeline(SilverBatchJob):
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
 
-        initialize_namespace(self.spark_session, self.dst_namesapce, is_drop=False)
-        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=False)
+        initialize_namespace(self.spark_session, self.dst_namesapce, is_drop=True)
+        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=True)
         
         self.watermark_df = self.spark_session.createDataFrame([], WATERMARK_SCHEMA)
         write_iceberg(spark, self.watermark_df, self.wartermark_table_identifier, mode='a')
+        self.watermark_df = self.spark_session.read.table(self.wartermark_table_identifier)
         
         self.dst_df = self.spark_session.createDataFrame([], schema=ORDER_TIMELINE)
         write_iceberg(spark, self.dst_df, self.dst_table_identifier, mode='a')
+        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
 
     def generate(self,):
         estimated_delivery_date_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ESTIMATED_DELIVERY_DATE}')
+        estimated_delivery_timestamp_df = estimated_delivery_date_df.withColumnRenamed('estimated_delivery_date', 'estimated_delivery_timestamp')
         
         order_item_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ORDER_ITEM}')
         shipping_limit_date_df = order_item_df.select('order_id', 'shipping_limit_date')
+        shipping_limit_timestamp_df = shipping_limit_date_df.withColumnRenamed('shipping_limit_date', 'shipping_limit_timestamp')
 
         order_status_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ORDER_STATUS}')
         
@@ -53,34 +57,63 @@ class OrderTimeline(SilverBatchJob):
              "delivered_customer": "delivered_customer_timestamp"}
              )
         
-        order_timeline_df = order_status_pivot_df \
-            .join(shipping_limit_date_df, on='order_id', how='inner') \
-            .join(estimated_delivery_date_df, on='order_id', how='inner')
+        self.output_df = order_status_pivot_df \
+            .join(shipping_limit_timestamp_df, on='order_id', how='inner') \
+            .join(estimated_delivery_timestamp_df, on='order_id', how='inner')
         
+        # self.output_df.select('order_id').
+        # nunique = self.output_df.select(F.countDistinct('order_id').alias('unique_count')).collect()[0]['unique_count']
+        # print(f"Unique order_id count: {nunique}")
+        # duplicates = self.output_df.groupBy("order_id").agg(F.count("*").alias("count")) \
+        #     .filter(F.col("count") > 1)
+
+        # # 결과 출력
+        # duplicates.show()
+    
+    def update_table(self,):
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.spark_session.sql(f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING {self.dst_table_name} s
+            ON t.order_id = s.order_id
+            WHEN MATCHED AND (
+                t.purchase_timestamp != s.purchase_timestamp OR
+                t.approve_timestamp != s.approve_timestamp OR
+                t.shipping_limit_timestamp != s.shipping_limit_timestamp OR
+                t.delivered_carrier_timestamp != s.delivered_carrier_timestamp OR
+                t.delivered_customer_timestamp != s.delivered_customer_timestamp OR
+                t.estimated_delivery_timestamp != s.estimated_delivery_timestamp
+            ) THEN
+                UPDATE SET
+                    purchase_timestamp = s.purchase_timestamp,
+                    approve_timestamp = s.approve_timestamp,
+                    shipping_limit_timestamp = s.shipping_limit_timestamp,
+                    delivered_carrier_timestamp = s.delivered_carrier_timestamp,
+                    delivered_customer_timestamp = s.delivered_customer_timestamp,
+                    estimated_delivery_timestamp = s.estimated_delivery_timestamp
+            WHEN NOT MATCHED THEN
+                INSERT (
+                    order_id,
+                    purchase_timestamp,
+                    approve_timestamp,
+                    shipping_limit_timestamp,
+                    delivered_carrier_timestamp,
+                    delivered_customer_timestamp,
+                    estimated_delivery_timestamp
+                ) VALUES (
+                    s.order_id,
+                    s.purchase_timestamp,
+                    s.approve_timestamp,
+                    s.shipping_limit_timestamp,
+                    s.delivered_carrier_timestamp,
+                    s.delivered_customer_timestamp,
+                    s.estimated_delivery_timestamp
+                )
+        """)
+        tmp_df = self.spark_session.read.table(self.dst_table_identifier)
+        null_counts = {col_name: tmp_df.filter(F.col(col_name).isNull()).count()
+               for col_name in tmp_df.columns}
+        for col_name, count in null_counts.items():
+            print(f"{col_name}: {count}")
+        # print(tmp_df.count())
         return
-
-
-        # TODO: compaction using airflow
-        order_item_df = self.get_incremental_df('warehousedev.silver.order_item')
-        product_df = self.spark_session.read.table('warehousedev.silver.product').drop_duplicates() # always read all
-
-        select_exprs = [
-            "o.shipping_limit_date",
-            "o.order_id",
-            "o.order_item_id",
-            "o.seller_id",
-            "p.category",
-            "o.price as unit_price",
-            "o.freight_value as unit_freight",
-            "p.weight_g",
-            "p.length_cm",
-            "p.height_cm",
-            "p.width_cm"
-        ]
-
-        
-        # gold 집계시 전체 중복제거 필요
-        self.output_df = \
-            order_item_df.alias('o').join(product_df.alias('p'), on='product_id', how='left').selectExpr(select_exprs) \
-                .na.drop(how='any') \
-                .dropDuplicates()

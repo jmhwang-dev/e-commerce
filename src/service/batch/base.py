@@ -16,6 +16,8 @@ class BatchJob(ABC):
     dst_table_identifier: str = ''
     watermark_namespace: str = ''
     wartermark_table_identifier: str = ''
+
+    dst_df: Optional[DataFrame] = None
     output_df: Optional[DataFrame] = None
 
     # @classmethod
@@ -51,13 +53,9 @@ class BatchJob(ABC):
     def generate(self,):
         pass
 
+    @abstractmethod
     def update_table(self,):
         pass
-        # if self.output_df.isEmpty():
-        #     print(f'[{self.job_name}]: Empty DataFrame')
-        #     return
-        # write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier)
-        # print(f'[{self.job_name}] Writed to {self.dst_table_identifier}')
         
     def update_watermark(self,):
         df = self.spark_session.createDataFrame([(self.job_name, self.end_snapshot_id)], WATERMARK_SCHEMA)
