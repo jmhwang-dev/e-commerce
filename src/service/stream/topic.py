@@ -34,3 +34,7 @@ class BronzeTopic(BaseTopic):
     ORDER_STATUS = "order_status"
     PAYMENT = "payment"
     REVIEW = "review"
+
+class SilverTopic(BaseTopic):
+    REVIEW_CLEAN_COMMENT = "product" 
+    REVIEW_METADATA = "customer"
