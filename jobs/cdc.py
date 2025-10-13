@@ -5,7 +5,7 @@ from pyspark.sql.utils import StreamingQueryException, AnalysisException
 from pyspark.sql.streaming.query import StreamingQuery
 from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session, get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream
-from service.utils.iceberg import load_stream_to_iceberg, reset
+from service.utils.iceberg import load_stream_to_iceberg, reset_namespace
 from service.stream.helper import get_producer
 from service.utils.schema.reader import AvscReader
 from service.utils.logger import *
@@ -37,7 +37,7 @@ def setup_bronze_streams():
         exit()
 
 if __name__ == "__main__":
-    reset(SPARK_SESSION, BRONZE_NAMESPACE)
+    reset_namespace(SPARK_SESSION, BRONZE_NAMESPACE, is_drop=True)
     setup_bronze_streams()
         
     try:

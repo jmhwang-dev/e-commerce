@@ -12,8 +12,10 @@ class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
 
-def reset(spark:SparkSession, namespace:str):
+def reset_namespace(spark:SparkSession, namespace:str, is_drop:bool = False):
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
+    if not is_drop:
+        return
     for table in [row.tableName for row in spark.sql(f'show tables in {namespace}').collect()]:
         spark.sql(f'drop table if exists {namespace}.{table} purge')
         print(f'drop done: {namespace}.{table}')
