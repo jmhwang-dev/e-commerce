@@ -16,6 +16,7 @@ WATERMARK_SCHEMA = StructType([
 
 ORDER_TIMELINE = StructType([
     StructField("order_id", StringType(), False),
+    StructField("product_id", StringType(), False),
     StructField("purchase_timestamp", TimestampType(), True),
     StructField("approve_timestamp", TimestampType(), True),
     StructField("shipping_limit_timestamp", TimestampType(), True),

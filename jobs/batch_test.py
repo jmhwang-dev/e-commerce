@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     job_instance: SilverBatchJob = OrderTimeline(spark)
     i = 0
-    end = 2
+    end = 3
     while i < end:
         job_instance.generate()
         job_instance.update_table()
