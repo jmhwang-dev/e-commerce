@@ -150,3 +150,20 @@ class ProductMetadata(SilverBatchJob):
     def update_table(self,):
         self.dst_df.show()
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
+
+class OrderTransaction(SilverBatchJob):
+    def __init__(self, spark: SparkSession):
+        self.spark_session = spark
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'order_transaction'
+        self.schema = ORDER_TRANSACTION
+        super().__init__()
+
+    def generate(self,):
+        order_item_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ORDER_ITEM}')
+        self.output_df = order_item_df.select("order_id", "order_item_id", "product_id", "price", "freight_value")
+    
+    def update_table(self,):
+        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
+        self.dst_df.show()
+        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
