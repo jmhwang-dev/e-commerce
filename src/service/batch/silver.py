@@ -77,7 +77,6 @@ class OrderTimeline(SilverBatchJob):
             .join(shipping_limit_timestamp_df, on='order_id', how='inner') \
             .join(estimated_delivery_timestamp_df, on='order_id', how='inner').dropDuplicates()
         
-    
     def update_table(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
         self.spark_session.sql(f"""
@@ -122,4 +121,32 @@ class OrderCustomer(SilverBatchJob):
         self.output_df = payment_df.select('order_id', 'customer_id').dropDuplicates()
     
     def update_table(self,):
+        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
+
+class ProductMetadata(SilverBatchJob):
+    def __init__(self, spark: SparkSession):
+        self.spark_session = spark
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'product_metadata'
+        self.schema = PRODUCT_METADATA
+        super().__init__()
+
+    def generate(self,):
+        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
+        complete_product_metadata_df = self.dst_df
+
+        # TODO: Select additional columns as needed: ['weight_g', 'length_cm', 'height_cm', 'width_cm']
+        product_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.PRODUCT}')
+        product_category_df = product_df.select('product_id', 'category')
+        product_category_df = product_category_df.join(complete_product_metadata_df, on='product_id', how='left_anti').dropDuplicates()
+
+        order_item_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ORDER_ITEM}')
+        product_seller_df = order_item_df.select('product_id', 'seller_id')
+        product_seller_df = product_seller_df.join(complete_product_metadata_df, on='product_id', how='left_anti').dropDuplicates()
+
+        # Drop unknown category
+        self.output_df = product_category_df.join(product_seller_df, on='product_id', how='inner').dropna()
+    
+    def update_table(self,):
+        self.dst_df.show()
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')

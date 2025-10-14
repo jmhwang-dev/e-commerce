@@ -30,10 +30,11 @@ ORDER_CUSTOMER = StructType([
     StructField("customer_id", StringType(), False),
 ])
 
-# CUSTOMER_SCHEMA = StructType([
-#     StructField("customer_id", StringType(), True),
-#     StructField("zip_code", IntegerType(), True)
-# ])
+PRODUCT_METADATA = StructType([
+    StructField("product_id", StringType(), False),
+    StructField("category", StringType(), False),
+    StructField("seller_id", StringType(), False),
+])
 
 # ESTIMATED_DELIVERY_DATE_SCHEMA = StructType([
 #     StructField("order_id", StringType(), True),

@@ -25,7 +25,6 @@ def deduplicates_bronze(table_name, ):
 
 if __name__ == "__main__":
     src_table_names = [
-        BronzeTopic.PRODUCT,
         BronzeTopic.SELLER,
         BronzeTopic.CUSTOMER,
         BronzeTopic.GEOLOCATION
