@@ -6,7 +6,7 @@ from pyspark.sql.streaming.query import StreamingQuery
 from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session, get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream
 from service.utils.iceberg import load_stream_to_iceberg, initialize_namespace
-from service.stream.helper import get_producer
+from service.utils.helper import get_producer
 from service.utils.schema.reader import AvscReader
 from service.utils.logger import *
 
