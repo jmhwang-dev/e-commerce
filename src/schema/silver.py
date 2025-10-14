@@ -25,6 +25,11 @@ ORDER_TIMELINE = StructType([
     StructField("estimated_delivery_timestamp", TimestampType(), True)
 ])
 
+ORDER_CUSTOMER = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("customer_id", StringType(), False),
+])
+
 # CUSTOMER_SCHEMA = StructType([
 #     StructField("customer_id", StringType(), True),
 #     StructField("zip_code", IntegerType(), True)

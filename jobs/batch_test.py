@@ -12,7 +12,8 @@ SPARK_SESSION = get_spark_session("Silver")
 if __name__ == "__main__":
     spark = get_spark_session("Silver Batch Job", dev=True)
 
-    job_instance: SilverBatchJob = OrderTimeline(spark)
+    # job_instance: SilverBatchJob = OrderTimeline(spark)
+    job_instance: SilverBatchJob = OrderCustomer(spark)
     i = 0
     end = 3
     while i < end:

@@ -1,10 +1,13 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.types import StructType
+from typing import Union
+
 from functools import reduce
 
 from .base import BatchJob
 from service.utils.iceberg import write_iceberg
-from schema.silver import WATERMARK_SCHEMA, ORDER_TIMELINE
+from schema.silver import *
 from service.producer.bronze import BronzeTopic
 from service.utils.iceberg import initialize_namespace
 
@@ -12,28 +15,35 @@ class SilverBatchJob(BatchJob):
     src_namespace: str = 'bronze'
     dst_namesapce: str = "silver"
     watermark_namespace: str = "silver.watermarks"
+    schema: Union[StructType, None] = None
 
-class OrderTimeline(SilverBatchJob):
-    def __init__(self, spark: SparkSession):
-        self.spark_session: SparkSession = spark
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'order_timeline'
+    def __init__(self,):
+        
+        _dev = True
+        initialize_namespace(self.spark_session, self.dst_namesapce, is_drop=_dev)
+        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=_dev)
+
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
 
-        _dev = False
-        initialize_namespace(self.spark_session, self.dst_namesapce, is_drop=_dev)
-        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=_dev)
-        
         self.watermark_df = self.spark_session.createDataFrame([], WATERMARK_SCHEMA)
-        write_iceberg(spark, self.watermark_df, self.wartermark_table_identifier, mode='a')
+        write_iceberg(self.spark_session, self.watermark_df, self.wartermark_table_identifier, mode='a')
         self.watermark_df = self.spark_session.read.table(self.wartermark_table_identifier)
         
-        self.dst_df = self.spark_session.createDataFrame([], schema=ORDER_TIMELINE)
-        write_iceberg(spark, self.dst_df, self.dst_table_identifier, mode='a')
+        self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
+        write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
+
+class OrderTimeline(SilverBatchJob):
+    def __init__(self, spark: SparkSession):
+        self.spark_session = spark
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'order_timeline'
+        self.schema = ORDER_TIMELINE
+        super().__init__()
 
     def generate(self,):
         self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
+        print(self.dst_df.count())
         complete_timeline_order_id_df = self.dst_df.select('order_id').dropna()
 
         estimated_delivery_date_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ESTIMATED_DELIVERY_DATE}')
@@ -98,3 +108,18 @@ class OrderTimeline(SilverBatchJob):
                 VALUES (s.order_id, s.purchase_timestamp, s.approve_timestamp, s.shipping_limit_timestamp,
                         s.delivered_carrier_timestamp, s.delivered_customer_timestamp, s.estimated_delivery_timestamp)
         """)
+
+class OrderCustomer(SilverBatchJob):
+    def __init__(self, spark: SparkSession):
+        self.spark_session = spark
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'order_customer'
+        self.schema = ORDER_CUSTOMER
+        super().__init__()
+
+    def generate(self,):
+        payment_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.PAYMENT}')
+        self.output_df = payment_df.select('order_id', 'customer_id').dropDuplicates()
+    
+    def update_table(self,):
+        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
