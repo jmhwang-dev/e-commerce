@@ -146,12 +146,12 @@ def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterabl
     return src_stream_df.select(col("key"), col("value"), col("topic"))
 
 
-def get_deserialized_avro_stream_df(kafka_stream_df:DataFrame, producer_class: BaseProducer, avsc_reader: AvscReader) -> DataFrame:
-    deserialized_key = col('key').cast("string").alias(producer_class.key_column)
+def get_deserialized_avro_stream_df(kafka_stream_df:DataFrame, key_column: str, avsc_schema_str: str) -> DataFrame:
+    deserialized_key = col('key').cast("string").alias(key_column)
     deserialized_value = \
         from_avro(
             expr("substring(value, 6, length(value)-5)"), # Magic byte + schema id 제거
-            avsc_reader.schema_str,
+            avsc_schema_str,
             DESERIALIZE_OPTIONS
         ).alias("data")
-    return kafka_stream_df.select(deserialized_key, deserialized_value).select(producer_class.key_column, "data.*")
+    return kafka_stream_df.select(deserialized_key, deserialized_value).select(key_column, "data.*")
