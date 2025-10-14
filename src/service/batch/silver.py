@@ -3,13 +3,12 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
 from typing import Union
 
-from functools import reduce
-
 from .base import BatchJob
 from service.utils.iceberg import write_iceberg
 from schema.silver import *
 from service.producer.bronze import BronzeTopic
 from service.utils.iceberg import initialize_namespace
+from service.utils.spark import get_spark_session
 
 class SilverBatchJob(BatchJob):
     src_namespace: str = 'bronze'
@@ -18,10 +17,10 @@ class SilverBatchJob(BatchJob):
     schema: Union[StructType, None] = None
 
     def __init__(self,):
+        self._dev = True
+        self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev)
         
-        _dev = True
-        initialize_namespace(self.spark_session, self.dst_namesapce, is_drop=_dev)
-        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=_dev)
+        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=self._dev)
 
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
@@ -34,8 +33,7 @@ class SilverBatchJob(BatchJob):
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
 
 class OrderTimeline(SilverBatchJob):
-    def __init__(self, spark: SparkSession):
-        self.spark_session = spark
+    def __init__(self):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'order_timeline'
         self.schema = ORDER_TIMELINE
@@ -43,7 +41,6 @@ class OrderTimeline(SilverBatchJob):
 
     def generate(self,):
         self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
-        print(self.dst_df.count())
         complete_timeline_order_id_df = self.dst_df.select('order_id').dropna()
 
         estimated_delivery_date_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.ESTIMATED_DELIVERY_DATE}')
@@ -102,15 +99,14 @@ class OrderTimeline(SilverBatchJob):
                 UPDATE SET estimated_delivery_timestamp = s.estimated_delivery_timestamp
             
             WHEN NOT MATCHED THEN
-                INSERT (order_id, purchase_timestamp, approve_timestamp, shipping_limit_timestamp,
+                INSERT (order_id, product_id, purchase_timestamp, approve_timestamp, shipping_limit_timestamp,
                         delivered_carrier_timestamp, delivered_customer_timestamp, estimated_delivery_timestamp)
-                VALUES (s.order_id, s.purchase_timestamp, s.approve_timestamp, s.shipping_limit_timestamp,
+                VALUES (s.order_id, s.product_id, s.purchase_timestamp, s.approve_timestamp, s.shipping_limit_timestamp,
                         s.delivered_carrier_timestamp, s.delivered_customer_timestamp, s.estimated_delivery_timestamp)
         """)
 
 class OrderCustomer(SilverBatchJob):
-    def __init__(self, spark: SparkSession):
-        self.spark_session = spark
+    def __init__(self):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'order_customer'
         self.schema = ORDER_CUSTOMER
@@ -124,8 +120,7 @@ class OrderCustomer(SilverBatchJob):
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
 
 class ProductMetadata(SilverBatchJob):
-    def __init__(self, spark: SparkSession):
-        self.spark_session = spark
+    def __init__(self):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'product_metadata'
         self.schema = PRODUCT_METADATA
@@ -148,12 +143,10 @@ class ProductMetadata(SilverBatchJob):
         self.output_df = product_category_df.join(product_seller_df, on='product_id', how='inner').dropna()
     
     def update_table(self,):
-        self.dst_df.show()
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
 
 class OrderTransaction(SilverBatchJob):
-    def __init__(self, spark: SparkSession):
-        self.spark_session = spark
+    def __init__(self):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'order_transaction'
         self.schema = ORDER_TRANSACTION
@@ -164,6 +157,4 @@ class OrderTransaction(SilverBatchJob):
         self.output_df = order_item_df.select("order_id", "order_item_id", "product_id", "price", "freight_value")
     
     def update_table(self,):
-        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
-        self.dst_df.show()
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')

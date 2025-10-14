@@ -1,26 +1,30 @@
-
 from typing import List
 
 from service.batch.silver import *
 from schema.silver import *
 
-from service.utils.spark import get_spark_session
-from service.utils.iceberg import initialize_namespace
-
-SPARK_SESSION = get_spark_session("Silver")
-
 if __name__ == "__main__":
-    spark = get_spark_session("Silver Batch Job", dev=True)
+    spark_session = get_spark_session("Silver Batch Job", dev=True)
+    initialize_namespace(spark_session, 'silver', is_drop=True)
 
-    # job_instance: SilverBatchJob = OrderTimeline(spark)
-    # job_instance: SilverBatchJob = OrderCustomer(spark)
-    job_instance: SilverBatchJob = ProductMetadata(spark)
+    job_list: List[SilverBatchJob] = [
+        OrderTimeline(),
+        OrderCustomer(),
+        ProductMetadata(),
+        OrderTransaction(),
+    ]
+
     i = 0
     end = 3
+
     while i < end:
-        job_instance.generate()
-        job_instance.update_table()
-        # job_instance.update_watermark()
+        for job_instance in job_list:
+            job_instance.generate()
+            job_instance.update_table()
+            df = job_instance.spark_session.read.table(job_instance.dst_table_identifier)
+            df.show()
+            # job_instance.update_watermark()
         i += 1
 
-    SPARK_SESSION.stop()
+    for job_instance in job_list:
+        job_instance.spark_session.stop()
