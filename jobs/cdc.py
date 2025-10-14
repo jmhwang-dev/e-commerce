@@ -11,12 +11,12 @@ from service.utils.schema.reader import AvscReader
 from service.utils.logger import *
 
 
-LOGGER = get_logger(__name__, '/opt/spark/logs/bronze_stream.log')
+LOGGER = get_logger(__name__, '/opt/spark/logs/cdc.log')
 
 SRC_TOPIC_NAMES:List[str] = BronzeTopic.get_all_topics()
 BRONZE_NAMESPACE = 'bronze'
 
-SPARK_SESSION = get_spark_session("Initialize bronze layer")
+SPARK_SESSION = get_spark_session("Load CDC to bronze layer")
 QUERY_LIST: List[StreamingQuery] = []
 
 def setup_bronze_streams():
