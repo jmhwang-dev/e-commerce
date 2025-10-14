@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-BRONZE_LAYER_DIR="data/minio/warehousedev/cdc/checkpoints"
-if [ -d "$BRONZE_LAYER_DIR" ]; then
-  # 테스트 실행을 위해 이전 체크포인트 내용을 모두 삭제합니다.
-  echo "Checkpoint directory found. Removing all contents within '$BRONZE_LAYER_DIR'..."
-  # `find` 명령어를 사용하여 하위 모든 파일과 디렉토리를 안전하게 삭제합니다.
-  sudo find "$BRONZE_LAYER_DIR" -mindepth 1 -delete
-  echo "Contents successfully removed."
+CHECKPOINT_DIR="data/minio/warehousedev/bronze/checkpoints"
+if [ -d "$CHECKPOINT_DIR" ]; then
+  echo "Checkpoint directory found at '$CHECKPOINT_DIR'. Removing it..."
+  sudo rm -r "$CHECKPOINT_DIR"
+  echo "Directory successfully removed."
+else
+  echo "Checkpoint directory not found. No action taken."
 fi
 
 SRC_ZIP="src.zip"
