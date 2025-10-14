@@ -3,6 +3,7 @@ from typing import Iterable, Union, List
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
+from pyspark.sql.utils import StreamingQueryException
 
 from pyspark.sql.streaming import StreamingQuery
 from pyspark.sql.functions import col, expr, concat_ws, struct
@@ -106,18 +107,18 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
 def start_console_stream(df: DataFrame, output_mode: str, checkpoint_path:str ='') -> StreamingQuery:
     # .queryName(query_name)
     if len(checkpoint_path) == 0:
-        return df.writeStream \
-            .outputMode(output_mode) \
-            .format("console") \
-            .option("truncate", "false") \
-            .trigger(processingTime="1 seconds") \
-            .start()
+        raise StreamingQueryException(f"checkpointLocation need to be set")
     
+    options = {
+        "truncate": "false",
+        "checkpointLocation": checkpoint_path,
+        "trigger": {"processingTime": "5 second"}
+    }
+
     return df.writeStream \
+        .outputMode(output_mode) \
         .format("console") \
-        .outputMode("append") \
-        .option("checkpointLocation", checkpoint_path) \
-        .trigger(processingTime="1 second") \
+        .options(**options) \
         .start()
 
 def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterable[str], str]) -> DataFrame:
