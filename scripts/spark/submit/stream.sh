@@ -1,18 +1,23 @@
 #!/bin/bash
 set -e
 
-CHECKPOINT_DIR="data/minio/warehousedev/gold/checkpoints"
-if [ -d "$CHECKPOINT_DIR" ]; then
-  echo "Checkpoint directory found at '$CHECKPOINT_DIR'. Removing it..."
-  sudo rm -r "$CHECKPOINT_DIR"
-  echo "Directory successfully removed."
+CHECKPOINT_BASE="data/minio/warehousedev/silver"
+CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
+
+if [ -n "$CHECKPOINT_DIRS" ]; then
+  echo "Found checkpoint directories:"
+  echo "$CHECKPOINT_DIRS"
+  while IFS= read -r dir; do
+    echo "Removing checkpoint directory: $dir"
+    rm -rf "$dir" && echo "Successfully removed: $dir" || echo "Failed to remove: $dir"
+  done <<< "$CHECKPOINT_DIRS"
 else
-  echo "Checkpoint directory not found. No action taken."
+  echo "No checkpoint directories found in $CHECKPOINT_BASE/*/checkpoint"
 fi
 
 SRC_ZIP="src.zip"
 if [ -f "$SRC_ZIP" ]; then
-  sudo rm -f "$SRC_ZIP"
+  rm -f "$SRC_ZIP"
 fi
 
 PYTHON_SCRIPT="${1:-jobs/stream.py}"
