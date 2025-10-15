@@ -1,21 +1,18 @@
-import traceback
 
 from typing import List
-from pyspark.sql.utils import StreamingQueryException, AnalysisException
 from pyspark.sql.streaming.query import StreamingQuery
 from service.producer.bronze import BronzeTopic
-from service.utils.spark import get_spark_session, get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream
+from service.utils.spark import get_spark_session, get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream, run_stream_queries
 from service.utils.iceberg import load_stream_to_iceberg, initialize_namespace
 from service.utils.helper import get_producer
 from service.utils.schema.reader import AvscReader
 from service.utils.logger import *
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
-
 LOGGER = get_logger(__name__, '/opt/spark/logs/cdc.log')
 
 SRC_TOPIC_NAMES:List[str] = BronzeTopic.get_all_topics()
-BRONZE_NAMESPACE = 'bronze'
+DST_NAMESPACE = 'bronze'
 
 SPARK_SESSION = get_spark_session("Load CDC to bronze layer")
 QUERY_LIST: List[StreamingQuery] = []
@@ -33,34 +30,12 @@ def setup_bronze_streams():
             QUERY_LIST.append(query)
 
     except SchemaRegistryError as e:
-        # At `AvscReader``
+        # From `AvscReader()`
         print(e)
         stop_streams(SPARK_SESSION, QUERY_LIST)
         exit()
 
 if __name__ == "__main__":
-    initialize_namespace(SPARK_SESSION, BRONZE_NAMESPACE, is_drop=True)
+    initialize_namespace(SPARK_SESSION, DST_NAMESPACE, is_drop=True)
     setup_bronze_streams()
-        
-    try:
-        SPARK_SESSION.streams.awaitAnyTermination()
-
-    except StreamingQueryException as e:
-        write_log(LOGGER, f"StreamingQueryException occurred: {str(e)}")
-        for q in QUERY_LIST[:]:
-            if not q.isActive():
-                LOGGER.error(f"Query for {q.name} failed. Last progress: {q.lastProgress}")
-                QUERY_LIST.remove(q)
-        write_log(LOGGER, f"Stack trace: {traceback.format_exc()}")
-
-    except AnalysisException as e:
-        write_log(LOGGER, f"AnalysisException occurred: {str(e)}")
-        for q in QUERY_LIST[:]:
-            if not q.isActive():
-                write_log(LOGGER, f"Query for {q.name} failed. Last progress: {q.lastProgress}")
-                QUERY_LIST.remove(q)
-        write_log(LOGGER, f"Stack trace: {traceback.format_exc()}")
-
-    except KeyboardInterrupt:
-        print("Stopping all streaming QUERY_LIST and sessions...")
-        stop_streams(SPARK_SESSION, QUERY_LIST)
+    run_stream_queries(SPARK_SESSION, QUERY_LIST, LOGGER)

@@ -1,10 +1,12 @@
 import uuid
+import traceback
+from logging import Logger
 from typing import Iterable, Union, List
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
-from pyspark.sql.utils import StreamingQueryException
+from pyspark.sql.utils import StreamingQueryException, AnalysisException
 
 from pyspark.sql.streaming import StreamingQuery
 from pyspark.sql.functions import col, expr, concat_ws, struct
@@ -14,8 +16,7 @@ from config.spark import *
 from config.kafka import *
 
 from service.producer.silver import SparkProducer
-from service.producer.base.common import BaseProducer
-from service.utils.schema.reader import AvscReader
+from service.utils.logger import write_log, Logger
 
 def stop_streams(spark_session: SparkSession, query_list: List[StreamingQuery]):
     for query in query_list:
@@ -153,3 +154,27 @@ def get_deserialized_avro_stream_df(kafka_stream_df:DataFrame, key_column: str, 
             DESERIALIZE_OPTIONS
         ).alias("data")
     return kafka_stream_df.select(deserialized_key, deserialized_value).select(key_column, "data.*")
+
+def run_stream_queries(spark_session:SparkSession, query_list:List[StreamingQuery], logger: Logger):
+    try:
+        spark_session.streams.awaitAnyTermination()
+
+    except StreamingQueryException as e:
+        write_log(logger, f"StreamingQueryException occurred: {str(e)}")
+        for q in query_list[:]:
+            if not q.isActive():
+                logger.error(f"Query for {q.name} failed. Last progress: {q.lastProgress}")
+                query_list.remove(q)
+        write_log(logger, f"Stack trace: {traceback.format_exc()}")
+
+    except AnalysisException as e:
+        write_log(logger, f"AnalysisException occurred: {str(e)}")
+        for q in query_list[:]:
+            if not q.isActive():
+                write_log(logger, f"Query for {q.name} failed. Last progress: {q.lastProgress}")
+                query_list.remove(q)
+        write_log(logger, f"Stack trace: {traceback.format_exc()}")
+
+    except KeyboardInterrupt:
+        print("Stopping all streaming query_list and sessions...")
+        stop_streams(spark_session, query_list)
