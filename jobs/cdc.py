@@ -9,6 +9,8 @@ from service.utils.iceberg import load_stream_to_iceberg, initialize_namespace
 from service.utils.helper import get_producer
 from service.utils.schema.reader import AvscReader
 from service.utils.logger import *
+from confluent_kafka.schema_registry.error import SchemaRegistryError
+
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/cdc.log')
 
@@ -27,11 +29,11 @@ def setup_bronze_streams():
             kafka_stream_df = get_kafka_stream_df(SPARK_SESSION, topic_name)
             deser_stream_df = get_deserialized_avro_stream_df(kafka_stream_df, producer_class.key_column, avsc_reader.schema_str)
 
-            query = load_stream_to_iceberg(deser_stream_df, avsc_reader, process_time='5 seconds')
+            query = load_stream_to_iceberg(deser_stream_df, avsc_reader.dst_table_identifier, process_time='5 seconds')
             QUERY_LIST.append(query)
 
-    except ValueError as e:
-        # Topic does not exist
+    except SchemaRegistryError as e:
+        # At `AvscReader``
         print(e)
         stop_streams(SPARK_SESSION, QUERY_LIST)
         exit()

@@ -74,7 +74,7 @@ def get_snapshot_id_by_time_boundary(snapshots_df: DataFrame, time_boundary: Tim
         print(f"오류가 발생했습니다: {e}")
         return None, None
 
-def load_stream_to_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, process_time="10 seconds") -> StreamingQuery:
+def load_stream_to_iceberg(deserialized_df: DataFrame, dst_table_identifier: str, process_time="10 seconds") -> StreamingQuery:
     """
     options
     # spark.sql.streaming.checkpointLocation
@@ -98,15 +98,12 @@ def load_stream_to_iceberg(deserialized_df: DataFrame, avsc_reader: AvscReader, 
     #     USING iceberg
     # """)
 
-    # s3_uri, table_identifier, table_name = get_iceberg_destination(schema_str)    
+    s3_uri = dst_table_identifier.replace('.', '/') # ex) bronze/customer
     return deserialized_df.writeStream \
-        .queryName(f"load_{avsc_reader.dst_table_identifier}") \
+        .queryName(f"Load to {dst_table_identifier}") \
         .outputMode("append") \
         .format("iceberg") \
-        .option("checkpointLocation", f"s3a://{avsc_reader.s3_uri}/checkpoints/{avsc_reader.table_name}") \
+        .option("checkpointLocation", f"s3a://warehousedev/{s3_uri}/checkpoint") \
         .option("fanout.enabled", "false") \
         .trigger(processingTime=process_time) \
-        .toTable(avsc_reader.dst_table_identifier)
-
-    # fanout.enabled=false
-    # OPTIMIZE TABLE / expire_snapshots
+        .toTable(dst_table_identifier)

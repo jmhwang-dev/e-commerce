@@ -27,5 +27,3 @@ def get_producer(topic_name):
     
     elif topic_name == ReviewBronzeProducer.dst_topic:
         return ReviewBronzeProducer
-    else:
-        raise ValueError(f"Topic does not exsits: {topic_name}")
