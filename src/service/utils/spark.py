@@ -1,3 +1,4 @@
+import uuid
 from typing import Iterable, Union, List
 
 from pyspark import SparkConf
@@ -104,14 +105,11 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
     spark.sparkContext.setLogLevel("WARN")
     return spark
 
-def start_console_stream(df: DataFrame, output_mode: str, checkpoint_path:str ='') -> StreamingQuery:
+def start_console_stream(df: DataFrame, output_mode: str, checkpoint_dir: str = '') -> StreamingQuery:
     # .queryName(query_name)
-    if len(checkpoint_path) == 0:
-        raise StreamingQueryException(f"checkpointLocation need to be set")
-    
     options = {
         "truncate": "false",
-        "checkpointLocation": checkpoint_path,
+        "checkpointLocation": f"s3a://tmp/{uuid.uuid4() if len(checkpoint_dir) == 0 else checkpoint_dir}",
         "trigger": {"processingTime": "5 second"}
     }
 
