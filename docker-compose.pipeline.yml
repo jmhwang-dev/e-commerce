@@ -103,3 +103,12 @@ services:
         sleep 10;
         spark-sql -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
       "
+  dbt:
+    container_name: dbt
+    image: ghcr.io/dbt-labs/dbt-spark:1.9.0
+    depends_on:
+      - spark-client
+    volumes: 
+      - ./infra/dbt:/usr/app/dbt
+      - ./configs/dbt/profiles.yml:/root/.dbt/profiles.yml
+    entrypoint: ["tail", "-f", "/dev/null"]

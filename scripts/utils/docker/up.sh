@@ -5,4 +5,5 @@ docker compose \
     -f docker-compose.inference.yml \
     -f docker-compose.thrift.yml \
     -f docker-compose.metric.yml \
+    -f docker-compose.airflow.yml \
     up -d --force-recreate
