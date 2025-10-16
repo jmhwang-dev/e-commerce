@@ -2,7 +2,7 @@ from service.utils.spark import get_spark_session
 from service.utils.iceberg import initialize_namespace
 from service.producer.bronze import BronzeTopic
 
-SPARK_SESSION = get_spark_session("Silver")
+SPARK_SESSION = get_spark_session("deduplicate")
 BRONZE_NAMESPACE = 'bronze'
 SILVER_NAMESPACE = 'silver'
 
@@ -24,7 +24,7 @@ def deduplicates_bronze(table_name, ):
     dst_df.writeTo(dst_table_identifier).overwrite()
 
 if __name__ == "__main__":
-    initialize_namespace(SPARK_SESSION, 'silver', is_drop=True)
+    initialize_namespace(SPARK_SESSION, 'silver', is_drop=False)
 
     src_table_names = [
         BronzeTopic.SELLER,

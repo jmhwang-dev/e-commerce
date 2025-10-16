@@ -63,9 +63,8 @@ with DAG(
     order_transaction = get_spark_submit_operator('order_transaction')
     product_metadata = get_spark_submit_operator('product_metadata')
 
-    py_files \
-    >> deduplicate \
-    >> order_customer \
-    >> order_timeline \
-    >> order_transaction \
-    >> product_metadata 
+    py_files >> deduplicate
+    py_files >> order_customer
+    py_files >> order_timeline
+    py_files >> order_transaction
+    py_files >> product_metadata 
