@@ -15,7 +15,7 @@ SPARK_SESSION = get_spark_session("ReviewMetadata")
 QUERY_LIST: List[StreamingQuery] = []
 
 if __name__ == "__main__":
-    initialize_namespace(SPARK_SESSION, DST_NAMESPACE, is_drop=True)
+    initialize_namespace(SPARK_SESSION, DST_NAMESPACE)
 
     review_stream_df = SPARK_SESSION.readStream.format('iceberg').load(f'{SRC_NAMESPACE}.{BronzeTopic.REVIEW}')
     review_metadata = review_stream_df.select('review_id', 'order_id', 'review_score', 'review_creation_date', 'review_answer_timestamp')

@@ -3,7 +3,7 @@ from service.utils.iceberg import initialize_namespace
 
 if __name__ == "__main__":
     spark_session = get_spark_session("order_transaction", dev=False)
-    initialize_namespace(spark_session, 'silver', is_drop=False)
+    initialize_namespace(spark_session, 'silver')
 
     job_instance = OrderTransaction()
     job_instance.generate()
