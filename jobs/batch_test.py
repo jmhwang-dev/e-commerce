@@ -1,17 +1,20 @@
 from typing import List
 
 from service.batch.silver import *
+from service.batch.gold import *
 from schema.silver import *
 
 if __name__ == "__main__":
-    spark_session = get_spark_session("Silver Batch Job", dev=True)
-    initialize_namespace(spark_session, 'silver', is_drop=True)
+    spark_session = get_spark_session("Batch test", dev=True)
+    initialize_namespace(spark_session, 'silver', is_drop=False)
+    initialize_namespace(spark_session, 'gold', is_drop=True)
 
     job_list: List[SilverBatchJob] = [
-        OrderTimeline(),
-        OrderCustomer(),
-        ProductMetadata(),
-        OrderTransaction(),
+        # OrderTimeline(),
+        # OrderCustomer(),
+        # ProductMetadata(),
+        # OrderTransaction(),
+        SalesAggregation()
     ]
 
     i = 0
