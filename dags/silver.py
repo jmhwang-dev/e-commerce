@@ -14,7 +14,10 @@ def get_spark_submit_operator(app_name):
     # 2. 'spark_default' 연결 생성 또는 편집. 아래 conn_id와 동일해야함.
 
     app_list = [
-        'deduplicate', 
+        'customer',
+        'seller',
+        'geolocation',
+        'delivered_order',
         'order_customer',
         'order_timeline',
         'order_transaction',
@@ -57,13 +60,16 @@ with DAG(
 ) as dag:
     
     py_files = zip_src()
+    
     deduplicate = get_spark_submit_operator('deduplicate')
+    delivered_order = get_spark_submit_operator('delivered_order')
     order_customer = get_spark_submit_operator('order_customer')
     order_timeline = get_spark_submit_operator('order_timeline')
     order_transaction = get_spark_submit_operator('order_transaction')
     product_metadata = get_spark_submit_operator('product_metadata')
 
     py_files >> deduplicate
+    py_files >> delivered_order
     py_files >> order_customer
     py_files >> order_timeline
     py_files >> order_transaction

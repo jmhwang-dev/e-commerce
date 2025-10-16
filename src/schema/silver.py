@@ -14,14 +14,35 @@ WATERMARK_SCHEMA = StructType([
     StructField("last_processed_snapshot_id", LongType(), False)
 ])
 
+CUSTOMER = StructType([
+    StructField("customer_id", StringType(), False),
+    StructField("zip_code", IntegerType(), False),
+])
+
+SELLER = StructType([
+    StructField("seller_id", StringType(), False),
+    StructField("zip_code", IntegerType(), False),
+])
+
+GEOLOCATION = StructType([
+    StructField("zip_code", IntegerType(), False),
+    StructField("lat", IntegerType(), False),
+    StructField("lng", IntegerType(), False),
+    StructField("state", StringType(), False),
+    StructField("city", StringType(), False),
+])
+
+DELIVERED_ORDER = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("delivered_customer_timestamp", TimestampType(), False),
+])
+
 ORDER_TIMELINE = StructType([
     StructField("order_id", StringType(), False),
-    StructField("product_id", StringType(), False),
     StructField("purchase_timestamp", TimestampType(), True),
     StructField("approve_timestamp", TimestampType(), True),
     StructField("shipping_limit_timestamp", TimestampType(), True),
     StructField("delivered_carrier_timestamp", TimestampType(), True),
-    StructField("delivered_customer_timestamp", TimestampType(), True),
     StructField("estimated_delivery_timestamp", TimestampType(), True)
 ])
 
