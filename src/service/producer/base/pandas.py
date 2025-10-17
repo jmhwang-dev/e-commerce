@@ -46,7 +46,7 @@ class PandasProducer(BaseProducer):
     @classmethod
     def publish(cls, event: Union[pd.Series, pd.DataFrame, None], use_internal=False) -> None:
         if event is None or event.empty:
-            print(f"[{cls.producer_class_name}]: Empty event")
+            # print(f"Empty event - {cls.producer_class_name}")
             return
         
         cls.init_producer(use_internal)
@@ -55,7 +55,11 @@ class PandasProducer(BaseProducer):
         for producer_record in producer_record_list:
             try:
                 cls.producer.produce(cls.dst_topic, key=producer_record['key'], value=producer_record['value'])
-                print(f"Published to {cls.dst_topic} - {cls.key_column}: {producer_record['key']}")
+                if cls.dst_topic != BronzeTopic.ORDER_STATUS:
+                    continue
+                if producer_record['value']['status'] != 'delivered_customer':
+                    continue
+                print(f"Published to {cls.dst_topic} | {cls.key_column}: {producer_record['key']} | status: {producer_record['value']['status']}")
 
             except SerializationError:
                 print(f'[{cls.producer_class_name}]: schema 검증 실패')

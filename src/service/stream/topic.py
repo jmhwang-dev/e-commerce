@@ -36,5 +36,5 @@ class BronzeTopic(BaseTopic):
     REVIEW = "review"
 
 class SilverTopic(BaseTopic):
-    REVIEW_CLEAN_COMMENT = "product" 
-    REVIEW_METADATA = "customer"
+    REVIEW_CLEAN_COMMENT = "review_clean_comment" 
+    REVIEW_METADATA = "review_metadata"
