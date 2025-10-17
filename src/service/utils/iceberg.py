@@ -38,12 +38,19 @@ def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifi
         return
 
     if mode == 'w':
-        df.writeTo(dst_table_identifier).overwrite()
-        print(f"{dst_table_identifier} has overwrited: {df.count()}")
+        df.writeTo(dst_table_identifier).replace()
+        print(f"{dst_table_identifier} has replaced: {df.count()}")
 
     elif mode == 'a':
         df.writeTo(dst_table_identifier).append()
         print(f"{dst_table_identifier} has appended: {df.count()}")
+    
+    elif mode == 'o':
+        # TODO: To overwrite, modify parameter (add `condition`).
+        # df.writeTo(dst_table_identifier).overwrite()
+        # print(f"{dst_table_identifier} has overwrittend: {df.count()}")
+        pass
+        
 
     return
 

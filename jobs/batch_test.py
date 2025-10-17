@@ -7,7 +7,7 @@ from schema.silver import *
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch test", dev=True)
     initialize_namespace(spark_session, 'silver', is_drop=False)
-    initialize_namespace(spark_session, 'gold', table_name='order_lead_days', is_drop=True)
+    initialize_namespace(spark_session, 'gold', is_drop=True)
 
     job_list: List[SilverBatchJob] = [
         # CustomerDeducplicator(),
@@ -19,9 +19,11 @@ if __name__ == "__main__":
         # ProductMetadata(),
         # OrderTransaction(),
 
-        # SalesAggregator(),
+        SalesAggregator(),
+        ProductPortfolioMatrix(),
+
         # DeliveredOrderLocation(),
-        OrderLeadDays(),
+        # OrderLeadDays(),
     ]
 
     i = 0

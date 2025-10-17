@@ -35,7 +35,7 @@ class SalesAggregator(GoldBatchJob):
         self.schema = SALES
         super().__init__()
 
-    def generate(self,):        
+    def generate(self,):
         delivered_order_df = self.spark_session.read.table(f"{self.src_namespace}.delivered_order")
 
         product_metadata_df = self.spark_session.read.table(f"{self.src_namespace}.product_metadata")
@@ -52,6 +52,8 @@ class SalesAggregator(GoldBatchJob):
             F.round(F.sum(F.col('price')), 5).alias('total_sales')
             )
         
+        self.output_df = self.output_df.withColumn('mean_sales', F.col('total_sales') / F.col('sold_count'))
+        
     def update_table(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
         self.spark_session.sql(f"""
@@ -64,10 +66,69 @@ class SalesAggregator(GoldBatchJob):
             WHEN MATCHED AND t.total_sales != s.total_sales THEN
                 UPDATE SET total_sales = s.total_sales
             
+            WHEN MATCHED AND t.mean_sales != s.mean_sales THEN
+                UPDATE SET mean_sales = s.mean_sales
+            
             WHEN NOT MATCHED THEN
-                INSERT (product_id, category, sold_count, total_sales)
-                VALUES (s.product_id, s.category, s.sold_count, s.total_sales)
+                INSERT (product_id, category, sold_count, total_sales, mean_sales)
+                VALUES (s.product_id, s.category, s.sold_count, s.total_sales, s.mean_sales)
         """)
+
+class ProductPortfolioMatrix(GoldBatchJob):
+    def __init__(self):
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'sales_bcg'
+        self.schema = PRODUCT_PORTFOLIO_MATRIX
+        super().__init__()
+
+    def generate(self,):
+        """
+        목적: 매출 데이터를 기반으로 카테고리 별 매출이 있는 제품을 4개 그룹으로 분류하는 제품 포트폴리오 매트릭스 생성
+        
+        분류 기준:
+            - 판매량 기준점: 카테고리 내 75 백분위수 (상위 25%)
+            - 가격 기준점: 카테고리 내 중앙값 (50 백분위수)
+        
+        분류 그룹:
+            - Star Products: 높은 판매량 + 높은 가격 (고수익 인기 제품)
+            - Volume Drivers: 높은 판매량 + 낮은 가격 (대량 판매 제품)
+            - Niche Gems: 낮은 판매량 + 높은 가격 (프리미엄 틈새 제품)
+            - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
+        """
+
+        sales_df = self.spark_session.read.table("gold.sales")
+        
+        distinct_category = sales_df.select('category').distinct().collect()
+        distinct_category_list = [row.category for row in distinct_category]
+
+        self.output_df = self.spark_session.createDataFrame([], schema=self.schema)
+
+        for category in distinct_category_list:
+            src_df = sales_df.filter(F.col('category') == category)
+
+            # 1. 기준점(Threshold) 계산
+            # percentile_approx 함수를 사용하여 분위수 계산
+            order_count_threshold = src_df.agg(
+                F.expr("percentile_approx(sold_count, 0.75)")
+            ).collect()[0][0]
+
+            median_avg_price = src_df.agg(
+                F.expr("percentile_approx(mean_sales, 0.5)")
+            ).collect()[0][0]
+
+            # 2. 'group' 컬럼 추가
+            bcg_output = src_df.withColumn("group",
+                F.when((F.col("sold_count") >= order_count_threshold) & (F.col("mean_sales") >= median_avg_price), "Star Products")
+                .when((F.col("sold_count") >= order_count_threshold) & (F.col("mean_sales") < median_avg_price), "Volume Drivers")
+                .when((F.col("sold_count") < order_count_threshold) & (F.col("mean_sales") >= median_avg_price), "Niche Gems")
+                .otherwise("Question Marks")
+            )
+
+            self.output_df = self.output_df.union(bcg_output)
+
+    def update_table(self,):
+        # TODO: compare time-cost with mode 'w' and `upsert`
+        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='w')
 
 class DeliveredOrderLocation(GoldBatchJob):
     def __init__(self):
@@ -120,7 +181,6 @@ class DeliveredOrderLocation(GoldBatchJob):
 
     def update_table(self,):
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
-
 
 class OrderLeadDays(GoldBatchJob):
     def __init__(self):
