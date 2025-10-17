@@ -19,15 +19,13 @@ class SilverBatchJob(BatchJob):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev)
         
-        initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=self._dev)
-
-        self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
-        self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
-
-        self.watermark_df = self.spark_session.createDataFrame([], WATERMARK_SCHEMA)
-        write_iceberg(self.spark_session, self.watermark_df, self.wartermark_table_identifier, mode='a')
-        self.watermark_df = self.spark_session.read.table(self.wartermark_table_identifier)
+        # initialize_namespace(self.spark_session, self.watermark_namespace, is_drop=self._dev)
+        # self.wartermark_table_identifier = f"{self.watermark_namespace}.{self.dst_table_name}"
+        # self.watermark_df = self.spark_session.createDataFrame([], WATERMARK_SCHEMA)
+        # write_iceberg(self.spark_session, self.watermark_df, self.wartermark_table_identifier, mode='a')
+        # self.watermark_df = self.spark_session.read.table(self.wartermark_table_identifier)
         
+        self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
 
@@ -102,9 +100,6 @@ class DeliveredOrder(SilverBatchJob):
                 .filter(F.col('status') == 'delivered_customer') \
                     .select('order_id', 'timestamp') \
                         .withColumnRenamed("timestamp", "delivered_customer_timestamp")
-        
-        print("self.output_df.count()", self.output_df.count())
-        print("self.output_df.dropDuplicates().count()", self.output_df.dropDuplicates().count())
 
     def update_table(self,):
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
