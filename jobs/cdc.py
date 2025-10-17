@@ -36,6 +36,6 @@ def setup_bronze_streams():
         exit()
 
 if __name__ == "__main__":
-    initialize_namespace(SPARK_SESSION, DST_NAMESPACE)
+    initialize_namespace(SPARK_SESSION, DST_NAMESPACE, is_drop=True)
     setup_bronze_streams()
     run_stream_queries(SPARK_SESSION, QUERY_LIST, LOGGER)
