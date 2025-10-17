@@ -137,7 +137,7 @@ class OrderLeadDays(GoldBatchJob):
         order_timeline_df = self.spark_session.read.table(f"{self.src_namespace}.order_timeline")
         complete_order_timeline = delivered_order_df.join(order_timeline_df, on='order_id', how='left')
         
-        self.output = complete_order_timeline \
+        self.output_df = complete_order_timeline \
             .withColumn(
                 'approve',
                 F.datediff(F.col('approve_timestamp'), F.col('purchase_timestamp'))) \
@@ -148,16 +148,26 @@ class OrderLeadDays(GoldBatchJob):
                 'delivered_customer',
                 F.datediff(F.col('delivered_customer_timestamp'), F.col('delivered_carrier_timestamp'))) \
             .withColumn(
-                'total_delivery_days',
+                'total_delivery',
                 F.datediff(F.col('delivered_customer_timestamp'), F.col('purchase_timestamp'))) \
             .withColumn(
                 'is_late_delivery',
-                F.when(F.col('delivered_customer_timestamp') <= F.col('estimated_delivery_timestamp'), 'on_time_delivery')
-                .otherwise('late_deilvery')) \
+                F.when(F.col('delivered_customer_timestamp') <= F.col('estimated_delivery_timestamp'), 'on_time')
+                .otherwise('late')) \
             .withColumn(
                 'is_late_shipping',
-                F.when(F.col('shipping_limit_timestamp') < F.col('delivered_carrier_timestamp'), 'late_ship')
-                .otherwise('on_time_ship'))
-
+                F.when(F.col('shipping_limit_timestamp') < F.col('delivered_carrier_timestamp'), 'late')
+                .otherwise('on_time'))
+        
+        self.output_df = self.output_df.select(
+            'order_id',
+            'approve',
+            'delivered_carrier',
+            'delivered_customer',
+            'total_delivery',
+            'is_late_delivery',
+            'is_late_shipping'
+        )
+        
     def update_table(self,):
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')

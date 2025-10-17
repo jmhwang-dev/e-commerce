@@ -32,10 +32,11 @@ DELIVERED_ORDER_LOCATION = StructType([
 ])
 
 ORDER_LEAD_DAYS = StructType([
+    StructField("order_id", StringType(), False),
     StructField('approve', IntegerType(), False),
     StructField('delivered_carrier', IntegerType(), False),
     StructField('delivered_customer', IntegerType(), False),
-    StructField('total_delivery_days', IntegerType(), False),
+    StructField('total_delivery', IntegerType(), False),
     StructField('is_late_delivery', StringType(), False),
     StructField('is_late_shipping', StringType(), False),
 ])

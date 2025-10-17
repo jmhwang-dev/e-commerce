@@ -34,16 +34,16 @@ def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifi
     if not spark_session.catalog.tableExists(dst_table_identifier):
         print(f"{dst_table_identifier} does not exist")
         df.writeTo(dst_table_identifier).create()
-        print(f"{dst_table_identifier} has created")
+        print(f"{dst_table_identifier} has created: {df.count()}")
         return
 
     if mode == 'w':
         df.writeTo(dst_table_identifier).overwrite()
-        print(f"{dst_table_identifier} has overwrited")
+        print(f"{dst_table_identifier} has overwrited: {df.count()}")
 
     elif mode == 'a':
         df.writeTo(dst_table_identifier).append()
-        print(f"{dst_table_identifier} has appended")
+        print(f"{dst_table_identifier} has appended: {df.count()}")
 
     return
 
