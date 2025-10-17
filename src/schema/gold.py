@@ -20,3 +20,13 @@ SALES = StructType([
     StructField("sold_count", IntegerType(), False),
     StructField("total_sales", IntegerType(), False),
 ])
+
+DELIVERED_ORDER_LOCATION = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("product_id", StringType(), False),
+    StructField("category", StringType(), False),
+    StructField("user_id", StringType(), False),
+    StructField("user_type", StringType(), False),
+    StructField("lng", IntegerType(), False),
+    StructField("lat", IntegerType(), False),
+])

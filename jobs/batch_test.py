@@ -6,15 +6,21 @@ from schema.silver import *
 
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch test", dev=True)
-    initialize_namespace(spark_session, 'silver', is_drop=False)
+    initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'gold', is_drop=True)
 
     job_list: List[SilverBatchJob] = [
-        # OrderTimeline(),
-        # OrderCustomer(),
-        # ProductMetadata(),
-        # OrderTransaction(),
-        SalesAggregation()
+        CustomerDeducplicator(),
+        SellerDeducplicator(),
+        GeolocationDeducplicator(),
+        DeliveredOrder(),
+        OrderTimeline(),
+        OrderCustomer(),
+        ProductMetadata(),
+        OrderTransaction(),
+
+        SalesAggregator(),
+        DeliveredOrderLocation(),
     ]
 
     i = 0
@@ -24,8 +30,8 @@ if __name__ == "__main__":
         for job_instance in job_list:
             job_instance.generate()
             job_instance.update_table()
-            df = job_instance.spark_session.read.table(job_instance.dst_table_identifier)
-            df.show()
+            # df = job_instance.spark_session.read.table(job_instance.dst_table_identifier)
+            # print(df.count())
             # job_instance.update_watermark()
         i += 1
 
