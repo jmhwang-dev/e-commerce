@@ -12,7 +12,7 @@ class Medallion:
     SILVER = 'silver'
     GOLD = 'gold'
 
-def get_spark_submit_operator(app_name):
+def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
     # TODO: add connections automatically.
     # 1. Airflow UI에서 Admin > Connections로 이동
     # 2. 'spark_default' 연결 생성 또는 편집. 아래 conn_id와 동일해야함.
@@ -27,7 +27,9 @@ def get_spark_submit_operator(app_name):
         'order_transaction': Medallion.SILVER,
         'product_metadata': Medallion.SILVER,
         'sales': Medallion.GOLD,
-        'delivered_order_location': Medallion.GOLD
+        'delivered_order_location': Medallion.GOLD,
+        'order_lead_days': Medallion.GOLD,
+        'product_portfolio_matrix': Medallion.GOLD
     }
 
     if app_name not in app_dict:
@@ -78,15 +80,19 @@ with DAG(
 
     sales = get_spark_submit_operator('sales')
     delivered_order_location = get_spark_submit_operator('delivered_order_location')
+    order_lead_days = get_spark_submit_operator('order_lead_days')
+    product_portfolio_matrix = get_spark_submit_operator('product_portfolio_matrix')
 
-    py_files >> customer
-    py_files >> seller
-    py_files >> geolocation
-    py_files >> delivered_order
-    py_files >> order_customer
-    py_files >> order_timeline
-    py_files >> order_transaction
-    py_files >> product_metadata 
+    # py_files >> delivered_order >> order_transaction
 
-    [delivered_order, product_metadata, order_transaction ] >> sales
-    [delivered_order, geolocation, customer, seller, product_metadata, order_transaction, order_customer] >> delivered_order_location
+
+    py_files >> delivered_order >> [order_timeline, order_transaction, order_customer]
+
+    order_timeline >> order_lead_days
+    order_transaction >> product_metadata >> seller
+    order_customer >> customer
+
+    [seller, customer] >> geolocation
+
+    [product_metadata, order_transaction ] >> sales >> product_portfolio_matrix
+    geolocation >> delivered_order_location
