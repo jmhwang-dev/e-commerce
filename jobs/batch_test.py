@@ -21,6 +21,7 @@ if __name__ == "__main__":
 
         SalesAggregator(),
         DeliveredOrderLocation(),
+        OrderLeadDays(),
     ]
 
     i = 0
@@ -30,8 +31,9 @@ if __name__ == "__main__":
         for job_instance in job_list:
             job_instance.generate()
             job_instance.update_table()
-            # df = job_instance.spark_session.read.table(job_instance.dst_table_identifier)
-            # print(df.count())
+            df = job_instance.spark_session.read.table(job_instance.dst_table_identifier)
+            df.show()
+            print("count: ", df.count())
             # job_instance.update_watermark()
         i += 1
 

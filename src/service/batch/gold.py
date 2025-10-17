@@ -109,16 +109,6 @@ class DeliveredOrderLocation(GoldBatchJob):
             .join(coord, on='zip_code', how='inner') \
             .withColumnRenamed('customer_id', 'user_id') \
             .withColumn('user_type', F.lit('customer'))
-
-        print("delivered_order_df", delivered_order_df.count())
-        print("delivered_order_df.dropDuplicates()", delivered_order_df.dropDuplicates().count())
-
-        print("order_customer_df", order_customer_df.count())
-        print("order_customer_df.dropDuplicates()", order_customer_df.dropDuplicates().count())
-
-        print("customer_location_df", customer_location_df.count())
-        print("customer_location_df.dropDuplicates()", customer_location_df.dropDuplicates().count())
-        exit()
         
         # concat product_id and category
         # 동일한 제품에 여러 판매자가 있을 수 있으므로, seller_location_df.dropDuplicates() 수행
@@ -127,6 +117,47 @@ class DeliveredOrderLocation(GoldBatchJob):
             .join(customer_location_df, on='order_id', how='inner')
         
         self.output_df = customer_location_df.union(seller_location_df).drop('zip_code')
+
+    def update_table(self,):
+        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
+
+
+class OrderLeadDays(GoldBatchJob):
+    def __init__(self):
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'order_lead_days'
+        self.schema = ORDER_LEAD_DAYS
+        super().__init__()
+
+    def generate(self,):
+        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
+        delivered_order_df = self.spark_session.read.table(f"{self.src_namespace}.delivered_order")
+        delivered_order_df = delivered_order_df.join(self.dst_df, on='order_id', how='left_anti')
+
+        order_timeline_df = self.spark_session.read.table(f"{self.src_namespace}.order_timeline")
+        complete_order_timeline = delivered_order_df.join(order_timeline_df, on='order_id', how='left')
+        
+        self.output = complete_order_timeline \
+            .withColumn(
+                'approve',
+                F.datediff(F.col('approve_timestamp'), F.col('purchase_timestamp'))) \
+            .withColumn(
+                'delivered_carrier',
+                F.datediff(F.col('delivered_carrier_timestamp'), F.col('approve_timestamp'))) \
+            .withColumn(
+                'delivered_customer',
+                F.datediff(F.col('delivered_customer_timestamp'), F.col('delivered_carrier_timestamp'))) \
+            .withColumn(
+                'total_delivery_days',
+                F.datediff(F.col('delivered_customer_timestamp'), F.col('purchase_timestamp'))) \
+            .withColumn(
+                'is_late_delivery',
+                F.when(F.col('delivered_customer_timestamp') <= F.col('estimated_delivery_timestamp'), 'on_time_delivery')
+                .otherwise('late_deilvery')) \
+            .withColumn(
+                'is_late_shipping',
+                F.when(F.col('shipping_limit_timestamp') < F.col('delivered_carrier_timestamp'), 'late_ship')
+                .otherwise('on_time_ship'))
 
     def update_table(self,):
         write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
