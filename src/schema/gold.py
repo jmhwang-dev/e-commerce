@@ -19,13 +19,6 @@ SALES = StructType([
     StructField("category", StringType(), False),
     StructField("sold_count", IntegerType(), False),
     StructField("total_sales", IntegerType(), False),
-])
-
-SALES = StructType([
-    StructField("product_id", StringType(), False),
-    StructField("category", StringType(), False),
-    StructField("sold_count", IntegerType(), False),
-    StructField("total_sales", IntegerType(), False),
     StructField("mean_sales", FloatType(), False),
 ])
 
