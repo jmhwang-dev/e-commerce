@@ -8,30 +8,36 @@ SRC_PATH = '/opt/airflow/src'
 ARFTIFACT_DIR_PATH = '/opt/airflow/artifact'
 ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
 
+class Medallion:
+    SILVER = 'silver'
+    GOLD = 'gold'
+
 def get_spark_submit_operator(app_name):
     # TODO: add connections automatically.
     # 1. Airflow UI에서 Admin > Connections로 이동
     # 2. 'spark_default' 연결 생성 또는 편집. 아래 conn_id와 동일해야함.
 
-    app_list = [
-        'customer',
-        'seller',
-        'geolocation',
-        'delivered_order',
-        'order_customer',
-        'order_timeline',
-        'order_transaction',
-        'product_metadata',
-    ]
+    app_dict = {
+        'customer': Medallion.SILVER,
+        'seller': Medallion.SILVER,
+        'geolocation': Medallion.SILVER,
+        'delivered_order': Medallion.SILVER,
+        'order_customer': Medallion.SILVER,
+        'order_timeline': Medallion.SILVER,
+        'order_transaction': Medallion.SILVER,
+        'product_metadata': Medallion.SILVER,
+        'sales': Medallion.GOLD,
+        'delivered_order_location': Medallion.GOLD
+    }
 
-    if app_name not in app_list:
+    if app_name not in app_dict:
         return
 
-    app_name_path = f"silver/{app_name}.py"
+    app_path = f"{app_dict[app_name]}/{app_name}.py"
 
     return SparkSubmitOperator(
         task_id=app_name,
-        application=f'/opt/airflow/jobs/batch/{app_name_path}',  # The path to your Spark application file
+        application=f'/opt/airflow/jobs/batch/{app_path}',  # The path to your Spark application file
         conn_id='spark_default',  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
@@ -52,25 +58,35 @@ def zip_src():
     """
 
 with DAG(
-    dag_id='silver',
+    dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
     schedule=None,  # Set to a schedule like '@daily' or None for manual runs
     catchup=True,
-    tags=['spark', 'silver']
+    tags=['spark', 'pipeline']
 ) as dag:
     
     py_files = zip_src()
     
-    deduplicate = get_spark_submit_operator('deduplicate')
+    customer = get_spark_submit_operator('customer')
+    seller = get_spark_submit_operator('seller')
+    geolocation = get_spark_submit_operator('geolocation')
     delivered_order = get_spark_submit_operator('delivered_order')
     order_customer = get_spark_submit_operator('order_customer')
     order_timeline = get_spark_submit_operator('order_timeline')
     order_transaction = get_spark_submit_operator('order_transaction')
     product_metadata = get_spark_submit_operator('product_metadata')
 
-    py_files >> deduplicate
+    sales = get_spark_submit_operator('sales')
+    delivered_order_location = get_spark_submit_operator('delivered_order_location')
+
+    py_files >> customer
+    py_files >> seller
+    py_files >> geolocation
     py_files >> delivered_order
     py_files >> order_customer
     py_files >> order_timeline
     py_files >> order_transaction
     py_files >> product_metadata 
+
+    [delivered_order, product_metadata, order_transaction ] >> sales
+    [delivered_order, geolocation, customer, seller, product_metadata, order_transaction, order_customer] >> delivered_order_location
