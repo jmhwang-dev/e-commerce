@@ -1,0 +1,96 @@
+---
+config:
+  layout: elk
+---
+flowchart TD
+ subgraph Kafka_Topics["Bronze"]
+        order_status["order_status"]
+        order_item["order_item"]
+        estimated_delivery_date["estimated_delivery_date"]
+        product["product"]
+        payment["payment"]
+        customer_bronze["customer"]
+        seller_bronze["seller"]
+        geolocation_bronze["geolocation"]
+        review["review"]
+  end
+ subgraph Silver_layer["Silver_layer"]
+        order_status_timeline["order_status_timeline"]
+        order_transaction["order_transaction"]
+        product_metadata["product_metadata"]
+        order_product_stakeholder["order_product_stakeholder"]
+        customer_silver["customer"]
+        seller_silver["seller"]
+        review_metadata["review_metadata"]
+        geolocation_silver["geolocation"]
+  end
+ subgraph Gold_layer["Gold_layer"]
+        sales_stats["sales_stats"]
+        product_portfolio_matrix["product_portfolio_matrix"]
+        order_product_stakeholder_location["order_product_stakeholder_location"]
+        order_lead_days["order_lead_days"]
+        delay_status["delay_status"]
+        review_stats["review_stats"]
+  end
+    order_status -- pivot --> order_status_timeline
+    order_item -- drop shipping_limit_date, seller_id --> order_transaction
+    order_item -- select order_id, shipping_limit_date --> order_status_timeline
+    estimated_delivery_date -- select order_id, estimated_delivery_date --> order_status_timeline
+    order_item -- select order_id, product_id, seller_id --> order_product_stakeholder
+    product -- select product_id, category --> product_metadata
+    geolocation_bronze -- dedduplicate --> geolocation_silver
+    payment -- select order_id, customer_id --> order_product_stakeholder
+    customer_bronze -- dedduplicate --> customer_silver
+    review -- drop review_comment_title, review_comment_message --> review_metadata
+    order_transaction -- aggregate --> sales_stats
+    product_metadata --> sales_stats & review_stats & delay_status
+    sales_stats -- groupby --> product_portfolio_matrix
+    order_product_stakeholder_location --> delay_status
+    review_metadata --> review_stats
+    order_status_timeline --> order_lead_days
+    order_status_timeline -- where 'delivered_customer_timestamp' is not null --> sales_stats
+    order_lead_days --> delay_status
+    order_product_stakeholder --> order_product_stakeholder_location & review_stats
+    seller_bronze -- deduplicate --> seller_silver
+    seller_silver --> order_product_stakeholder_location
+    geolocation_silver --> order_product_stakeholder_location
+    customer_silver --> order_product_stakeholder_location
+    style order_status fill:#FF6D00
+    style order_item fill:#FF6D00
+    style estimated_delivery_date fill:#FF6D00
+    style product fill:#FF6D00
+    style payment fill:#FF6D00
+    style customer_bronze stroke:#000000,fill:#FF6D00
+    style seller_bronze fill:#FF6D00
+    style geolocation_bronze fill:#FF6D00
+    style review fill:#FF6D00
+    style order_status_timeline fill:#FF6D00
+    style order_transaction fill:#FF6D00
+    style product_metadata fill:#FF6D00
+    style order_product_stakeholder fill:#FF6D00
+    style customer_silver fill:#FF6D00
+    style seller_silver fill:#FF6D00
+    style review_metadata fill:#FF6D00
+    style geolocation_silver fill:#FF6D00
+    style sales_stats fill:#6A829F
+    style product_portfolio_matrix fill:#6A829F
+    style order_product_stakeholder_location fill:#FF6D00
+    style order_lead_days fill:#FF6D00
+    style delay_status fill:#6A829F
+    style review_stats fill:#6A829F
+    linkStyle 0 stroke:#FF6D00,fill:none
+    linkStyle 1 stroke:#FF6D00,fill:none
+    linkStyle 2 stroke:#FF6D00,fill:none
+    linkStyle 3 stroke:#FF6D00,fill:none
+    linkStyle 4 stroke:#FF6D00,fill:none
+    linkStyle 5 stroke:#FF6D00,fill:none
+    linkStyle 6 stroke:#FF6D00,fill:none
+    linkStyle 7 stroke:#FF6D00,fill:none
+    linkStyle 8 stroke:#FF6D00,fill:none
+    linkStyle 9 stroke:#FF6D00,fill:none
+    linkStyle 17 stroke:#FF6D00,fill:none
+    linkStyle 20 stroke:#FF6D00,fill:none
+    linkStyle 22 stroke:#FF6D00,fill:none
+    linkStyle 23 stroke:#FF6D00,fill:none
+    linkStyle 24 stroke:#FF6D00,fill:none
+    linkStyle 25 stroke:#FF6D00,fill:none
