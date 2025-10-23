@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     job_list:List[StreamSilverJob] = []
 
-    for job_class in [SellerZipCode]:
+    for job_class in [SellerTransformer]:
         job_list += [job_class(spark_session)]
     
     for job_instance in job_list:

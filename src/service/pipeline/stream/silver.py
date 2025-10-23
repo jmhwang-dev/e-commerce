@@ -39,7 +39,7 @@ class StreamSilverJob(BaseJob):
         self.dst_df = self.output_df.sparkSession.read.table(f"{self.dst_table_identifier}")
         print(f"Current # of {self.dst_table_identifier }: ", self.dst_df.count())
 
-class GeoCoordinate(StreamSilverJob):
+class GeolocationTransformer(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'geo_coordinate'
@@ -67,7 +67,7 @@ class GeoCoordinate(StreamSilverJob):
                 insert (zip_code, lng, lat)
                 values (s.zip_code, s.lng, s.lat)
             """)
-class CustomerZipCode(StreamSilverJob):
+class CustomerTransformer(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'customer_zip_code'
@@ -90,7 +90,7 @@ class CustomerZipCode(StreamSilverJob):
                 insert (customer_id, zip_code)
                 values (s.customer_id, s.zip_code)
             """)
-class SellerZipCode(StreamSilverJob):
+class SellerTransformer(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.job_name = self.__class__.__name__
         self.dst_table_name = 'seller_zip_code'
