@@ -1,6 +1,6 @@
 from typing import List
 
-from service.batch.silver import *
+from service.pipeline.stream.silver import *
 from service.batch.gold import *
 from schema.silver import *
 
@@ -9,10 +9,8 @@ if __name__ == "__main__":
     initialize_namespace(spark_session, 'silver', is_drop=False)
     initialize_namespace(spark_session, 'gold', is_drop=True)
 
-    job_list: List[SilverBatchJob] = [
-        # CustomerDeducplicator(),
+    job_list: List[StreamSilverJob] = [
         # SellerDeducplicator(),
-        # GeolocationDeducplicator(),
         # DeliveredOrder(),
         # OrderTimeline(),
         # OrderCustomer(),

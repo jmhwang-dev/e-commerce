@@ -5,7 +5,7 @@ from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session, run_stream_queries
 from service.utils.iceberg import initialize_namespace
 from service.utils.logger import *
-from service.pipeline.stream.silver import GeoCoordinates
+from service.pipeline.stream.silver import *
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
 
@@ -16,10 +16,14 @@ if __name__ == "__main__":
 
     initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'gold', is_drop=True)
+
+    job_list:List[StreamSilverJob] = []
+
+    for job_class in [CustomerZipCode]:
+        job_list += [job_class(spark_session)]
     
-    job_instance = GeoCoordinates(spark_session)
-    
-    query = job_instance.get_query()
+    for job_instance in job_list:
+        QUERY_LIST += [job_instance.get_query()]
 
 
     # review
@@ -31,5 +35,4 @@ if __name__ == "__main__":
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
 
-    QUERY_LIST.append(query)    
     run_stream_queries(spark_session, QUERY_LIST, LOGGER)

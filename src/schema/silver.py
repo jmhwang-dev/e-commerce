@@ -14,7 +14,7 @@ WATERMARK_SCHEMA = StructType([
     StructField("last_processed_snapshot_id", LongType(), False)
 ])
 
-CUSTOMER = StructType([
+CUSTOMER_ZIP_CODE = StructType([
     StructField("customer_id", StringType(), False),
     StructField("zip_code", IntegerType(), False),
 ])
@@ -24,7 +24,7 @@ SELLER = StructType([
     StructField("zip_code", IntegerType(), False),
 ])
 
-GEO_COORDINATES = StructType([
+GEO_COORDINATE = StructType([
     StructField("zip_code", IntegerType(), False),
     StructField("lat", IntegerType(), False),
     StructField("lng", IntegerType(), False),
