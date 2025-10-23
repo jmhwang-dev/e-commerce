@@ -113,3 +113,41 @@ class SellerTransformer(StreamSilverJob):
                 insert (seller_id, zip_code)
                 values (s.seller_id, s.zip_code)
             """)
+        
+class OrderStatusTransformer(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'order_status_timeline'
+        self.schema = ORDER_STATUS_TIMELINE
+        super().__init__(spark_session, BronzeTopic.ORDER_STATUS)
+
+    def generate(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = micro_batch \
+        .groupBy('order_id') \
+        .agg(
+            F.max(F.when(F.col('status') == 'purchase', F.col('timestamp'))).alias('purchase_timestamp'),
+            F.max(F.when(F.col('status') == 'approved', F.col('timestamp'))).alias('approve_timestamp'),
+            F.max(F.when(F.col('status') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier_timestamp'),
+            F.max(F.when(F.col('status') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer_timestamp')
+        )
+        self.update_table()
+        self.get_current_dst_count()
+        self.dst_df.show(n=100)
+
+    def update_table(self,):
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING {self.dst_table_name} s
+            ON t.order_id = s.order_id
+            WHEN MATCHED THEN
+                UPDATE SET
+                    t.purchase_timestamp = COALESCE(s.purchase_timestamp, t.purchase_timestamp),
+                    t.approve_timestamp = COALESCE(s.approve_timestamp, t.approve_timestamp),
+                    t.delivered_carrier_timestamp = COALESCE(s.delivered_carrier_timestamp, t.delivered_carrier_timestamp),
+                    t.delivered_customer_timestamp = COALESCE(s.delivered_customer_timestamp, t.delivered_customer_timestamp)
+            WHEN NOT MATCHED THEN
+                INSERT (order_id, purchase_timestamp, approve_timestamp, delivered_carrier_timestamp, delivered_customer_timestamp)
+                VALUES (s.order_id, s.purchase_timestamp, s.approve_timestamp, s.delivered_carrier_timestamp, s.delivered_customer_timestamp)
+            """)

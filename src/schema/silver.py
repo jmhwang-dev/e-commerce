@@ -30,17 +30,17 @@ GEO_COORDINATE = StructType([
     StructField("lng", IntegerType(), False),
 ])
 
-DELIVERED_ORDER = StructType([
-    StructField("order_id", StringType(), False),
-    StructField("delivered_customer_timestamp", TimestampType(), False),
-])
-
-ORDER_TIMELINE = StructType([
+ORDER_STATUS_TIMELINE = StructType([
     StructField("order_id", StringType(), False),
     StructField("purchase_timestamp", TimestampType(), True),
     StructField("approve_timestamp", TimestampType(), True),
-    StructField("shipping_limit_timestamp", TimestampType(), True),
     StructField("delivered_carrier_timestamp", TimestampType(), True),
+    StructField("delivered_customer_timestamp", TimestampType(), True),
+])
+
+DELIVERY_LIMIT = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("shipping_limit_timestamp", TimestampType(), True),
     StructField("estimated_delivery_timestamp", TimestampType(), True)
 ])
 
