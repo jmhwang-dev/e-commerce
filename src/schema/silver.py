@@ -24,12 +24,10 @@ SELLER = StructType([
     StructField("zip_code", IntegerType(), False),
 ])
 
-GEOLOCATION = StructType([
+GEO_COORDINATES = StructType([
     StructField("zip_code", IntegerType(), False),
     StructField("lat", IntegerType(), False),
     StructField("lng", IntegerType(), False),
-    StructField("state", StringType(), False),
-    StructField("city", StringType(), False),
 ])
 
 DELIVERED_ORDER = StructType([

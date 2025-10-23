@@ -3,27 +3,33 @@ from typing import List
 from pyspark.sql.streaming.query import StreamingQuery
 from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session, run_stream_queries
-from service.utils.iceberg import load_stream_to_iceberg, initialize_namespace
+from service.utils.iceberg import initialize_namespace
 from service.utils.logger import *
+from service.pipeline.stream.silver import GeoCoordinates
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
 
-SRC_NAMESPACE = 'bronze'
-DST_NAMESPACE = 'silver'
-
-SPARK_SESSION = get_spark_session("ReviewMetadata")
 QUERY_LIST: List[StreamingQuery] = []
 
 if __name__ == "__main__":
-    initialize_namespace(SPARK_SESSION, DST_NAMESPACE)
+    spark_session = get_spark_session("Stream Silver Job")
 
-    review_stream_df = SPARK_SESSION.readStream.format('iceberg').load(f'{SRC_NAMESPACE}.{BronzeTopic.REVIEW}')
-    review_metadata = review_stream_df.select('review_id', 'order_id', 'review_score', 'review_creation_date', 'review_answer_timestamp')
+    initialize_namespace(spark_session, 'silver', is_drop=True)
+    initialize_namespace(spark_session, 'gold', is_drop=True)
+    
+    job_instance = GeoCoordinates(spark_session)
+    
+    query = job_instance.get_query()
 
-    query = load_stream_to_iceberg(review_metadata, f"{DST_NAMESPACE}.review_metadata" )
-    QUERY_LIST.append(query)
+
+    # review
+    # review_stream_df = SPARK_SESSION.readStream.format('iceberg').load(f'{SRC_NAMESPACE}.{BronzeTopic.REVIEW}')
+    # review_metadata = review_stream_df.select('review_id', 'order_id', 'review_score', 'review_creation_date', 'review_answer_timestamp')
+
+    # query = load_stream_to_iceberg(review_metadata, f"{DST_NAMESPACE}.review_metadata" )
     
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
-    
-    run_stream_queries(SPARK_SESSION, QUERY_LIST, LOGGER)
+
+    QUERY_LIST.append(query)    
+    run_stream_queries(spark_session, QUERY_LIST, LOGGER)
