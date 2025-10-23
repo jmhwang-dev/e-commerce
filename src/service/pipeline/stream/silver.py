@@ -90,3 +90,26 @@ class CustomerZipCode(StreamSilverJob):
                 insert (customer_id, zip_code)
                 values (s.customer_id, s.zip_code)
             """)
+class SellerZipCode(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.job_name = self.__class__.__name__
+        self.dst_table_name = 'seller_zip_code'
+        self.schema = SELLER_ZIP_CODE
+        super().__init__(spark_session, BronzeTopic.SELLER)
+
+    def generate(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = micro_batch.dropDuplicates()
+        self.update_table()
+        self.get_current_dst_count()
+
+    def update_table(self,):
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            merge into {self.dst_table_identifier} t
+            using {self.dst_table_name} s
+            on t.seller_id = s.seller_id
+            when not matched then
+                insert (seller_id, zip_code)
+                values (s.seller_id, s.zip_code)
+            """)

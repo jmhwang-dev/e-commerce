@@ -29,60 +29,6 @@ class SilverBatchJob(BatchJob):
         self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
 
-class CustomerDeducplicator(SilverBatchJob):
-    def __init__(self):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'customer'
-        self.schema = CUSTOMER
-        super().__init__()
-
-    def generate(self,):
-        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
-        customer_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.CUSTOMER}')
-        self.output_df = customer_df \
-            .drop('ingest_time') \
-                .join(self.dst_df, on='customer_id', how='left_anti').dropDuplicates()
-
-    def update_table(self,):
-        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
-
-class SellerDeducplicator(SilverBatchJob):
-    def __init__(self):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'seller'
-        self.schema = SELLER
-        super().__init__()
-
-    def generate(self,):
-        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
-        seller_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.SELLER}')
-        self.output_df = seller_df \
-            .drop('ingest_time') \
-                .join(self.dst_df, on='seller_id', how='left_anti').dropDuplicates()
-
-    def update_table(self,):
-        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
-
-class GeolocationDeducplicator(SilverBatchJob):
-    def __init__(self):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'geolocation'
-        self.schema = GEOLOCATION
-        super().__init__()
-
-    def generate(self,):
-        self.dst_df = self.spark_session.read.table(self.dst_table_identifier)
-        geolocation_df = self.spark_session.read.table(f'{self.src_namespace}.{BronzeTopic.GEOLOCATION}')
-        
-        # TODO: Consider key type conversion for message publishing
-        geolocation_df = geolocation_df.withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
-        self.output_df = geolocation_df \
-            .drop('ingest_time') \
-                .join(self.dst_df, on='zip_code', how='left_anti').dropDuplicates()
-
-    def update_table(self,):
-        write_iceberg(self.spark_session, self.output_df, self.dst_table_identifier, mode='a')
-
 class DeliveredOrder(SilverBatchJob):
     def __init__(self):
         self.job_name = self.__class__.__name__

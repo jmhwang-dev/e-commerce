@@ -19,7 +19,7 @@ CUSTOMER_ZIP_CODE = StructType([
     StructField("zip_code", IntegerType(), False),
 ])
 
-SELLER = StructType([
+SELLER_ZIP_CODE = StructType([
     StructField("seller_id", StringType(), False),
     StructField("zip_code", IntegerType(), False),
 ])
