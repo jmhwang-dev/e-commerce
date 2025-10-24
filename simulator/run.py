@@ -13,7 +13,7 @@ if __name__=="__main__":
     create_topics(admin_client, topic_names)
     register_schema()
 
-    base_interval = 10  # seconds
+    base_interval = 0  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()
     past_event_timestamp = pd.to_datetime("2016-09-04 21:15:19.000000")   # first timestamp in order_status
     for i, order_status_series in order_status_df.iterrows():

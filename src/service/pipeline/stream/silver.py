@@ -1,5 +1,6 @@
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
+from functools import reduce
 
 from pyspark.sql.types import StructType
 from typing import Union, Optional
@@ -193,30 +194,80 @@ class OrderStatusTimeline(StreamSilverJob):
                 VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
             """)
         
-class OrderItemTransformer(StreamSilverJob):
+class ProductMetadata(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
+        super().__init__(spark_session)
+
         self.job_name = self.__class__.__name__
-        super().__init__(spark_session, BronzeTopic.ORDER_ITEM)
-        self.set_dst_table('delivery_limit', DELIVERY_LIMIT)
-        # self.set_dst_table('order_product_stakeholder', DELIVERY_LIMIT)
-        # self.set_dst_table('order_transaction', DELIVERY_LIMIT)
+        self.src_topic_names = [BronzeTopic.PRODUCT, BronzeTopic.ORDER_ITEM]
+        
+        self.schema = PRODUCT_METADATA
+        self.dst_table_name = 'product_metdata'
+        self.initialize_table()
+
+    def extract(self):
+        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
 
     def transform(self, micro_batch:DataFrame, batch_id: int):
-        self.output_df = micro_batch.select('order_id', 'shipping_limit_date')
-        self.load('delivery_limit')
-        self.get_current_dst_count()
-        self.dst_df.show(n=10)
 
-    def load(self, dst_table_name):
-        self.output_df.createOrReplaceTempView(dst_table_name)
-        self.output_df.sparkSession.sql(
-            f"""
-            merge into {self.dst_table_identifier} t
-            using {dst_table_name} s
-            on t.order_id = s.order_id
-            when matched then
-                update set t.shipping_limit = s.shipping_limit_date
-            when not matched then
-                insert (order_id, shipping_limit)
-                values (s.order_id, s.shipping_limit_date)
-            """)
+        # Null category is dropped.
+        product_category = self.get_topic_df(micro_batch, BronzeTopic.PRODUCT) \
+            .select('product_id', 'category') \
+            .dropna() \
+            .dropDuplicates()
+            
+        product_seller = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
+            .select('product_id', 'seller_id') \
+            .dropDuplicates()
+        
+        self.output_df = product_category.join(product_seller, on='product_id', how='outer')
+        
+        self.load()
+        self.get_current_dst_count()
+
+        conditions = [F.col(c).isNull() for c in self.dst_df.columns]
+        final_condition = reduce(lambda x, y: x | y, conditions)
+        null_rows = self.dst_df.filter(final_condition)
+        null_rows.show(truncate=False)
+
+    # def load(self):
+    #     self.output_df.createOrReplaceTempView(self.dst_table_name)
+
+    #     # 하나의 MERGE INTO로 결합 (성능 향상)
+    #     self.output_df.sparkSession.sql(f"""
+    #         MERGE INTO {self.dst_table_identifier} t
+    #         USING {self.dst_table_name} s
+    #         ON t.product_id = s.product_id AND t.seller_id = s.seller_id
+    #         WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
+    #             UPDATE SET t.category = s.category
+    #         WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
+    #             INSERT (product_id, category, seller_id)
+    #             VALUES (s.product_id, s.category, s.seller_id)
+    #     """)
+
+    def load(self):
+        # TODO: optimize. processing time: 14 ~ 20 senconds (publish interval: 0)
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+
+        # 1. product_id 기반으로 category 업데이트 (이전 행의 NULL category 채우기)
+        self.output_df.sparkSession.sql(f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING (
+                SELECT product_id, category
+                FROM {self.dst_table_name}
+                WHERE category IS NOT NULL
+            ) s
+            ON t.product_id = s.product_id
+            WHEN MATCHED AND t.category IS NULL THEN
+                UPDATE SET t.category = s.category
+        """)
+
+        # 2. product_id와 seller_id 기반으로 새 행 삽입 (seller_id NULL 제외)
+        self.output_df.sparkSession.sql(f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING {self.dst_table_name} s
+            ON t.product_id = s.product_id AND t.seller_id = s.seller_id
+            WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
+                INSERT (product_id, category, seller_id)
+                VALUES (s.product_id, s.category, s.seller_id)
+        """)
