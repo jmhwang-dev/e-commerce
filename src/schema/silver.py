@@ -28,12 +28,12 @@ GEO_COORDINATE = StructType([
 
 ORDER_STATUS_TIMELINE = StructType([
     StructField("order_id", StringType(), False),
-    StructField("purchase_timestamp", TimestampType(), True),
-    StructField("approve_timestamp", TimestampType(), True),
-    StructField("delivered_carrier_timestamp", TimestampType(), True),
-    StructField("delivered_customer_timestamp", TimestampType(), True),
-    StructField("shipping_limit_timestamp", TimestampType(), True),
-    StructField("estimated_delivery_timestamp", TimestampType(), True)
+    StructField("purchase", TimestampType(), True),
+    StructField("approve", TimestampType(), True),
+    StructField("delivered_carrier", TimestampType(), True),
+    StructField("delivered_customer", TimestampType(), True),
+    StructField("shipping_limit", TimestampType(), True),
+    StructField("estimated_delivery", TimestampType(), True)
 ])
 
 ORDER_CUSTOMER = StructType([
@@ -58,7 +58,7 @@ ORDER_TRANSACTION = StructType([
 # REVIEW_METADATA_SCHEMA = StructType([
 #     StructField("review_id", StringType(), True),
 #     StructField("review_creation_date", TimestampType(), True),
-#     StructField("review_answer_timestamp", TimestampType(), True),
+#     StructField("review_answer", TimestampType(), True),
 #     StructField("review_score", IntegerType(), True),
 #     StructField("order_id", StringType(), True),
 # ])

@@ -2,6 +2,12 @@ from abc import ABC, abstractmethod
 from pyspark.sql import SparkSession
 from service.utils.iceberg import *
 from schema.silver import WATERMARK_SCHEMA
+from pyspark.sql import functions as F
+
+from service.utils.schema.reader import AvscReader
+from service.utils.spark import get_deserialized_avro_stream_df
+from service.utils.helper import get_producer
+
 
 class BaseJob(ABC):
     """
@@ -84,3 +90,27 @@ class BaseJob(ABC):
         df.createOrReplaceTempView("new_watermark")
         self.spark_session.sql(f"MERGE INTO {self.wartermark_table_identifier} t USING new_watermark s ON t.job_name = s.job_name "
                 f"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *")
+        
+    def initialize_table(self, ):
+        self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
+        self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
+        write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
+
+    def get_current_dst_count(self,):
+        self.dst_df = self.output_df.sparkSession.read.table(f"{self.dst_table_identifier}")
+        print(f"Current # of {self.dst_table_identifier }: ", self.dst_df.count())
+
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        return self.src_df.writeStream \
+            .foreachBatch(self.transform) \
+            .queryName(self.job_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .trigger(processingTime=process_time) \
+            .start()
+    
+    def get_topic_df(self, micro_batch:DataFrame, topic_name: str) -> DataFrame:
+        ser_df = micro_batch.filter(F.col("topic") == topic_name)
+        avsc_reader = AvscReader(topic_name)
+        producer_class = get_producer(topic_name)
+        return get_deserialized_avro_stream_df(ser_df, producer_class.key_column, avsc_reader.schema_str)
