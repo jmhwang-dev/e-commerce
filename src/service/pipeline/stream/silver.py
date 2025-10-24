@@ -34,6 +34,15 @@ class StreamSilverJob(BaseJob):
         self.dst_df = self.output_df.sparkSession.read.table(f"{self.dst_table_identifier}")
         print(f"Current # of {self.dst_table_identifier }: ", self.dst_df.count())
 
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        return self.src_df.writeStream \
+            .foreachBatch(self.transform) \
+            .queryName(self.job_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .trigger(processingTime=process_time) \
+            .start()
+
 class Account(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -86,79 +95,62 @@ class Account(StreamSilverJob):
                 values (s. zip_code, s.user_type, s.user_id)
             """)
         self.get_current_dst_count()
-    
-    def get_query(self, process_time='5 seconds'):
-        self.extract()
-        return self.src_df.writeStream \
-            .foreachBatch(self.transform) \
-            .queryName(self.job_name) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
-            .trigger(processingTime=process_time) \
-            .start()
 
-# class GeoCoordinate(StreamSilverJob):
-#     def __init__(self, spark_session: Optional[SparkSession] = None):
-#         self.job_name = self.__class__.__name__
-#         self.dst_table_name = 'geo_coordinate'
+class GeoCoordinate(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        super().__init__(spark_session)
 
-#         self.schema = GEO_COORDINATE
-#         super().__init__(spark_session, BronzeTopic.GEOLOCATION)
-
-#     def extract(self,):
-#         pass
-#         # for topic_name in src_topic_names:
-#         #     avsc_reader = AvscReader(topic_name)
-#         #     producer_class = get_producer(topic_name)
-
-#         #     kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
-#         #     deser_stream_df = get_deserialized_avro_stream_df(kafka_stream_df, producer_class.key_column, avsc_reader.schema_str)
-
-#     def transform(self, micro_batch:DataFrame, batch_id: int):
-#         # TODO: Consider key type conversion for message publishing
-#         self.output_df = micro_batch \
-#             .select('zip_code', 'lng', 'lat') \
-#             .dropDuplicates() \
-#             .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
+        self.job_name = self.__class__.__name__
+        self.src_topic_names = [BronzeTopic.GEOLOCATION]
         
-#         self.load()
-#         self.get_current_dst_count()
+        self.schema = GEO_COORDINATE
+        self.dst_table_name = 'geo_coordinate'
+        self.initialize_table()
 
-#     def load(self,):
-#         self.output_df.createOrReplaceTempView(self.dst_table_name)
-#         self.output_df.sparkSession.sql(
-#             f"""
-#             merge into {self.dst_table_identifier} t
-#             using {self.dst_table_name} s
-#             on t.zip_code = s.zip_code
-#             when not matched then
-#                 insert (zip_code, lng, lat)
-#                 values (s.zip_code, s.lng, s.lat)
-#             """)
+    def extract(self,):
+        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
 
+        # When `readStream` is `iceberg`
+        # self.src_df = self.spark_session.readStream.format('iceberg').load(f'{self.src_namespace}.{BronzeTopic.GEOLOCATION}')
+        # end
 
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+        # TODO: Consider key type conversion for message publishing
+        
+        # When `readStream` is `iceberg`
+        # self.output_df = micro_batch \
+        #     .select('zip_code', 'lng', 'lat') \
+        #     .dropDuplicates() \
+        #     .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
+        # end
 
-# class SellerTransformer(StreamSilverJob):
-#     def __init__(self, spark_session: Optional[SparkSession] = None):
-#         self.job_name = self.__class__.__name__
-#         super().__init__(spark_session, BronzeTopic.SELLER)
-#         self.set_dst_table('seller_zip_code', SELLER_ZIP_CODE)
+        topic_name = self.src_topic_names[0]
 
-#     def transform(self, micro_batch:DataFrame, batch_id: int):
-#         self.output_df = micro_batch.dropDuplicates()
-#         self.load()
-#         self.get_current_dst_count()
+        ser_df = micro_batch.filter(F.col("topic") == topic_name)
+        avsc_reader = AvscReader(topic_name)
+        producer_class = get_producer(topic_name)
+        deser_df = get_deserialized_avro_stream_df(ser_df, producer_class.key_column, avsc_reader.schema_str)
 
-#     def load(self,):
-#         self.output_df.createOrReplaceTempView(self.dst_table_name)
-#         self.output_df.sparkSession.sql(
-#             f"""
-#             merge into {self.dst_table_identifier} t
-#             using {self.dst_table_name} s
-#             on t.seller_id = s.seller_id
-#             when not matched then
-#                 insert (seller_id, zip_code)
-#                 values (s.seller_id, s.zip_code)
-#             """)
+        self.output_df = deser_df \
+            .select('zip_code', 'lng', 'lat') \
+            .dropDuplicates() \
+            .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
+            
+        self.load()
+        self.get_current_dst_count()
+        self.output_df.show()
+
+    def load(self,):
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            merge into {self.dst_table_identifier} t
+            using {self.dst_table_name} s
+            on t.zip_code = s.zip_code
+            when not matched then
+                insert (zip_code, lng, lat)
+                values (s.zip_code, s.lng, s.lat)
+            """)
 class OrderStatusTransformer(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.job_name = self.__class__.__name__

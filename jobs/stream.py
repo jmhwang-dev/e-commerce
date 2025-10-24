@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     job_list:List[StreamSilverJob] = []
 
-    for job_class in [Account]:
+    for job_class in [GeoCoordinate]:
         job_list += [job_class(spark_session)]
     
     for job_instance in job_list:
