@@ -11,12 +11,14 @@ class BaseJob(ABC):
     """
     spark_session: Optional[SparkSession] = None
     job_name: str = ''
+
     dst_namesapce: str = ''
     dst_table_name: str = ''
     dst_table_identifier: str = ''
     watermark_namespace: str = ''
     wartermark_table_identifier: str = ''
 
+    src_df: Optional[DataFrame] = None
     dst_df: Optional[DataFrame] = None
     output_df: Optional[DataFrame] = None
 
@@ -50,12 +52,32 @@ class BaseJob(ABC):
     #         return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(src_table_identifier)
 
     @abstractmethod
-    def generate(self,):
+    def extract(self,):
         pass
 
     @abstractmethod
-    def update_table(self,):
+    def transform(self,):
         pass
+
+    @abstractmethod
+    def load(self,):
+        pass
+
+    @abstractmethod
+    def get_query(self, process_time='5 seconds'):
+        pass
+        # self.src_df.writeStream \
+        #     .format('iceberg') \
+        #     .foreachBatch(self.transform) \
+        #     .queryName(self.job_name) \
+        #     .option('checkpointLocation', f's3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint') \
+        #     .trigger(processingTime=process_time) \
+        #     .start()
+
+        # query = input_df.writeStream \
+        #     .foreachBatch(process_batch) \
+        #     .trigger(processingTime="10 seconds") \
+        #     .start()
         
     def update_watermark(self,):
         df = self.spark_session.createDataFrame([(self.job_name, self.end_snapshot_id)], WATERMARK_SCHEMA)

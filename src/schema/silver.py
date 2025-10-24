@@ -14,14 +14,10 @@ WATERMARK_SCHEMA = StructType([
     StructField("last_processed_snapshot_id", LongType(), False)
 ])
 
-CUSTOMER_ZIP_CODE = StructType([
-    StructField("customer_id", StringType(), False),
+ACCOUNT = StructType([
     StructField("zip_code", IntegerType(), False),
-])
-
-SELLER_ZIP_CODE = StructType([
-    StructField("seller_id", StringType(), False),
-    StructField("zip_code", IntegerType(), False),
+    StructField("user_type", StringType(), False),
+    StructField("user_id", StringType(), False),
 ])
 
 GEO_COORDINATE = StructType([
@@ -36,10 +32,6 @@ ORDER_STATUS_TIMELINE = StructType([
     StructField("approve_timestamp", TimestampType(), True),
     StructField("delivered_carrier_timestamp", TimestampType(), True),
     StructField("delivered_customer_timestamp", TimestampType(), True),
-])
-
-DELIVERY_LIMIT = StructType([
-    StructField("order_id", StringType(), False),
     StructField("shipping_limit_timestamp", TimestampType(), True),
     StructField("estimated_delivery_timestamp", TimestampType(), True)
 ])

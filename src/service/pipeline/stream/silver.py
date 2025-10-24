@@ -9,119 +9,163 @@ from service.utils.iceberg import write_iceberg
 from schema.silver import *
 from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session
+from service.utils.schema.reader import AvscReader
+from service.utils.helper import get_producer
+
+from service.utils.spark import get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream
 
 class StreamSilverJob(BaseJob):
     src_namespace: str = 'bronze'
     dst_namesapce: str = "silver"
-    schema: Union[StructType, None] = None
 
-    def __init__(self, spark_session: Optional[SparkSession] = None, src_table_name: str = ''):
+    output_df: Optional[DataFrame] = None
+    schema: Optional[StructType] = None
+
+    def __init__(self, spark_session: Optional[SparkSession] = None):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
-        
-        self.src_table_identifier = f"{self.src_namespace}.{src_table_name}"
-        self.src_df = self.spark_session.readStream.format('iceberg').load(self.src_table_identifier)
 
+    def initialize_table(self, ):
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
 
-    def get_query(self, process_time='5 seconds'):
-        self.src_df.writeStream \
-            .format('iceberg') \
-            .foreachBatch(self.generate) \
-            .queryName(self.job_name) \
-            .option('checkpointLocation', f's3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint') \
-            .trigger(processingTime=process_time) \
-            .start()
-        
     def get_current_dst_count(self,):
         self.dst_df = self.output_df.sparkSession.read.table(f"{self.dst_table_identifier}")
         print(f"Current # of {self.dst_table_identifier }: ", self.dst_df.count())
 
-class GeolocationTransformer(StreamSilverJob):
+class Account(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'geo_coordinate'
-        self.schema = GEO_COORDINATE
-        super().__init__(spark_session, BronzeTopic.GEOLOCATION)
+        super().__init__(spark_session)
 
-    def generate(self, micro_batch:DataFrame, batch_id: int):
-        # TODO: Consider key type conversion for message publishing
-        self.output_df = micro_batch \
-            .select('zip_code', 'lng', 'lat') \
-            .dropDuplicates() \
-            .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
+        self.job_name = self.__class__.__name__
+        self.src_topic_names = [BronzeTopic.CUSTOMER, BronzeTopic.SELLER]
         
-        self.update_table()
-        self.get_current_dst_count()
+        self.schema = ACCOUNT
+        self.dst_table_name = 'account'
+        self.initialize_table()
 
-    def update_table(self,):
-        self.output_df.createOrReplaceTempView(self.dst_table_name)
-        self.output_df.sparkSession.sql(
-            f"""
-            merge into {self.dst_table_identifier} t
-            using {self.dst_table_name} s
-            on t.zip_code = s.zip_code
-            when not matched then
-                insert (zip_code, lng, lat)
-                values (s.zip_code, s.lng, s.lat)
-            """)
-class CustomerTransformer(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'customer_zip_code'
-        self.schema = CUSTOMER_ZIP_CODE
-        super().__init__(spark_session, BronzeTopic.CUSTOMER)
+    def extract(self,):
+        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
 
-    def generate(self, micro_batch:DataFrame, batch_id: int):
-        self.output_df = micro_batch.dropDuplicates()
-        self.update_table()
-        self.get_current_dst_count()
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = micro_batch.sparkSession.createDataFrame([], schema=self.schema)
+        new_column = 'user_id'
 
-    def update_table(self,):
-        self.output_df.createOrReplaceTempView(self.dst_table_name)
-        self.output_df.sparkSession.sql(
-            f"""
-            merge into {self.dst_table_identifier} t
-            using {self.dst_table_name} s
-            on t.customer_id = s.customer_id
-            when not matched then
-                insert (customer_id, zip_code)
-                values (s.customer_id, s.zip_code)
-            """)
-class SellerTransformer(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.job_name = self.__class__.__name__
-        self.dst_table_name = 'seller_zip_code'
-        self.schema = SELLER_ZIP_CODE
-        super().__init__(spark_session, BronzeTopic.SELLER)
+        for topic_name in self.src_topic_names:
+            if topic_name == BronzeTopic.CUSTOMER:
+                user_type = F.lit('customer')
+                existing_column = 'customer_id'
+            else:
+                user_type = F.lit('seller')
+                existing_column = 'seller_id'
 
-    def generate(self, micro_batch:DataFrame, batch_id: int):
-        self.output_df = micro_batch.dropDuplicates()
-        self.update_table()
-        self.get_current_dst_count()
+            ser_df = micro_batch.filter(F.col("topic") == topic_name)
+            avsc_reader = AvscReader(topic_name)
+            producer_class = get_producer(topic_name)
+            deser_df = get_deserialized_avro_stream_df(ser_df, producer_class.key_column, avsc_reader.schema_str)
 
-    def update_table(self,):
-        self.output_df.createOrReplaceTempView(self.dst_table_name)
-        self.output_df.sparkSession.sql(
-            f"""
-            merge into {self.dst_table_identifier} t
-            using {self.dst_table_name} s
-            on t.seller_id = s.seller_id
-            when not matched then
-                insert (seller_id, zip_code)
-                values (s.seller_id, s.zip_code)
-            """)
+            deser_df = deser_df.drop('ingest_time') \
+                .withColumnRenamed(existing_column, new_column) \
+                .withColumn('user_type', user_type)
+            
+            self.output_df = self.output_df.unionByName(deser_df)
         
+        self.output_df = self.output_df.dropDuplicates()
+        self.load()
+
+    def load(self,):
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            merge into {self.dst_table_identifier} t
+            using {self.dst_table_name} s
+            on t.user_id = s.user_id
+            when not matched then
+                insert (zip_code, user_type, user_id)
+                values (s. zip_code, s.user_type, s.user_id)
+            """)
+        self.get_current_dst_count()
+    
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        return self.src_df.writeStream \
+            .foreachBatch(self.transform) \
+            .queryName(self.job_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .trigger(processingTime=process_time) \
+            .start()
+
+# class GeoCoordinate(StreamSilverJob):
+#     def __init__(self, spark_session: Optional[SparkSession] = None):
+#         self.job_name = self.__class__.__name__
+#         self.dst_table_name = 'geo_coordinate'
+
+#         self.schema = GEO_COORDINATE
+#         super().__init__(spark_session, BronzeTopic.GEOLOCATION)
+
+#     def extract(self,):
+#         pass
+#         # for topic_name in src_topic_names:
+#         #     avsc_reader = AvscReader(topic_name)
+#         #     producer_class = get_producer(topic_name)
+
+#         #     kafka_stream_df = get_kafka_stream_df(spark_session, topic_name)
+#         #     deser_stream_df = get_deserialized_avro_stream_df(kafka_stream_df, producer_class.key_column, avsc_reader.schema_str)
+
+#     def transform(self, micro_batch:DataFrame, batch_id: int):
+#         # TODO: Consider key type conversion for message publishing
+#         self.output_df = micro_batch \
+#             .select('zip_code', 'lng', 'lat') \
+#             .dropDuplicates() \
+#             .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
+        
+#         self.load()
+#         self.get_current_dst_count()
+
+#     def load(self,):
+#         self.output_df.createOrReplaceTempView(self.dst_table_name)
+#         self.output_df.sparkSession.sql(
+#             f"""
+#             merge into {self.dst_table_identifier} t
+#             using {self.dst_table_name} s
+#             on t.zip_code = s.zip_code
+#             when not matched then
+#                 insert (zip_code, lng, lat)
+#                 values (s.zip_code, s.lng, s.lat)
+#             """)
+
+
+
+# class SellerTransformer(StreamSilverJob):
+#     def __init__(self, spark_session: Optional[SparkSession] = None):
+#         self.job_name = self.__class__.__name__
+#         super().__init__(spark_session, BronzeTopic.SELLER)
+#         self.set_dst_table('seller_zip_code', SELLER_ZIP_CODE)
+
+#     def transform(self, micro_batch:DataFrame, batch_id: int):
+#         self.output_df = micro_batch.dropDuplicates()
+#         self.load()
+#         self.get_current_dst_count()
+
+#     def load(self,):
+#         self.output_df.createOrReplaceTempView(self.dst_table_name)
+#         self.output_df.sparkSession.sql(
+#             f"""
+#             merge into {self.dst_table_identifier} t
+#             using {self.dst_table_name} s
+#             on t.seller_id = s.seller_id
+#             when not matched then
+#                 insert (seller_id, zip_code)
+#                 values (s.seller_id, s.zip_code)
+#             """)
 class OrderStatusTransformer(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.job_name = self.__class__.__name__
-        self.dst_table_name = 'order_status_timeline'
-        self.schema = ORDER_STATUS_TIMELINE
         super().__init__(spark_session, BronzeTopic.ORDER_STATUS)
+        self.set_dst_table('order_status_timeline', ORDER_STATUS_TIMELINE)
 
-    def generate(self, micro_batch:DataFrame, batch_id: int):
+    def transform(self, micro_batch:DataFrame, batch_id: int):
         self.output_df = micro_batch \
         .groupBy('order_id') \
         .agg(
@@ -130,11 +174,11 @@ class OrderStatusTransformer(StreamSilverJob):
             F.max(F.when(F.col('status') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier_timestamp'),
             F.max(F.when(F.col('status') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer_timestamp')
         )
-        self.update_table()
+        self.load()
         self.get_current_dst_count()
-        self.dst_df.show(n=100)
+        # self.dst_df.show(n=100)
 
-    def update_table(self,):
+    def load(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
         self.output_df.sparkSession.sql(
             f"""
@@ -150,4 +194,58 @@ class OrderStatusTransformer(StreamSilverJob):
             WHEN NOT MATCHED THEN
                 INSERT (order_id, purchase_timestamp, approve_timestamp, delivered_carrier_timestamp, delivered_customer_timestamp)
                 VALUES (s.order_id, s.purchase_timestamp, s.approve_timestamp, s.delivered_carrier_timestamp, s.delivered_customer_timestamp)
+            """)
+class EstimatedDeliveryDateTransformer(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.job_name = self.__class__.__name__
+        super().__init__(spark_session, BronzeTopic.ESTIMATED_DELIVERY_DATE)
+        self.set_dst_table('delivery_limit', DELIVERY_LIMIT)
+
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = micro_batch.drop('ingest_time')
+        self.load()
+        self.get_current_dst_count()
+        # self.dst_df.show(n=100)
+
+    def load(self,):
+        # write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
+        self.output_df.createOrReplaceTempView(self.dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            merge into {self.dst_table_identifier} t
+            using {self.dst_table_name} s
+            on t.order_id = s.order_id
+            when matched then
+                update set t.estimated_delivery_timestamp = s.estimated_delivery_date
+            when not matched then
+                insert (order_id, estimated_delivery_timestamp)
+                values (s.order_id, s.estimated_delivery_date)
+            """)
+        
+class OrderItemTransformer(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.job_name = self.__class__.__name__
+        super().__init__(spark_session, BronzeTopic.ORDER_ITEM)
+        self.set_dst_table('delivery_limit', DELIVERY_LIMIT)
+        # self.set_dst_table('order_product_stakeholder', DELIVERY_LIMIT)
+        # self.set_dst_table('order_transaction', DELIVERY_LIMIT)
+
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = micro_batch.select('order_id', 'shipping_limit_date')
+        self.load('delivery_limit')
+        self.get_current_dst_count()
+        self.dst_df.show(n=10)
+
+    def load(self, dst_table_name):
+        self.output_df.createOrReplaceTempView(dst_table_name)
+        self.output_df.sparkSession.sql(
+            f"""
+            merge into {self.dst_table_identifier} t
+            using {dst_table_name} s
+            on t.order_id = s.order_id
+            when matched then
+                update set t.shipping_limit_timestamp = s.shipping_limit_date
+            when not matched then
+                insert (order_id, shipping_limit_timestamp)
+                values (s.order_id, s.shipping_limit_date)
             """)
