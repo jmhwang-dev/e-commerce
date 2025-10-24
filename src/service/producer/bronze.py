@@ -1,7 +1,7 @@
 from typing import Union
 import pandas as pd
 from pathlib import Path
-from functools import lru_cache
+from functools import lru_cache, reduce
 
 from service.producer.base.pandas import PandasProducer
 from service.stream.topic import *
@@ -31,20 +31,22 @@ class BronzeProducer(PandasProducer):
             raise ValueError(f"File {cls.file_path} not found")
 
     @classmethod
-    def select(cls, log: Union[pd.Series, pd.DataFrame], fk_col: str) -> Optional[pd.DataFrame]:
+    def select(cls, log: Union[pd.Series, pd.DataFrame], fk_col: List[str]) -> Optional[pd.DataFrame]:
         if log.empty:
             return pd.DataFrame()
         
+        df = cls.get_df()
+
         if isinstance(log, pd.Series):
-            value = log[fk_col]
+            values = log[fk_col]
+            conditions = [df[col] == val for col, val in zip(fk_col, values)]
+            final_condition = reduce(lambda x, y: x & y, conditions)
         else:
-            value = log[fk_col].iloc[0]
-        
-        try:
-            df = cls.get_df()
-            return df[df[fk_col] == value]
-        except:
-            return None
+            values = log[fk_col].drop_duplicates()  # DataFrame
+            conditions = [df[col].isin(values[col].tolist()) for col in fk_col]
+            final_condition = reduce(lambda x, y: x & y, conditions)
+
+        return df[final_condition]
             
 class GeolocationBronzeProducer(BronzeProducer):
     dst_topic = BronzeTopic.GEOLOCATION
