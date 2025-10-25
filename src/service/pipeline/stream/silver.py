@@ -291,6 +291,10 @@ class OrderDetail(StreamSilverJob):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
     
     def transform(self, micro_batch:DataFrame, batch_id: int):
+        """
+        - 토픽을 소비할 때, 배치에 포함이 안돼서 결제 내역과 주문 내역이 매칭이 안될 수 있음
+        - quratine.* 테이블에 저장하고 후처리하여 데이터의 완전성을 최대한 보장할 수 있도록 구현
+        """
 
         ### start to process qurantine
         self.quarantine_fact_order_transaction_df = micro_batch.sparkSession.read.table(self.quarantine_fact_order_transaction_identifier)
