@@ -26,8 +26,6 @@ class StreamSilverJob(BaseJob):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
- 
-
 class Account(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -37,7 +35,7 @@ class Account(StreamSilverJob):
         
         self.schema = ACCOUNT
         self.dst_table_name = 'account'
-        self.initialize_table()
+        self.initialize_dst_table()
 
     def extract(self,):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
@@ -86,7 +84,7 @@ class GeoCoordinate(StreamSilverJob):
         
         self.schema = GEO_COORDINATE
         self.dst_table_name = 'geo_coordinate'
-        self.initialize_table()
+        self.initialize_dst_table()
 
     def extract(self,):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
@@ -138,7 +136,7 @@ class OrderStatusTimeline(StreamSilverJob):
         
         self.schema = ORDER_STATUS_TIMELINE
         self.dst_table_name = 'order_status_timeline'
-        self.initialize_table()
+        self.initialize_dst_table()
 
     def extract(self):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
@@ -203,7 +201,7 @@ class ProductMetadata(StreamSilverJob):
         
         self.schema = PRODUCT_METADATA
         self.dst_table_name = 'product_metdata'
-        self.initialize_table()
+        self.initialize_dst_table()
 
     def extract(self):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
@@ -228,22 +226,7 @@ class ProductMetadata(StreamSilverJob):
         conditions = [F.col(c).isNull() for c in self.dst_df.columns]
         final_condition = reduce(lambda x, y: x | y, conditions)
         null_rows = self.dst_df.filter(final_condition)
-        null_rows.show(truncate=False)
-
-    # def load(self):
-    #     self.output_df.createOrReplaceTempView(self.dst_table_name)
-
-    #     # 하나의 MERGE INTO로 결합 (성능 향상)
-    #     self.output_df.sparkSession.sql(f"""
-    #         MERGE INTO {self.dst_table_identifier} t
-    #         USING {self.dst_table_name} s
-    #         ON t.product_id = s.product_id AND t.seller_id = s.seller_id
-    #         WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
-    #             UPDATE SET t.category = s.category
-    #         WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
-    #             INSERT (product_id, category, seller_id)
-    #             VALUES (s.product_id, s.category, s.seller_id)
-    #     """)
+        null_rows.orderBy('order_id',).show(truncate=False)
 
     def load(self):
         # TODO: optimize. processing time: 14 ~ 20 senconds (publish interval: 0)
@@ -271,3 +254,108 @@ class ProductMetadata(StreamSilverJob):
                 INSERT (product_id, category, seller_id)
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
+
+        ## Sol 2.
+        # self.output_df.createOrReplaceTempView(self.dst_table_name)
+        # # 하나의 MERGE INTO로 결합 (성능 향상)
+        # self.output_df.sparkSession.sql(f"""
+        #     MERGE INTO {self.dst_table_identifier} t
+        #     USING {self.dst_table_name} s
+        #     ON t.product_id = s.product_id AND t.seller_id = s.seller_id
+        #     WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
+        #         UPDATE SET t.category = s.category
+        #     WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
+        #         INSERT (product_id, category, seller_id)
+        #         VALUES (s.product_id, s.category, s.seller_id)
+        # """)
+
+
+class OrderDetail(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        super().__init__(spark_session)
+
+        self.job_name = self.__class__.__name__
+        self.src_topic_names = [BronzeTopic.PAYMENT, BronzeTopic.ORDER_ITEM]
+        
+        self.schema = ORDER_DETAIL
+        self.dst_table_name = 'order_detail'
+        self.initialize_dst_table()
+
+        self.quarantine_fact_order_transaction_identifier = 'silver.qurantine.fact_order_transaction'
+        self.initialize_qurantine_table(self.quarantine_fact_order_transaction_identifier, QUARANTINE_FACT_ORDER_TRANSACTION_SCHEMA)
+
+        self.quarantine_order_customer_identifier = 'silver.qurantine.order_customer'
+        self.initialize_qurantine_table(self.quarantine_order_customer_identifier, QUARANTINE_ORDER_CUSTOMER_SCHEMA)
+
+    def extract(self):
+        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+    
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+
+        ### start to process qurantine
+        self.quarantine_fact_order_transaction_df = micro_batch.sparkSession.read.table(self.quarantine_fact_order_transaction_identifier)
+        self.quarantine_order_customer_df = micro_batch.sparkSession.read.table(self.quarantine_order_customer_identifier)
+
+        matched_df = self.quarantine_fact_order_transaction_df.join(self.quarantine_order_customer_df, on='order_id', how='outer')
+        self.quarantine_fact_order_transaction_df = matched_df.filter(F.col('customer_id').isNull()).drop('customer_id')
+        self.quarantine_order_customer_df = matched_df.filter(F.col('product_id').isNull()).select('order_id', 'customer_id')
+        matched_df = matched_df.dropna()
+        ### end
+
+        order_customer = self.get_topic_df(micro_batch, BronzeTopic.PAYMENT) \
+            .select('order_id', 'customer_id') \
+            .dropDuplicates()
+
+        order_trasaction = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
+            .select('order_id', 'order_item_id', 'product_id', 'price') \
+
+        fact_order_trasaction = order_trasaction.groupBy('order_id', 'product_id', 'price') \
+            .agg(
+                F.count('order_item_id').alias('product_count')
+            ).withColumnRenamed('price', 'unit_price')
+        
+
+        self.output_df = fact_order_trasaction.join(order_customer, on='order_id', how='outer')
+
+        # TODO: check duplicate (재현이 안됨. 중복이 있을 떄가 있고 없을 떄가 있음)
+        self.quarantine_fact_order_transaction_df = self.output_df.filter(F.col('customer_id').isNull()).drop('customer_id').unionByName(self.quarantine_fact_order_transaction_df)
+        self.quarantine_order_customer_df = self.output_df.filter(F.col('product_id').isNull()).select('order_id', 'customer_id').unionByName(self.quarantine_order_customer_df)
+        self.output_df = self.output_df.dropna().unionByName(matched_df)
+
+        self.load()
+        self.get_current_dst_count(batch_id)
+
+    def load(self):
+        """
+        - 일반적인 경우, payment.ingest_time < order_item.ingest_time
+        - 항상 위 조건이 성립하는 것은 아님 (네트워크 지연으로 반대의 경우가 있을 수 있음)
+        - 거래 기록은 정확도가 중요하므로 watermark로 레코드의 하한을 정하면 안됨
+        - (준)실시간으로 데이터를 처리해야하므로, 임시 뷰를 활용하여 데이터를 upsert
+        """
+
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
+
+        tmp_view_name = 'tmp_view'
+        self.quarantine_fact_order_transaction_df.createOrReplaceTempView(tmp_view_name)
+        self.output_df.sparkSession.sql(f"""
+            MERGE INTO {self.quarantine_fact_order_transaction_identifier} t
+            USING {tmp_view_name} s
+            ON t.order_id = s.order_id
+            WHEN NOT MATCHED THEN
+                INSERT (order_id, product_id, unit_price, product_count)
+                VALUES (s.order_id, s.product_id, s.unit_price, s.product_count)
+            WHEN NOT MATCHED BY SOURCE THEN
+                DELETE
+            """)
+        
+        self.quarantine_order_customer_df.createOrReplaceTempView(tmp_view_name)
+        self.output_df.sparkSession.sql(f"""
+            MERGE INTO {self.quarantine_order_customer_identifier} t
+            USING {tmp_view_name} s
+            ON t.order_id = s.order_id
+            WHEN NOT MATCHED THEN
+                INSERT (order_id, customer_id)
+                VALUES (s.order_id, s.customer_id)
+            WHEN NOT MATCHED BY SOURCE THEN
+                DELETE
+            """)

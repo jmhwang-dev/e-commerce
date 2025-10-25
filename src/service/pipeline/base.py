@@ -91,14 +91,18 @@ class BaseJob(ABC):
         self.spark_session.sql(f"MERGE INTO {self.wartermark_table_identifier} t USING new_watermark s ON t.job_name = s.job_name "
                 f"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *")
         
-    def initialize_table(self, ):
+    def initialize_dst_table(self, ):
         self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
         self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
+    
+    def initialize_qurantine_table(self, qurantine_table_identifier, qurantine_schema):
+        qurantine_df = self.spark_session.createDataFrame([], schema=qurantine_schema)
+        write_iceberg(self.spark_session, qurantine_df, qurantine_table_identifier, mode='a')
 
-    def get_current_dst_count(self,):
+    def get_current_dst_count(self, batch_id):
         self.dst_df = self.output_df.sparkSession.read.table(f"{self.dst_table_identifier}")
-        print(f"Current # of {self.dst_table_identifier }: ", self.dst_df.count())
+        print(f"batch_id: {batch_id}, Current # of {self.dst_table_identifier }: ", self.dst_df.count())
 
     def get_query(self, process_time='5 seconds'):
         self.extract()

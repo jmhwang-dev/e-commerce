@@ -37,19 +37,30 @@ ORDER_STATUS_TIMELINE = StructType([
 ])
 
 PRODUCT_METADATA = StructType([
-    StructField("category", StringType(), False),
+    StructField("category", StringType(), True),
     StructField("product_id", StringType(), False),
-    StructField("seller_id", StringType(), False),
+    StructField("seller_id", StringType(), True),
 ])
 
-# ORDER_TRANSACTION = StructType([
-#     StructField("order_id", StringType(), True),
-#     StructField("customer_id", StringType(), True),
-#     StructField("order_item_id", IntegerType(), True),
-#     StructField("product_id", StringType(), True),
-#     StructField("price", FloatType(), True),
-#     StructField("freight_value", FloatType(), True),
-# ])
+ORDER_DETAIL = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("customer_id", StringType(), True),
+    StructField("product_id", StringType(), True),
+    StructField("unit_price", FloatType(), True),
+    StructField("product_count", IntegerType(), True),
+])
+
+QUARANTINE_FACT_ORDER_TRANSACTION_SCHEMA = StructType([
+    StructField('order_id', StringType(), False),
+    StructField('product_id', StringType(), True),
+    StructField('product_count', IntegerType(), True),
+    StructField('unit_price', FloatType(), True),
+])
+
+QUARANTINE_ORDER_CUSTOMER_SCHEMA = StructType([
+    StructField('order_id', StringType(), True),
+    StructField('customer_id', StringType(), True)
+])
 
 # REVIEW_METADATA_SCHEMA = StructType([
 #     StructField("review_id", StringType(), True),
