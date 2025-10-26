@@ -20,19 +20,12 @@ if __name__ == "__main__":
 
     job_list:List[StreamSilverJob] = []
 
-    for job_class in [OrderDetail]:
+    for job_class in [ReviewMetadata]:
         job_list += [job_class(spark_session)]
     
     for job_instance in job_list:
         QUERY_LIST += [job_instance.get_query()]
 
-
-    # review
-    # review_stream_df = SPARK_SESSION.readStream.format('iceberg').load(f'{SRC_NAMESPACE}.{BronzeTopic.REVIEW}')
-    # review_metadata = review_stream_df.select('review_id', 'order_id', 'review_score', 'review_creation_date', 'review_answer_timestamp')
-
-    # query = load_stream_to_iceberg(review_metadata, f"{DST_NAMESPACE}.review_metadata" )
-    
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
 

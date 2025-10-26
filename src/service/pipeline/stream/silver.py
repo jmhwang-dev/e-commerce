@@ -363,3 +363,27 @@ class OrderDetail(StreamSilverJob):
             WHEN NOT MATCHED BY SOURCE THEN
                 DELETE
             """)
+        
+class ReviewMetadata(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        super().__init__(spark_session)
+
+        self.job_name = self.__class__.__name__
+        self.src_topic_names = [BronzeTopic.REVIEW]
+        
+        self.schema = REVIEW_METADATA_SCHEMA
+        self.dst_table_name = 'review_metadata'
+        self.initialize_dst_table()
+
+    def extract(self):
+        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+    
+    def transform(self, micro_batch:DataFrame, batch_id: int):
+        self.output_df = self.get_topic_df(micro_batch, BronzeTopic.REVIEW) \
+            .drop('review_comment_title', 'review_comment_message')
+
+        self.load()
+        self.get_current_dst_count(batch_id)
+
+    def load(self):
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
