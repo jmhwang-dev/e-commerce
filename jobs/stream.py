@@ -1,7 +1,6 @@
 from typing import List
 
 from pyspark.sql.streaming.query import StreamingQuery
-from service.producer.bronze import BronzeTopic
 from service.utils.spark import get_spark_session, run_stream_queries
 from service.utils.iceberg import initialize_namespace
 from service.utils.logger import *
@@ -20,7 +19,7 @@ if __name__ == "__main__":
 
     job_list:List[StreamSilverJob] = []
 
-    for job_class in [ReviewMetadata]:
+    for job_class in [OrderStatusTimeline, ProductMetadata, OrderDetail, ReviewMetadata, GeoCoordinate, Account]:
         job_list += [job_class(spark_session)]
     
     for job_instance in job_list:

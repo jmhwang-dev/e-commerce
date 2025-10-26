@@ -63,11 +63,11 @@ QUARANTINE_ORDER_CUSTOMER_SCHEMA = StructType([
 ])
 
 REVIEW_METADATA_SCHEMA = StructType([
-    StructField("review_id", StringType(), True),
-    StructField("review_creation_date", TimestampType(), True),
-    StructField("review_answer", TimestampType(), True),
-    StructField("review_score", IntegerType(), True),
-    StructField("order_id", StringType(), True),
+    StructField("order_id", StringType(), False),
+    StructField("review_id", StringType(), False),
+    StructField("review_creation_date", TimestampType(), False),
+    StructField("review_answer_timestamp", TimestampType(), False),
+    StructField("review_score", IntegerType(), False),
 ])
 
 # REVIEW_CLEAN_COMMENT_SCHEMA = StructType([

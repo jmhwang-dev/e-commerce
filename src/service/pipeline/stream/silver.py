@@ -61,8 +61,9 @@ class Account(StreamSilverJob):
         
         self.output_df = self.output_df.dropDuplicates()
         self.load()
+        self.get_current_dst_count(batch_id)
 
-    def load(self,):
+    def load(self, ):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
         self.output_df.sparkSession.sql(
             f"""
@@ -73,8 +74,6 @@ class Account(StreamSilverJob):
                 insert (zip_code, user_type, user_id)
                 values (s. zip_code, s.user_type, s.user_id)
             """)
-        self.get_current_dst_count()
-
 class GeoCoordinate(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -112,8 +111,7 @@ class GeoCoordinate(StreamSilverJob):
             .withColumn('zip_code', F.col('zip_code').cast(IntegerType()))
             
         self.load()
-        self.get_current_dst_count()
-        self.output_df.show()
+        self.get_current_dst_count(batch_id)
 
     def load(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
@@ -221,12 +219,7 @@ class ProductMetadata(StreamSilverJob):
         self.output_df = product_category.join(product_seller, on='product_id', how='outer')
         
         self.load()
-        self.get_current_dst_count()
-
-        conditions = [F.col(c).isNull() for c in self.dst_df.columns]
-        final_condition = reduce(lambda x, y: x | y, conditions)
-        null_rows = self.dst_df.filter(final_condition)
-        null_rows.orderBy('order_id',).show(truncate=False)
+        self.get_current_dst_count(batch_id)
 
     def load(self):
         # TODO: optimize. processing time: 14 ~ 20 senconds (publish interval: 0)
@@ -380,7 +373,7 @@ class ReviewMetadata(StreamSilverJob):
     
     def transform(self, micro_batch:DataFrame, batch_id: int):
         self.output_df = self.get_topic_df(micro_batch, BronzeTopic.REVIEW) \
-            .drop('review_comment_title', 'review_comment_message')
+            .drop('review_comment_title', 'review_comment_message', 'ingest_time')
 
         self.load()
         self.get_current_dst_count(batch_id)
