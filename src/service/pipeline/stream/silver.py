@@ -1,20 +1,14 @@
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from functools import reduce
 
 from pyspark.sql.types import StructType
-from typing import Union, Optional
+from typing import Optional
 
 from ..base import BaseJob
 from service.utils.iceberg import write_iceberg
 from schema.silver import *
 from service.producer.bronze import BronzeTopic
-from service.utils.spark import get_spark_session
-from service.utils.schema.reader import AvscReader
-from service.utils.helper import get_producer
-
-from service.utils.spark import get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, start_console_stream
-
+from service.utils.spark import get_spark_session, get_kafka_stream_df
 class StreamSilverJob(BaseJob):
     src_namespace: str = 'bronze'
     dst_namesapce: str = "silver"
