@@ -33,7 +33,7 @@ services:
 
     
     mem_limit: 4g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
-    cpus: 1.0  # 드라이버 코어 제한
+    cpus: 4.0  # 드라이버 코어 제한
 
     command: >
       /opt/spark/sbin/start-thriftserver.sh
@@ -45,8 +45,8 @@ services:
       - "8085:8081"   # web ui
 
     environment:
-      SPARK_WORKER_MEMORY: 12g  # upper limit of memory to use
-      SPARK_WORKER_CORES: 16    # upper limit of cores to use
+      SPARK_WORKER_MEMORY: 2g  # upper limit of memory to use
+      SPARK_WORKER_CORES: 2    # upper limit of cores to use
     volumes:
       - ./configs/spark:/opt/spark/conf
       - ./downloads/jmx_exporter:/mnt/jmx_exporter/
