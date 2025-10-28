@@ -14,11 +14,10 @@ if __name__ == "__main__":
     spark_session = get_spark_session("Stream Silver Job")
 
     initialize_namespace(spark_session, 'silver', is_drop=True)
-    initialize_namespace(spark_session, 'silver.qurantine', is_drop=True)
 
     stream_silver_job_list:List[StreamSilverJob] = []
 
-    for job_class in [OrderStatusTimeline, ProductMetadata, PurchaseOrder, UserLocation, ReviewMetadata]:
+    for job_class in [DimUserLocation, DimProduct, FactOrderReview, FactOrderItem, FactOrderStatus]:
         stream_silver_job_list += [job_class(spark_session)]
     
     for job_instance in stream_silver_job_list:

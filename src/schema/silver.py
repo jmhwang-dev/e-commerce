@@ -9,7 +9,7 @@ from pyspark.sql.types import (
     LongType
 )
 
-USER_LOCATION = StructType([
+DIM_USER_LOCATION = StructType([
     StructField("user_type", StringType(), True),
     StructField("user_id", StringType(), True),
     StructField("zip_code", IntegerType(), True),
@@ -17,7 +17,7 @@ USER_LOCATION = StructType([
     StructField("lng", FloatType(), True),
 ])
 
-ORDER_STATUS_TIMELINE = StructType([
+FACT_ORDER_STATUS = StructType([
     StructField("order_id", StringType(), False),
     StructField("purchase", TimestampType(), True),
     StructField("approve", TimestampType(), True),
@@ -28,33 +28,20 @@ ORDER_STATUS_TIMELINE = StructType([
     StructField("process_timestamp", TimestampType(), False),
 ])
 
-PRODUCT_METADATA = StructType([
+DIM_PRODUCT = StructType([
     StructField("category", StringType(), True),
     StructField("product_id", StringType(), False),
     StructField("seller_id", StringType(), True),
 ])
 
-PURCHASE_ORDER = StructType([
+FACT_ORDER_ITEM = StructType([
     StructField("order_id", StringType(), False),
-    StructField("customer_id", StringType(), True),
     StructField("product_id", StringType(), True),
     StructField("unit_price", FloatType(), True),
     StructField("product_count", IntegerType(), True),
 ])
 
-QUARANTINE_FACT_ORDER_TRANSACTION = StructType([
-    StructField('order_id', StringType(), False),
-    StructField('product_id', StringType(), True),
-    StructField('product_count', IntegerType(), True),
-    StructField('unit_price', FloatType(), True),
-])
-
-QUARANTINE_ORDER_CUSTOMER = StructType([
-    StructField('order_id', StringType(), True),
-    StructField('customer_id', StringType(), True)
-])
-
-REVIEW_METADATA = StructType([
+FACT_ORDER_REVIEW = StructType([
     StructField("order_id", StringType(), False),
     StructField("review_id", StringType(), False),
     StructField("review_creation_date", TimestampType(), False),

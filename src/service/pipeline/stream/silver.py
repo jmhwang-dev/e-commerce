@@ -21,7 +21,7 @@ class StreamSilverJob(BaseJob):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
-class UserLocation(StreamSilverJob):
+class DimUserLocation(StreamSilverJob):
     """
     # Full Outer Join 기반 실시간 사용자 위치 보강 (Iceberg 저장)
     
@@ -40,8 +40,8 @@ class UserLocation(StreamSilverJob):
         super().__init__(spark_session)
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.CUSTOMER, BronzeTopic.SELLER, BronzeTopic.GEOLOCATION]
-        self.schema = USER_LOCATION
-        self.dst_table_name = 'user_location'
+        self.schema = DIM_USER_LOCATION
+        self.dst_table_name = 'dim_user_location'
         self.initialize_dst_table()  # Iceberg 테이블 초기화
 
     def extract(self):
@@ -119,15 +119,15 @@ class UserLocation(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class OrderStatusTimeline(StreamSilverJob):
+class FactOrderStatus(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.ESTIMATED_DELIVERY_DATE, BronzeTopic.ORDER_ITEM, BronzeTopic.ORDER_STATUS]
         
-        self.schema = ORDER_STATUS_TIMELINE
-        self.dst_table_name = 'order_status_timeline'
+        self.schema = FACT_ORDER_STATUS
+        self.dst_table_name = 'fact_order_status'
         self.initialize_dst_table()
 
     def extract(self):
@@ -149,9 +149,9 @@ class OrderStatusTimeline(StreamSilverJob):
 
         order_status_df = order_status_src_df.drop('ingest_time')
 
-        order_status_timeline_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
+        fact_order_status_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
 
-        self.output_df = order_status_timeline_df \
+        self.output_df = fact_order_status_df \
             .groupBy('order_id') \
             .agg(
                 F.max(F.when(F.col('status') == 'purchase', F.col('timestamp'))).alias('purchase'),
@@ -191,15 +191,15 @@ class OrderStatusTimeline(StreamSilverJob):
                 VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery, s.process_timestamp)
             """)
         
-class ProductMetadata(StreamSilverJob):
+class DimProduct(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.PRODUCT, BronzeTopic.ORDER_ITEM]
         
-        self.schema = PRODUCT_METADATA
-        self.dst_table_name = 'product_metadata'
+        self.schema = DIM_PRODUCT
+        self.dst_table_name = 'dim_product'
         self.initialize_dst_table()
 
     def extract(self):
@@ -263,110 +263,76 @@ class ProductMetadata(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class PurchaseOrder(StreamSilverJob):
+class FactOrderItem(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
-        self.src_topic_names = [BronzeTopic.PAYMENT, BronzeTopic.ORDER_ITEM]
-        
-        self.schema = PURCHASE_ORDER
-        self.dst_table_name = 'purchase_order'
+        self.schema = FACT_ORDER_ITEM
+        self.dst_table_name = 'fact_order_item'
         self.initialize_dst_table()
 
-        self.quarantine_fact_order_transaction_identifier = 'silver.qurantine.fact_order_transaction'
-        self.initialize_qurantine_table(self.quarantine_fact_order_transaction_identifier, QUARANTINE_FACT_ORDER_TRANSACTION)
-
-        self.quarantine_order_customer_identifier = 'silver.qurantine.order_customer'
-        self.initialize_qurantine_table(self.quarantine_order_customer_identifier, QUARANTINE_ORDER_CUSTOMER)
-
     def extract(self):
-        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+        self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM) \
+            .withWatermark('ingest_time', '30 days')
     
-    def transform(self, micro_batch:DataFrame, batch_id: int):
-        """
-        - 토픽을 소비할 때, 배치에 포함이 안돼서 결제 내역과 주문 내역이 매칭이 안될 수 있음
-            - quratine.* 테이블에 저장하고 후처리하여 데이터의 완전성을 최대한 보장할 수 있도록 구현
-        """
+    def transform(self):
 
-        ### start to process qurantine
-        self.quarantine_fact_order_transaction_df = micro_batch.sparkSession.read.table(self.quarantine_fact_order_transaction_identifier)
-        self.quarantine_order_customer_df = micro_batch.sparkSession.read.table(self.quarantine_order_customer_identifier)
+        order_trasaction = self.order_item_stream \
+            .select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time') \
 
-        matched_df = self.quarantine_fact_order_transaction_df.join(self.quarantine_order_customer_df, on='order_id', how='outer')
-        self.quarantine_fact_order_transaction_df = matched_df.filter(F.col('customer_id').isNull()).drop('customer_id')
-        self.quarantine_order_customer_df = matched_df.filter(F.col('product_id').isNull()).select('order_id', 'customer_id')
-        matched_df = matched_df.dropna()
-        ### end
-
-        order_customer = self.get_topic_df(micro_batch, BronzeTopic.PAYMENT) \
-            .select('order_id', 'customer_id') \
-            .dropDuplicates()
-
-        order_trasaction = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
-            .select('order_id', 'order_item_id', 'product_id', 'price') \
-
-        fact_order_trasaction = order_trasaction.groupBy('order_id', 'product_id', 'price') \
+        self.output_df = order_trasaction.groupBy('order_id', 'product_id', 'price') \
             .agg(
-                F.count('order_item_id').alias('product_count')
+                F.count('order_item_id').alias('product_count'),
+                F.max('ingest_time').alias('ingest_time')
             ).withColumnRenamed('price', 'unit_price')
         
 
-        self.output_df = fact_order_trasaction.join(order_customer, on='order_id', how='outer')
-
-        # TODO: check duplicate (재현이 안됨. 중복이 있을 떄가 있고 없을 떄가 있음)
-        self.quarantine_fact_order_transaction_df = self.output_df.filter(F.col('customer_id').isNull()).drop('customer_id').unionByName(self.quarantine_fact_order_transaction_df)
-        self.quarantine_order_customer_df = self.output_df.filter(F.col('product_id').isNull()).select('order_id', 'customer_id').unionByName(self.quarantine_order_customer_df)
-        self.output_df = self.output_df.dropna().unionByName(matched_df)
-
-        self.load()
-        self.get_current_dst_count(micro_batch, batch_id)
-
-    def load(self):
+    def load(self, micro_batch: DataFrame, batch_id: int):
         """
         - 일반적인 경우, payment.ingest_time < order_item.ingest_time
         - 항상 위 조건이 성립하는 것은 아님 (네트워크 지연으로 반대의 경우가 있을 수 있음)
-        - 거래 기록은 정확도가 중요하므로 watermark로 레코드의 하한을 정하면 안됨
-        - (준)실시간으로 데이터를 처리해야하므로, 임시 뷰를 활용하여 데이터를 upsert
+        - 거래 기록은 정확도가 중요하므로 모두 append
+        - 이 후, 재집계
         """
-
-        # TODO: Modify the code to use append-only operations to enable streaming.
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
-
-        tmp_view_name = 'tmp_view_purchase_order'
-        self.quarantine_fact_order_transaction_df.createOrReplaceTempView(tmp_view_name)
-        self.output_df.sparkSession.sql(f"""
-            MERGE INTO {self.quarantine_fact_order_transaction_identifier} t
-            USING {tmp_view_name} s
-            ON t.order_id = s.order_id
+        micro_batch.createOrReplaceTempView('updates')
+        micro_batch.sparkSession.sql(f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING updates s
+            ON t.order_id = s.order_id 
+               AND t.product_id = s.product_id 
+               AND t.unit_price = s.unit_price
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    t.product_count = t.product_count + s.product_count
             WHEN NOT MATCHED THEN
                 INSERT (order_id, product_id, unit_price, product_count)
                 VALUES (s.order_id, s.product_id, s.unit_price, s.product_count)
-            WHEN NOT MATCHED BY SOURCE THEN
-                DELETE
-            """)
-        
-        self.quarantine_order_customer_df.createOrReplaceTempView(tmp_view_name)
-        self.output_df.sparkSession.sql(f"""
-            MERGE INTO {self.quarantine_order_customer_identifier} t
-            USING {tmp_view_name} s
-            ON t.order_id = s.order_id
-            WHEN NOT MATCHED THEN
-                INSERT (order_id, customer_id)
-                VALUES (s.order_id, s.customer_id)
-            WHEN NOT MATCHED BY SOURCE THEN
-                DELETE
-            """)
+        """)
 
-class ReviewMetadata(StreamSilverJob):
+        self.get_current_dst_count(micro_batch, batch_id, False)
+        
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        self.transform()
+
+        return self.output_df.writeStream \
+            .outputMode("complete") \
+            .trigger(processingTime=process_time) \
+            .queryName(self.job_name) \
+            .foreachBatch(self.load) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .start()
+
+class FactOrderReview(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.REVIEW]
         
-        self.schema = REVIEW_METADATA
-        self.dst_table_name = 'review_metadata'
+        self.schema = FACT_ORDER_REVIEW
+        self.dst_table_name = 'fact_order_review'
         self.initialize_dst_table()
 
     def extract(self):
