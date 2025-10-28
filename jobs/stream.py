@@ -15,15 +15,14 @@ if __name__ == "__main__":
 
     initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'silver.qurantine', is_drop=True)
-    initialize_namespace(spark_session, 'gold', is_drop=True)
 
-    job_list:List[StreamSilverJob] = []
+    stream_silver_job_list:List[StreamSilverJob] = []
 
-    for job_class in [OrderStatusTimeline, ProductMetadata, OrderDetail, ReviewMetadata, GeoCoordinate, Account]:
-        job_list += [job_class(spark_session)]
+    for job_class in [OrderStatusTimeline, ProductMetadata, PurchaseOrder, UserLocation, ReviewMetadata]:
+        stream_silver_job_list += [job_class(spark_session)]
     
-    for job_instance in job_list:
-        QUERY_LIST += [job_instance.get_query()]
+    for job_instance in stream_silver_job_list:
+        QUERY_LIST += [job_instance.get_query(process_time='10 seconds')]
 
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()

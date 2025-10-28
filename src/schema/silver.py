@@ -9,11 +9,6 @@ from pyspark.sql.types import (
     LongType
 )
 
-WATERMARK_SCHEMA = StructType([
-    StructField("job_name", StringType(), False),
-    StructField("last_processed_snapshot_id", LongType(), False)
-])
-
 USER_LOCATION = StructType([
     StructField("user_type", StringType(), True),
     StructField("user_id", StringType(), True),

@@ -1,21 +1,15 @@
-from pprint import pprint
-from pyspark.sql import functions as F
-from pyspark.sql.functions import col, expr, lit
-
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.streaming.state import GroupStateTimeout
-import pandas as pd
-
-from pyspark.sql.types import StructType
 from typing import Optional
 
+from pyspark.sql import functions as F
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.types import StructType
+
 from ..base import BaseJob
-from service.utils.iceberg import write_iceberg
 from schema.silver import *
 from service.producer.bronze import BronzeTopic
+from service.utils.iceberg import write_iceberg
 from service.utils.spark import get_spark_session, get_kafka_stream_df
 
-geo_state_dict = {}
 class StreamSilverJob(BaseJob):
     src_namespace: str = 'bronze'
     dst_namesapce: str = "silver"
@@ -27,8 +21,21 @@ class StreamSilverJob(BaseJob):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
+class UserLocation(StreamSilverJob):
+    """
+    # Full Outer Join 기반 실시간 사용자 위치 보강 (Iceberg 저장)
+    
+    ## 핵심 로직
+    # `users_stream` (customer + seller) + `geo_stream` → `fullouter`
+        - 조건: `zip_code` 동일 + `ingest_time ±10분`
 
-class UserLocationFullOuter(StreamSilverJob):
+    ## 상태 스토어 (RocksDB) 동작
+        1. 배치 시작 → 기존 unmatched 로드
+        2. 새 데이터와 fullouter join
+        3. Matched → 출력 + 상태 제거
+        4. Unmatched → 상태 저장
+        5. 워터마크 초과 → 자동 삭제
+    """
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
         self.job_name = self.__class__.__name__
@@ -44,7 +51,7 @@ class UserLocationFullOuter(StreamSilverJob):
             BronzeTopic.CUSTOMER
         ) \
         .withColumnRenamed('customer_id', 'user_id') \
-        .withColumn('user_type', lit('customer')) \
+        .withColumn('user_type', F.lit('customer')) \
 
         # seller
         seller_stream = self.get_topic_df(
@@ -52,7 +59,7 @@ class UserLocationFullOuter(StreamSilverJob):
             BronzeTopic.SELLER
         ) \
         .withColumnRenamed('seller_id', 'user_id') \
-        .withColumn('user_type', lit('seller')) \
+        .withColumn('user_type', F.lit('seller')) \
 
         # geolocation
         self.geo_stream = self.get_topic_df(
@@ -60,7 +67,7 @@ class UserLocationFullOuter(StreamSilverJob):
             BronzeTopic.GEOLOCATION
         ) \
         .select('zip_code', 'lng', 'lat', 'ingest_time') \
-        .withColumn('zip_code', col('zip_code').cast(IntegerType())) \
+        .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
         .withWatermark('ingest_time', '30 days') \
         .dropDuplicates(['zip_code'])
 
@@ -68,32 +75,31 @@ class UserLocationFullOuter(StreamSilverJob):
             .withWatermark('ingest_time', '30 days')
 
     def transform(self):
-        # stream-stream full outer join (모호성 해결)
         joined_stream = self.users_stream.alias('users').join(
             self.geo_stream.alias('geo'),
-            expr("""
+            F.expr("""
                 users.zip_code = geo.zip_code AND
                 users.ingest_time >= geo.ingest_time - interval 30 days AND
                 users.ingest_time <= geo.ingest_time + interval 30 days
             """),
             how="fullouter"
         ).select(
-            col("users.user_type").alias("user_type"),
-            col("users.user_id").alias("user_id"),
-            col("users.zip_code").alias("zip_code"),  # users_stream 기준 선택
-            col("geo.lng").alias("lng"),
-            col("geo.lat").alias("lat")
+            F.col("users.user_type").alias("user_type"),
+            F.col("users.user_id").alias("user_id"),
+            F.col("users.zip_code").alias("zip_code"),  # users_stream 기준 선택
+            F.col("geo.lng").alias("lng"),
+            F.col("geo.lat").alias("lat")
         ).dropDuplicates()
 
         self.output_df = joined_stream
 
 
     def load(self, micro_batch: DataFrame, batch_id: int):
+        
         if micro_batch.isEmpty():
             return
-        print("현재 파티션 수:", micro_batch.rdd.getNumPartitions())
-        micro_batch.orderBy('zip_code', 'user_id').show(n=100, truncate=False)
-
+        
+        # TODO: watermark 기간에서 제외된 누락된 데이터는 배치로 처리
         micro_batch.createOrReplaceTempView("updates")
         micro_batch.sparkSession.sql(f"""
             MERGE INTO {self.dst_table_identifier} AS target
@@ -102,19 +108,18 @@ class UserLocationFullOuter(StreamSilverJob):
             WHEN MATCHED and target.lng is null THEN UPDATE SET *
             WHEN NOT MATCHED THEN INSERT *
         """)
-
-        self.get_current_dst_count(micro_batch, batch_id, True)
         
     def get_query(self, process_time='5 seconds'):
         self.extract()
         self.transform()
-            # .outputMode("append") \
+
         return self.output_df.writeStream \
             .trigger(processingTime=process_time) \
             .queryName(self.job_name) \
             .foreachBatch(self.load) \
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
             .start()
+
 class OrderStatusTimeline(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -163,7 +168,7 @@ class OrderStatusTimeline(StreamSilverJob):
         max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
         self.output_df = self.output_df.withColumn('process_timestamp', F.lit(max_value))
         self.load()
-        self.get_current_dst_count(batch_id)
+        self.get_current_dst_count(micro_batch, batch_id)
 
     def load(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
@@ -216,7 +221,7 @@ class ProductMetadata(StreamSilverJob):
         self.output_df = product_category.join(product_seller, on='product_id', how='outer')
         
         self.load()
-        self.get_current_dst_count(batch_id)
+        self.get_current_dst_count(micro_batch, batch_id)
 
     def load(self):
         # TODO: optimize. processing time: 14 ~ 20 senconds (publish interval: 0)
@@ -260,7 +265,6 @@ class ProductMetadata(StreamSilverJob):
         #         VALUES (s.product_id, s.category, s.seller_id)
         # """)
 
-
 class PurchaseOrder(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -284,7 +288,7 @@ class PurchaseOrder(StreamSilverJob):
     def transform(self, micro_batch:DataFrame, batch_id: int):
         """
         - 토픽을 소비할 때, 배치에 포함이 안돼서 결제 내역과 주문 내역이 매칭이 안될 수 있음
-        - quratine.* 테이블에 저장하고 후처리하여 데이터의 완전성을 최대한 보장할 수 있도록 구현
+            - quratine.* 테이블에 저장하고 후처리하여 데이터의 완전성을 최대한 보장할 수 있도록 구현
         """
 
         ### start to process qurantine
@@ -318,7 +322,7 @@ class PurchaseOrder(StreamSilverJob):
         self.output_df = self.output_df.dropna().unionByName(matched_df)
 
         self.load()
-        self.get_current_dst_count(batch_id)
+        self.get_current_dst_count(micro_batch, batch_id)
 
     def load(self):
         """
@@ -355,7 +359,7 @@ class PurchaseOrder(StreamSilverJob):
             WHEN NOT MATCHED BY SOURCE THEN
                 DELETE
             """)
-        
+
 class ReviewMetadata(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -375,7 +379,7 @@ class ReviewMetadata(StreamSilverJob):
             .drop('review_comment_title', 'review_comment_message', 'ingest_time')
 
         self.load()
-        self.get_current_dst_count(batch_id)
+        self.get_current_dst_count(micro_batch, batch_id)
 
     def load(self):
         write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
