@@ -170,7 +170,7 @@ def run_stream_queries(spark_session:SparkSession, query_list:List[StreamingQuer
     except AnalysisException as e:
         write_log(logger, f"AnalysisException occurred: {str(e)}")
         for q in query_list[:]:
-            if not q.isActive():
+            if not q.isActive:
                 write_log(logger, f"Query for {q.name} failed. Last progress: {q.lastProgress}")
                 query_list.remove(q)
         write_log(logger, f"Stack trace: {traceback.format_exc()}")
