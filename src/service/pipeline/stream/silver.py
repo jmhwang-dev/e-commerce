@@ -75,7 +75,7 @@ class UserLocation(StreamSilverJob):
             .withWatermark('ingest_time', '30 days')
 
     def transform(self):
-        joined_stream = self.users_stream.alias('users').join(
+        self.output_df = self.users_stream.alias('users').join(
             self.geo_stream.alias('geo'),
             F.expr("""
                 users.zip_code = geo.zip_code AND
@@ -91,9 +91,6 @@ class UserLocation(StreamSilverJob):
             F.col("geo.lat").alias("lat")
         ).dropDuplicates()
 
-        self.output_df = joined_stream
-
-
     def load(self, micro_batch: DataFrame, batch_id: int):
         
         if micro_batch.isEmpty():
@@ -108,6 +105,8 @@ class UserLocation(StreamSilverJob):
             WHEN MATCHED and target.lng is null THEN UPDATE SET *
             WHEN NOT MATCHED THEN INSERT *
         """)
+
+        self.get_current_dst_count(micro_batch, batch_id)
         
     def get_query(self, process_time='5 seconds'):
         self.extract()
@@ -204,66 +203,65 @@ class ProductMetadata(StreamSilverJob):
         self.initialize_dst_table()
 
     def extract(self):
-        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+        self.product_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.PRODUCT), BronzeTopic.PRODUCT)
+        self.order_item_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM)
 
-    def transform(self, micro_batch:DataFrame, batch_id: int):
+    def transform(self, ):
 
-        # Null category is dropped.
-        product_category = self.get_topic_df(micro_batch, BronzeTopic.PRODUCT) \
-            .select('product_id', 'category') \
+        product_category = self.product_df \
+            .select('product_id', 'category', 'ingest_time') \
             .dropna() \
-            .dropDuplicates()
+            .dropDuplicates() \
+            .withWatermark('ingest_time', '30 days')
             
-        product_seller = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
-            .select('product_id', 'seller_id') \
-            .dropDuplicates()
+        product_seller = self.order_item_df \
+            .select('product_id', 'seller_id', 'ingest_time') \
+            .dropDuplicates() \
+            .withWatermark('ingest_time', '30 days')
         
-        self.output_df = product_category.join(product_seller, on='product_id', how='outer')
+        self.output_df = product_category.alias('p_cat').join(
+            product_seller.alias('p_sel'),
+            on=F.expr("""
+                p_cat.product_id = p_sel.product_id and
+                p_cat.ingest_time >= p_sel.ingest_time - interval 30 days AND
+                p_cat.ingest_time <= p_sel.ingest_time + interval 30 days
+            """),
+            how='fullouter'
+            ).select(
+                F.col('p_cat.category').alias('category'),
+                F.col('p_cat.product_id').alias('product_id'),
+                F.col('p_sel.seller_id').alias('seller_id'),
+            ).dropDuplicates()
         
-        self.load()
-        self.get_current_dst_count(micro_batch, batch_id)
 
-    def load(self):
-        # TODO: optimize. processing time: 14 ~ 20 senconds (publish interval: 0)
-        # TODO: Modify the code to use append-only operations to enable streaming.
-        self.output_df.createOrReplaceTempView(self.dst_table_name)
-
-        # 1. product_id 기반으로 category 업데이트 (이전 행의 NULL category 채우기)
-        self.output_df.sparkSession.sql(f"""
+    def load(self, micro_batch: DataFrame, batch_id: int):
+        if micro_batch.isEmpty():
+            return
+        
+        micro_batch.createOrReplaceTempView("updates")
+        micro_batch.sparkSession.sql(f"""
             MERGE INTO {self.dst_table_identifier} t
-            USING (
-                SELECT product_id, category
-                FROM {self.dst_table_name}
-                WHERE category IS NOT NULL
-            ) s
-            ON t.product_id = s.product_id
-            WHEN MATCHED AND t.category IS NULL THEN
-                UPDATE SET t.category = s.category
-        """)
-
-        # 2. product_id와 seller_id 기반으로 새 행 삽입 (seller_id NULL 제외)
-        self.output_df.sparkSession.sql(f"""
-            MERGE INTO {self.dst_table_identifier} t
-            USING {self.dst_table_name} s
+            USING updates s
             ON t.product_id = s.product_id AND t.seller_id = s.seller_id
+            WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
+                UPDATE SET t.category = s.category
             WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
                 INSERT (product_id, category, seller_id)
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
 
-        ## Sol 2.
-        # self.output_df.createOrReplaceTempView(self.dst_table_name)
-        # # 하나의 MERGE INTO로 결합 (성능 향상)
-        # self.output_df.sparkSession.sql(f"""
-        #     MERGE INTO {self.dst_table_identifier} t
-        #     USING {self.dst_table_name} s
-        #     ON t.product_id = s.product_id AND t.seller_id = s.seller_id
-        #     WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
-        #         UPDATE SET t.category = s.category
-        #     WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
-        #         INSERT (product_id, category, seller_id)
-        #         VALUES (s.product_id, s.category, s.seller_id)
-        # """)
+        self.get_current_dst_count(micro_batch, batch_id, False)
+
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        self.transform()
+
+        return self.output_df.writeStream \
+            .trigger(processingTime=process_time) \
+            .queryName(self.job_name) \
+            .foreachBatch(self.load) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .start()
 
 class PurchaseOrder(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
