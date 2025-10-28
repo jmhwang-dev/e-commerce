@@ -119,15 +119,15 @@ class DimUserLocation(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class FactOrderStatus(StreamSilverJob):
+class FactOrderTimeline(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.ESTIMATED_DELIVERY_DATE, BronzeTopic.ORDER_ITEM, BronzeTopic.ORDER_STATUS]
         
-        self.schema = FACT_ORDER_STATUS
-        self.dst_table_name = 'fact_order_status'
+        self.schema = FACT_ORDER_TIMELINE
+        self.dst_table_name = 'fact_order_timeline'
         self.initialize_dst_table()
 
     def extract(self):
@@ -149,9 +149,9 @@ class FactOrderStatus(StreamSilverJob):
 
         order_status_df = order_status_src_df.drop('ingest_time')
 
-        fact_order_status_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
+        fact_order_timeline_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
 
-        self.output_df = fact_order_status_df \
+        self.output_df = fact_order_timeline_df \
             .groupBy('order_id') \
             .agg(
                 F.max(F.when(F.col('status') == 'purchase', F.col('timestamp'))).alias('purchase'),

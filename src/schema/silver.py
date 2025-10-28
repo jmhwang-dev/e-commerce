@@ -17,7 +17,7 @@ DIM_USER_LOCATION = StructType([
     StructField("lng", FloatType(), True),
 ])
 
-FACT_ORDER_STATUS = StructType([
+FACT_ORDER_TIMELINE = StructType([
     StructField("order_id", StringType(), False),
     StructField("purchase", TimestampType(), True),
     StructField("approve", TimestampType(), True),

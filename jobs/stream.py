@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     stream_silver_job_list:List[StreamSilverJob] = []
 
-    for job_class in [DimUserLocation, DimProduct, FactOrderReview, FactOrderItem, FactOrderStatus]:
+    for job_class in [DimUserLocation, DimProduct, FactOrderReview, FactOrderItem, FactOrderTimeline]:
         stream_silver_job_list += [job_class(spark_session)]
     
     for job_instance in stream_silver_job_list:
