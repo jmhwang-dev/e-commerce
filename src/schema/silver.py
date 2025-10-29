@@ -36,9 +36,10 @@ DIM_PRODUCT = StructType([
 
 FACT_ORDER_ITEM = StructType([
     StructField("order_id", StringType(), False),
+    StructField("customer_id", StringType(), False),
     StructField("product_id", StringType(), True),
+    StructField("quantity", IntegerType(), True),
     StructField("unit_price", FloatType(), True),
-    StructField("product_count", IntegerType(), True),
 ])
 
 FACT_ORDER_REVIEW = StructType([

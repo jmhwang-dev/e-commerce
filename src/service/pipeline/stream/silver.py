@@ -86,10 +86,11 @@ class DimUserLocation(StreamSilverJob):
         ).select(
             F.col("users.user_type").alias("user_type"),
             F.col("users.user_id").alias("user_id"),
-            F.col("users.zip_code").alias("zip_code"),  # users_stream 기준 선택
+            F.col("users.zip_code").alias("zip_code"),
             F.col("geo.lng").alias("lng"),
             F.col("geo.lat").alias("lat")
-        ).dropDuplicates()
+        ).dropDuplicates() \
+        .dropna()
 
     def load(self, micro_batch: DataFrame, batch_id: int):
         
@@ -231,8 +232,8 @@ class DimProduct(StreamSilverJob):
                 F.col('p_cat.category').alias('category'),
                 F.col('p_cat.product_id').alias('product_id'),
                 F.col('p_sel.seller_id').alias('seller_id'),
-            ).dropDuplicates()
-        
+            ).dropDuplicates() \
+            .dropna()
 
     def load(self, micro_batch: DataFrame, batch_id: int):
         if micro_batch.isEmpty():
@@ -275,49 +276,76 @@ class FactOrderItem(StreamSilverJob):
     def extract(self):
         self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM) \
             .withWatermark('ingest_time', '30 days')
-    
-    def transform(self):
-
-        order_trasaction = self.order_item_stream \
-            .select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time') \
-
-        self.output_df = order_trasaction.groupBy('order_id', 'product_id', 'price') \
-            .agg(
-                F.count('order_item_id').alias('product_count'),
-                F.max('ingest_time').alias('ingest_time')
-            ).withColumnRenamed('price', 'unit_price')
         
+        self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.PAYMENT), BronzeTopic.PAYMENT) \
+            .withWatermark('ingest_time', '30 days')
+
+    def transform(self):
+        # Stream-Stream Join (Append 모드 지원)
+        order_item = self.order_item_stream.select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time')
+        order_customer = self.payment_stream.select('order_id', 'customer_id', 'ingest_time')
+
+        joined_stream = order_item.alias("oi") \
+            .join(
+                order_customer.alias("oc"),
+                F.expr("""
+                    oi.order_id = oc.order_id AND
+                    oc.ingest_time >= oi.ingest_time - interval 30 days AND
+                    oc.ingest_time <= oi.ingest_time + interval 30 days
+                """),
+                how="fullouter"
+            ).select(
+                "oi.order_id",
+                "oi.order_item_id",
+                "oi.product_id",
+                "oi.price",
+                F.greatest("oi.ingest_time", "oc.ingest_time").alias("ingest_time"),
+                "oc.customer_id"
+            ).dropDuplicates() \
+            .dropna()
+
+        # Append 모드에서는 groupBy 직접 불가 → foreachBatch에서 처리
+        self.output_df = joined_stream
 
     def load(self, micro_batch: DataFrame, batch_id: int):
         """
         - 일반적인 경우, payment.ingest_time < order_item.ingest_time
         - 항상 위 조건이 성립하는 것은 아님 (네트워크 지연으로 반대의 경우가 있을 수 있음)
-        - 거래 기록은 정확도가 중요하므로 모두 append
-        - 이 후, 재집계
+        - 거래 기록은 정확도가 중요하므로 outer join 후 append
+        - 이 후, 재집계 (실제 order_id는 존재하나, payment에 기록이 없는 경우가 있음)
         """
-        micro_batch.createOrReplaceTempView('updates')
-        micro_batch.sparkSession.sql(f"""
+        aggregated = micro_batch.groupBy("order_id", "product_id", "price", "customer_id") \
+            .agg(
+                F.count("order_item_id").alias("quantity"),
+                F.max("ingest_time").alias("ingest_time")
+            ).withColumnRenamed("price", "unit_price")
+
+        aggregated.createOrReplaceTempView('updates')
+
+        aggregated.sparkSession.sql(f"""
             MERGE INTO {self.dst_table_identifier} t
             USING updates s
             ON t.order_id = s.order_id 
                AND t.product_id = s.product_id 
                AND t.unit_price = s.unit_price
+               AND t.customer_id = s.customer_id
+
             WHEN MATCHED THEN
                 UPDATE SET 
-                    t.product_count = t.product_count + s.product_count
+                    t.quantity = t.quantity + s.quantity
             WHEN NOT MATCHED THEN
-                INSERT (order_id, product_id, unit_price, product_count)
-                VALUES (s.order_id, s.product_id, s.unit_price, s.product_count)
+                INSERT (order_id, product_id, unit_price, quantity, customer_id)
+                VALUES (s.order_id, s.product_id, s.unit_price, s.quantity, s.customer_id)
         """)
 
-        self.get_current_dst_count(micro_batch, batch_id, False)
+        self.get_current_dst_count(micro_batch, batch_id, True)
         
     def get_query(self, process_time='5 seconds'):
         self.extract()
         self.transform()
 
         return self.output_df.writeStream \
-            .outputMode("complete") \
+            .outputMode("append") \
             .trigger(processingTime=process_time) \
             .queryName(self.job_name) \
             .foreachBatch(self.load) \
