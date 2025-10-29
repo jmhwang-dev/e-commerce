@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType
 from service.utils.iceberg import *
 from pyspark.sql import functions as F
 
@@ -17,7 +18,7 @@ class BaseJob(ABC):
     spark_session: Optional[SparkSession] = None
     job_name: str = ''
 
-    dst_namesapce: str = ''
+    dst_namespace: str = ''
     dst_table_name: str = ''
     dst_table_identifier: str = ''
     watermark_namespace: str = ''
@@ -26,6 +27,7 @@ class BaseJob(ABC):
     src_df: Optional[DataFrame] = None
     dst_df: Optional[DataFrame] = None
     output_df: Optional[DataFrame] = None
+    schema: Optional[StructType] = None
 
     @abstractmethod
     def extract(self,):
@@ -40,7 +42,7 @@ class BaseJob(ABC):
         pass
         
     def initialize_dst_table(self, ):
-        self.dst_table_identifier: str = f"{self.dst_namesapce}.{self.dst_table_name}"
+        self.dst_table_identifier: str = f"{self.dst_namespace}.{self.dst_table_name}"
         self.dst_df = self.spark_session.createDataFrame([], schema=self.schema)
         write_iceberg(self.spark_session, self.dst_df, self.dst_table_identifier, mode='a')
     
@@ -48,7 +50,7 @@ class BaseJob(ABC):
         qurantine_df = self.spark_session.createDataFrame([], schema=qurantine_schema)
         write_iceberg(self.spark_session, qurantine_df, qurantine_table_identifier, mode='a')
 
-    def get_current_dst_count(self, micro_batch:DataFrame, batch_id, debug=False):
+    def get_current_dst_count(self, micro_batch:DataFrame, batch_id, debug=False, line_number=200):
         self.dst_df = micro_batch.sparkSession.read.table(f"{self.dst_table_identifier}")
         print(f"batch_id: {batch_id}, Current # of {self.dst_table_identifier }: ", self.dst_df.count())
 
@@ -56,15 +58,15 @@ class BaseJob(ABC):
             conditions = [F.col(c).isNull() for c in self.dst_df.columns]
             final_condition = reduce(lambda x, y: x | y, conditions)
             null_rows = self.dst_df.filter(final_condition)
-            null_rows.show(n=30, truncate=False)
-            self.dst_df.show(n=200, truncate=False)
+            null_rows.show(n=100, truncate=False)
+            self.dst_df.show(n=line_number, truncate=False)
 
     def get_query(self, process_time='5 seconds'):
         self.extract()
         return self.src_df.writeStream \
             .foreachBatch(self.transform) \
             .queryName(self.job_name) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .trigger(processingTime=process_time) \
             .start()
     

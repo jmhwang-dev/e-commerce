@@ -12,7 +12,7 @@ from service.utils.spark import get_spark_session, get_kafka_stream_df
 
 class StreamSilverJob(BaseJob):
     src_namespace: str = 'bronze'
-    dst_namesapce: str = "silver"
+    dst_namespace: str = "silver"
 
     output_df: Optional[DataFrame] = None
     schema: Optional[StructType] = None
@@ -117,7 +117,7 @@ class DimUserLocation(StreamSilverJob):
             .trigger(processingTime=process_time) \
             .queryName(self.job_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
 class FactOrderTimeline(StreamSilverJob):
@@ -164,11 +164,11 @@ class FactOrderTimeline(StreamSilverJob):
             )
         
         # add process_timestamp
-        tmp_df = order_status_src_df.select('ingest_time')
-        max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
-        self.output_df = self.output_df.withColumn('process_timestamp', F.lit(max_value))
+        # tmp_df = order_status_src_df.select('ingest_time')
+        # max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
+        # self.output_df = self.output_df.withColumn('process_timestamp', F.lit(max_value))
         self.load()
-        self.get_current_dst_count(micro_batch, batch_id)
+        self.get_current_dst_count(micro_batch, batch_id, True)
 
     def load(self,):
         self.output_df.createOrReplaceTempView(self.dst_table_name)
@@ -185,11 +185,10 @@ class FactOrderTimeline(StreamSilverJob):
                     t.delivered_carrier = COALESCE(s.delivered_carrier, t.delivered_carrier),
                     t.delivered_customer = COALESCE(s.delivered_customer, t.delivered_customer),
                     t.shipping_limit = COALESCE(s.shipping_limit, t.shipping_limit),
-                    t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery),
-                    t.process_timestamp = s.process_timestamp
+                    t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery)
             WHEN NOT MATCHED THEN
-                INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery, process_timestamp)
-                VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery, s.process_timestamp)
+                INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
+                VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
             """)
         
 class DimProduct(StreamSilverJob):
@@ -261,9 +260,9 @@ class DimProduct(StreamSilverJob):
             .trigger(processingTime=process_time) \
             .queryName(self.job_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
-
+    
 class FactOrderItem(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -295,12 +294,11 @@ class FactOrderItem(StreamSilverJob):
                 """),
                 how="fullouter"
             ).select(
+                "oc.customer_id",
                 "oi.order_id",
                 "oi.order_item_id",
                 "oi.product_id",
-                "oi.price",
-                F.greatest("oi.ingest_time", "oc.ingest_time").alias("ingest_time"),
-                "oc.customer_id"
+                "oi.price"
             ).dropDuplicates() \
             .dropna()
 
@@ -314,30 +312,8 @@ class FactOrderItem(StreamSilverJob):
         - 거래 기록은 정확도가 중요하므로 outer join 후 append
         - 이 후, 재집계 (실제 order_id는 존재하나, payment에 기록이 없는 경우가 있음)
         """
-        aggregated = micro_batch.groupBy("order_id", "product_id", "price", "customer_id") \
-            .agg(
-                F.count("order_item_id").alias("quantity"),
-                F.max("ingest_time").alias("ingest_time")
-            ).withColumnRenamed("price", "unit_price")
 
-        aggregated.createOrReplaceTempView('updates')
-
-        aggregated.sparkSession.sql(f"""
-            MERGE INTO {self.dst_table_identifier} t
-            USING updates s
-            ON t.order_id = s.order_id 
-               AND t.product_id = s.product_id 
-               AND t.unit_price = s.unit_price
-               AND t.customer_id = s.customer_id
-
-            WHEN MATCHED THEN
-                UPDATE SET 
-                    t.quantity = t.quantity + s.quantity
-            WHEN NOT MATCHED THEN
-                INSERT (order_id, product_id, unit_price, quantity, customer_id)
-                VALUES (s.order_id, s.product_id, s.unit_price, s.quantity, s.customer_id)
-        """)
-
+        write_iceberg(micro_batch.sparkSession, micro_batch, self.dst_table_identifier, mode='a')
         self.get_current_dst_count(micro_batch, batch_id, True)
         
     def get_query(self, process_time='5 seconds'):
@@ -349,7 +325,7 @@ class FactOrderItem(StreamSilverJob):
             .trigger(processingTime=process_time) \
             .queryName(self.job_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namesapce}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
 class FactOrderReview(StreamSilverJob):

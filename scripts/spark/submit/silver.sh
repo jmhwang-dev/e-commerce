@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# rm -rf data/minio/warehousedev/gold/order_lead_days/checkpoint
 CHECKPOINT_BASE="data/minio/warehousedev/silver"
 CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
 
@@ -20,7 +21,7 @@ if [ -f "$SRC_ZIP" ]; then
   rm -f "$SRC_ZIP"
 fi
 
-PYTHON_SCRIPT="${1:-jobs/stream.py}"
+PYTHON_SCRIPT="${1:-jobs/stream/silver.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성

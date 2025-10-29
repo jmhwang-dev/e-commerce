@@ -25,7 +25,6 @@ FACT_ORDER_TIMELINE = StructType([
     StructField("delivered_customer", TimestampType(), True),
     StructField("shipping_limit", TimestampType(), True),
     StructField("estimated_delivery", TimestampType(), True),
-    StructField("process_timestamp", TimestampType(), False),
 ])
 
 DIM_PRODUCT = StructType([
@@ -35,11 +34,11 @@ DIM_PRODUCT = StructType([
 ])
 
 FACT_ORDER_ITEM = StructType([
-    StructField("order_id", StringType(), False),
     StructField("customer_id", StringType(), False),
+    StructField("order_id", StringType(), False),
+    StructField("order_item_id", StringType(), False),
     StructField("product_id", StringType(), True),
-    StructField("quantity", IntegerType(), True),
-    StructField("unit_price", FloatType(), True),
+    StructField("price", FloatType(), True),
 ])
 
 FACT_ORDER_REVIEW = StructType([
