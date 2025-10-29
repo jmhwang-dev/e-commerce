@@ -33,7 +33,7 @@ services:
       - SPARK_NO_DAEMONIZE=true  # run foreground
       - PYTHONPATH=/mnt/src
 
-    mem_limit: 1g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
+    mem_limit: 3g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
     cpus: 1.0  # 드라이버 코어 제한
  
     command: tail -f /dev/null
@@ -48,7 +48,7 @@ services:
       - "19085:9082"
 
     environment:
-      SPARK_WORKER_MEMORY: 14g  # upper limit of memory to use
+      SPARK_WORKER_MEMORY: 16g  # upper limit of memory to use
       SPARK_WORKER_CORES: 14    # upper limit of cores to use
     volumes:
       - ./configs/spark:/opt/spark/conf
