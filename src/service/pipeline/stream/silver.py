@@ -2,10 +2,10 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import StructType
+from pyspark.sql.types import StructType, IntegerType
 
 from ..base import BaseJob
-from schema.silver import *
+from schema import silver
 from service.producer.bronze import BronzeTopic
 from service.utils.iceberg import write_iceberg
 from service.utils.spark import get_spark_session, get_kafka_stream_df
@@ -40,7 +40,7 @@ class DimUserLocation(StreamSilverJob):
         super().__init__(spark_session)
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.CUSTOMER, BronzeTopic.SELLER, BronzeTopic.GEOLOCATION]
-        self.schema = DIM_USER_LOCATION
+        self.schema = silver.DIM_USER_LOCATION
         self.dst_table_name = 'dim_user_location'
         self.initialize_dst_table()  # Iceberg 테이블 초기화
 
@@ -120,77 +120,46 @@ class DimUserLocation(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class FactOrderTimeline(StreamSilverJob):
+class FactOrderStatus(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.ESTIMATED_DELIVERY_DATE, BronzeTopic.ORDER_ITEM, BronzeTopic.ORDER_STATUS]
         
-        self.schema = FACT_ORDER_TIMELINE
-        self.dst_table_name = 'fact_order_timeline'
+        self.schema = silver.FACT_ORDER_STATUS
+        self.dst_table_name = 'fact_order_status'
         self.initialize_dst_table()
 
     def extract(self):
         self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
 
     def transform(self, micro_batch:DataFrame, batch_id: int):
+        
+        # TODO: chage timezone to UTC. (현재는 KST로 들어감)
         estimated_df = self.get_topic_df(micro_batch, BronzeTopic.ESTIMATED_DELIVERY_DATE) \
             .withColumnRenamed('estimated_delivery_date', 'timestamp') \
-            .withColumn('status', F.lit('estimated_delivery')) \
-            .drop('ingest_time')
+            .withColumn('data_type', F.lit('estimated_delivery')) \
         
         shippimt_limit_df = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
-            .select('order_id', 'shipping_limit_date') \
+            .select('order_id', 'shipping_limit_date', 'ingest_time') \
             .withColumnRenamed('shipping_limit_date', 'timestamp') \
-            .withColumn('status', F.lit('shipping_limit')) \
-            .dropDuplicates()
+            .withColumn('data_type', F.lit('shipping_limit')) \
         
-        order_status_src_df = self.get_topic_df(micro_batch, BronzeTopic.ORDER_STATUS)
+        order_status_df = self.get_topic_df(micro_batch, BronzeTopic.ORDER_STATUS)
+        order_status_df = order_status_df.withColumnRenamed('status', 'data_type')
 
-        order_status_df = order_status_src_df.drop('ingest_time')
-
-        fact_order_timeline_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
-
-        self.output_df = fact_order_timeline_df \
-            .groupBy('order_id') \
-            .agg(
-                F.max(F.when(F.col('status') == 'purchase', F.col('timestamp'))).alias('purchase'),
-                F.max(F.when(F.col('status') == 'approved', F.col('timestamp'))).alias('approve'),
-                F.max(F.when(F.col('status') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier'),
-                F.max(F.when(F.col('status') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer'),
-                F.max(F.when(F.col('status') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
-                F.max(F.when(F.col('status') == 'estimated_delivery', F.col('timestamp'))).alias('estimated_delivery'),
-            )
-        
         # add process_timestamp
-        # tmp_df = order_status_src_df.select('ingest_time')
-        # max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
-        # self.output_df = self.output_df.withColumn('process_timestamp', F.lit(max_value))
+        tmp_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
+        max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
+        self.output_df = tmp_df.drop('ingest_time').withColumn('process_timestamp', F.lit(max_value)).dropDuplicates()
+
         self.load()
         self.get_current_dst_count(micro_batch, batch_id, True)
 
     def load(self,):
-        self.output_df.createOrReplaceTempView(self.dst_table_name)
-        
-        self.output_df.sparkSession.sql(
-            f"""
-            MERGE INTO {self.dst_table_identifier} t
-            USING {self.dst_table_name} s
-            ON t.order_id = s.order_id
-            WHEN MATCHED THEN
-                UPDATE SET
-                    t.purchase = COALESCE(s.purchase, t.purchase),
-                    t.approve = COALESCE(s.approve, t.approve),
-                    t.delivered_carrier = COALESCE(s.delivered_carrier, t.delivered_carrier),
-                    t.delivered_customer = COALESCE(s.delivered_customer, t.delivered_customer),
-                    t.shipping_limit = COALESCE(s.shipping_limit, t.shipping_limit),
-                    t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery)
-            WHEN NOT MATCHED THEN
-                INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
-                VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
-            """)
-        
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
+
 class DimProduct(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(spark_session)
@@ -198,7 +167,7 @@ class DimProduct(StreamSilverJob):
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.PRODUCT, BronzeTopic.ORDER_ITEM]
         
-        self.schema = DIM_PRODUCT
+        self.schema = silver.DIM_PRODUCT
         self.dst_table_name = 'dim_product'
         self.initialize_dst_table()
 
@@ -268,7 +237,7 @@ class FactOrderItem(StreamSilverJob):
         super().__init__(spark_session)
 
         self.job_name = self.__class__.__name__
-        self.schema = FACT_ORDER_ITEM
+        self.schema = silver.FACT_ORDER_ITEM
         self.dst_table_name = 'fact_order_item'
         self.initialize_dst_table()
 
@@ -298,7 +267,8 @@ class FactOrderItem(StreamSilverJob):
                 "oi.order_id",
                 "oi.order_item_id",
                 "oi.product_id",
-                "oi.price"
+                "oi.price",
+                F.least("oi.ingest_time", "oc.ingest_time").alias('process_timestamp')
             ).dropDuplicates() \
             .dropna()
 
@@ -314,7 +284,7 @@ class FactOrderItem(StreamSilverJob):
         """
 
         write_iceberg(micro_batch.sparkSession, micro_batch, self.dst_table_identifier, mode='a')
-        self.get_current_dst_count(micro_batch, batch_id, True)
+        self.get_current_dst_count(micro_batch, batch_id, False)
         
     def get_query(self, process_time='5 seconds'):
         self.extract()
@@ -335,7 +305,7 @@ class FactOrderReview(StreamSilverJob):
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.REVIEW]
         
-        self.schema = FACT_ORDER_REVIEW
+        self.schema = silver.FACT_ORDER_REVIEW
         self.dst_table_name = 'fact_order_review'
         self.initialize_dst_table()
 

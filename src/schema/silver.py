@@ -17,16 +17,6 @@ DIM_USER_LOCATION = StructType([
     StructField("lng", FloatType(), True),
 ])
 
-FACT_ORDER_TIMELINE = StructType([
-    StructField("order_id", StringType(), False),
-    StructField("purchase", TimestampType(), True),
-    StructField("approve", TimestampType(), True),
-    StructField("delivered_carrier", TimestampType(), True),
-    StructField("delivered_customer", TimestampType(), True),
-    StructField("shipping_limit", TimestampType(), True),
-    StructField("estimated_delivery", TimestampType(), True),
-])
-
 DIM_PRODUCT = StructType([
     StructField("category", StringType(), True),
     StructField("product_id", StringType(), False),
@@ -39,6 +29,7 @@ FACT_ORDER_ITEM = StructType([
     StructField("order_item_id", StringType(), False),
     StructField("product_id", StringType(), True),
     StructField("price", FloatType(), True),
+    StructField("process_timestamp", TimestampType(), True),
 ])
 
 FACT_ORDER_REVIEW = StructType([
@@ -47,6 +38,13 @@ FACT_ORDER_REVIEW = StructType([
     StructField("review_creation_date", TimestampType(), False),
     StructField("review_answer_timestamp", TimestampType(), False),
     StructField("review_score", IntegerType(), False),
+])
+
+FACT_ORDER_STATUS = StructType([
+    StructField("order_id", StringType(), False),
+    StructField("data_type", StringType(), False),
+    StructField("timestamp", TimestampType(), False),
+    StructField("process_timestamp", TimestampType(), False),
 ])
 
 # REVIEW_CLEAN_COMMENT_SCHEMA = StructType([
