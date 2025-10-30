@@ -32,5 +32,5 @@ docker compose exec $JMX_OPTS_OVERRIDE kafka1 \
   --bootstrap-server kafka1:9092 \
   --topic $TOPIC \
   --from-beginning \
-  # --max-messages 5 # 전체 메시지 출력을 방지하기 위해 일부만 확인
+  --max-messages 5 # 전체 메시지 출력을 방지하기 위해 일부만 확인
   # --property print.value=true | jq . # message가 json인 경우
