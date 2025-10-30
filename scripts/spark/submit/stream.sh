@@ -1,27 +1,44 @@
 #!/bin/bash
 set -e
 
-# rm -rf data/minio/warehousedev/gold/order_lead_days/checkpoint
-CHECKPOINT_BASE="data/minio/warehousedev/silver"
-CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
+# 대상 베이스 디렉터리 (silver / gold)
+BASE_PATHS=(
+  "data/minio/warehousedev/silver"
+  "data/minio/warehousedev/gold"
+)
 
-if [ -n "$CHECKPOINT_DIRS" ]; then
-  echo "Found checkpoint directories:"
-  echo "$CHECKPOINT_DIRS"
-  while IFS= read -r dir; do
-    echo "Removing checkpoint directory: $dir"
-    rm -rf "$dir" && echo "Successfully removed: $dir" || echo "Failed to remove: $dir"
-  done <<< "$CHECKPOINT_DIRS"
-else
-  echo "No checkpoint directories found in $CHECKPOINT_BASE/*/checkpoint"
-fi
+for CHECKPOINT_BASE in "${BASE_PATHS[@]}"; do
+  echo "=== Checking $CHECKPOINT_BASE ==="
+
+  # */checkpoint 형태의 디렉터리 전부 찾기
+  CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
+
+  if [ -n "$CHECKPOINT_DIRS" ]; then
+    echo "Found checkpoint directories:"
+    printf '%s\n' "$CHECKPOINT_DIRS"
+
+    while IFS= read -r dir; do
+      echo "Removing checkpoint directory: $dir"
+      if rm -rf "$dir"; then
+        echo "Successfully removed: $dir"
+      else
+        echo "Failed to remove: $dir"
+      fi
+    done <<< "$CHECKPOINT_DIRS"
+  else
+    echo "No checkpoint directories found in $CHECKPOINT_BASE/*/checkpoint"
+  fi
+  echo
+done
+
+echo "All checkpoint clean-up finished."
 
 SRC_ZIP="src.zip"
 if [ -f "$SRC_ZIP" ]; then
   rm -f "$SRC_ZIP"
 fi
 
-PYTHON_SCRIPT="${1:-jobs/stream/silver.py}"
+PYTHON_SCRIPT="${1:-jobs/stream.py}"
 echo "실행할 파이썬 스크립트: $PYTHON_SCRIPT"
 
 # zip 생성

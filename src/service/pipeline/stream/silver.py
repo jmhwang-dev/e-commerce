@@ -155,7 +155,7 @@ class FactOrderStatus(StreamSilverJob):
         self.output_df = tmp_df.drop('ingest_time').withColumn('process_timestamp', F.lit(max_value)).dropDuplicates()
 
         self.load()
-        self.get_current_dst_count(micro_batch, batch_id, True)
+        self.get_current_dst_count(micro_batch, batch_id, False)
 
     def load(self,):
         write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
