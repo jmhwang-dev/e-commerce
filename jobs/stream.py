@@ -12,7 +12,9 @@ LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
 QUERY_LIST: List[StreamingQuery] = []
 
 if __name__ == "__main__":
-    spark_session = get_spark_session("Stream Silver Job")
+    spark_session = get_spark_session("Stream Job")
+    spark_session.sparkContext.setLogLevel("DEBUG")
+
     initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'gold', is_drop=True)
 
@@ -23,7 +25,7 @@ if __name__ == "__main__":
 
     for job_class in job_class_list:
         job_instance:BaseJob = job_class(spark_session)
-        QUERY_LIST += [job_instance.get_query(process_time='10 seconds')]
+        QUERY_LIST += [job_instance.get_query(process_time='20 seconds')]
 
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
