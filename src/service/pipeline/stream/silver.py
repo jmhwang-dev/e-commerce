@@ -4,8 +4,6 @@ from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType, IntegerType
 from pyspark.sql.avro.functions import to_avro
-from pyspark.sql.streaming.state import GroupStateTimeout
-import pandas as pd
 
 from ..base import BaseJob
 from schema import silver
@@ -48,8 +46,8 @@ class DimUserLocation(StreamSilverJob):
         super().__init__(spark_session, is_batch)
         self.job_name = self.__class__.__name__
 
-        self.schema = silver.DIM_USER_LOCATION
-        self.dst_table_name = 'dim_user_location'
+        self.schema = silver.USER_LOCATION
+        self.dst_table_name = 'user_location'
         self.initialize_dst_table()  # Iceberg 테이블 초기화
 
     def extract(self):
@@ -135,8 +133,8 @@ class FactOrderStatus(StreamSilverJob):
         self.job_name = self.__class__.__name__
         
         if is_batch:
-            self.schema = silver.FACT_ORDER_STATUS
-            self.dst_table_name = 'fact_order_status'
+            self.schema = silver.ORDER_EVENT
+            self.dst_table_name = 'order_event'
             self.initialize_dst_table()
 
     def extract(self):
@@ -172,7 +170,7 @@ class FactOrderStatus(StreamSilverJob):
             self.load()
             return
         
-        self.avsc_reader = AvscReader(SilverTopic.FACT_ORDER_STATUS)
+        self.avsc_reader = AvscReader(SilverTopic.ORDER_EVENT)
         self.output_df = self.output_df.select(
             F.col("order_id").cast("string").alias("key"),
             to_avro(
@@ -202,8 +200,8 @@ class DimProduct(StreamSilverJob):
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.PRODUCT, BronzeTopic.ORDER_ITEM]
         
-        self.schema = silver.DIM_PRODUCT
-        self.dst_table_name = 'dim_product'
+        self.schema = silver.PRODUCT_METADATA
+        self.dst_table_name = 'product_metadata'
         self.initialize_dst_table()
 
     def extract(self):
@@ -286,8 +284,8 @@ class FactOrderItem(StreamSilverJob):
         super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
-        self.schema = silver.FACT_ORDER_ITEM
-        self.dst_table_name = 'fact_order_item'
+        self.schema = silver.ORDER_DETAIL
+        self.dst_table_name = 'order_detail'
         self.initialize_dst_table()
 
     def extract(self):
@@ -343,7 +341,7 @@ class FactOrderItem(StreamSilverJob):
             F.col('agg.order_id').alias('order_id'), 'customer_id', 'product_id', 'unit_price', 'quantity'
         )
 
-        self.avsc_reader = AvscReader(SilverTopic.FACT_ORDER_ITEM)
+        self.avsc_reader = AvscReader(SilverTopic.ORDER_DETAIL)
         self.output_df = self.output_df.select(
             F.col("order_id").cast("string").alias("key"),
             to_avro(
@@ -382,7 +380,7 @@ class FactOrderReview(StreamSilverJob):
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.REVIEW]
         
-        self.schema = silver.FACT_ORDER_REVIEW
+        self.schema = silver.ORDER_REVIEW
         self.dst_table_name = 'fact_order_review'
         self.initialize_dst_table()
 

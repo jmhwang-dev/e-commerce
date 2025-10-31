@@ -38,5 +38,5 @@ class BronzeTopic(BaseTopic):
 class SilverTopic(BaseTopic):
     REVIEW_CLEAN_COMMENT = "review_clean_comment" 
     REVIEW_METADATA = "review_metadata"
-    FACT_ORDER_STATUS = "fact_order_status"
-    FACT_ORDER_ITEM = "fact_order_item"
+    ORDER_EVENT = "order_event"
+    ORDER_DETAIL = "order_detail"

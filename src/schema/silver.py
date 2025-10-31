@@ -9,7 +9,7 @@ from pyspark.sql.types import (
     LongType
 )
 
-DIM_USER_LOCATION = StructType([
+USER_LOCATION = StructType([
     StructField("user_type", StringType(), True),
     StructField("user_id", StringType(), True),
     StructField("zip_code", IntegerType(), True),
@@ -17,13 +17,13 @@ DIM_USER_LOCATION = StructType([
     StructField("lng", FloatType(), True),
 ])
 
-DIM_PRODUCT = StructType([
+PRODUCT_METADATA = StructType([
     StructField("category", StringType(), True),
     StructField("product_id", StringType(), False),
     StructField("seller_id", StringType(), True),
 ])
 
-FACT_ORDER_ITEM = StructType([
+ORDER_DETAIL = StructType([
     StructField("order_id", StringType(), False),
     StructField("customer_id", StringType(), False),
     StructField("product_id", StringType(), False),
@@ -31,7 +31,7 @@ FACT_ORDER_ITEM = StructType([
     StructField("unit_price", FloatType(), False),
 ])
 
-FACT_ORDER_REVIEW = StructType([
+ORDER_REVIEW = StructType([
     StructField("order_id", StringType(), False),
     StructField("review_id", StringType(), False),
     StructField("review_creation_date", TimestampType(), False),
@@ -39,7 +39,7 @@ FACT_ORDER_REVIEW = StructType([
     StructField("review_score", IntegerType(), False),
 ])
 
-FACT_ORDER_STATUS = StructType([
+ORDER_EVENT = StructType([
     StructField("order_id", StringType(), False),
     StructField("data_type", StringType(), False),
     StructField("timestamp", TimestampType(), False),

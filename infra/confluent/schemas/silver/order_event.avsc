@@ -1,7 +1,7 @@
 {
   "namespace": "silver",
   "type": "record",
-  "name": "fact_order_status",
+  "name": "order_event",
   "fields": [
     { "name": "data_type", "type": "string" },
     {

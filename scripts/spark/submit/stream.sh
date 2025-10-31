@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+rm -rf "data/minio/tmp/*"
 # 대상 베이스 디렉터리 (silver / gold)
 BASE_PATHS=(
   "data/minio/warehousedev/silver"

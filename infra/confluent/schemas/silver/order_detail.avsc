@@ -1,7 +1,7 @@
 {
   "namespace": "silver",
   "type": "record",
-  "name": "fact_order_item",
+  "name": "order_detail",
   "fields": [
     { "name": "customer_id", "type": "string" },
     { "name": "product_id", "type": "string" },
