@@ -78,13 +78,13 @@ class FactOrderTimeline(StreamGoldJob):
         self.initialize_dst_table()
 
     def extract(self):
-        self.src_df = self.spark_session.readStream \
-            .format('iceberg') \
-            .table(f'{self.src_namespace}.order_event')
-            # .withWatermark('process_timestamp', '60 days')
+        self.order_event_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverTopic.ORDER_EVENT),
+            SilverTopic.ORDER_EVENT
+        )
 
     def transform(self,):
-        self.output_df = self.src_df \
+        self.output_df = self.order_event_stream \
             .groupBy('order_id') \
             .agg(
                 F.max(F.when(F.col('data_type') == 'purchase', F.col('timestamp'))).alias('purchase'),
