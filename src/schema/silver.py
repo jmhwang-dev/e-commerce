@@ -31,7 +31,7 @@ ORDER_DETAIL = StructType([
     StructField("unit_price", FloatType(), False),
 ])
 
-ORDER_REVIEW = StructType([
+REVIEW_METADATA = StructType([
     StructField("order_id", StringType(), False),
     StructField("review_id", StringType(), False),
     StructField("review_creation_date", TimestampType(), False),

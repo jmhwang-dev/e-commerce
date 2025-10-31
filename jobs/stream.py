@@ -18,7 +18,7 @@ if __name__ == "__main__":
     initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'gold', is_drop=True)
 
-    silver_job = [DimUserLocation, FactOrderStatus, DimProduct, FactOrderItem, FactOrderReview]
+    silver_job = [UserLocation, OrderEvent, ProductMetadata, OrderDetail, ReviewMetadata]
     gold_job = [FactOrderTimeline, DeliveryDetal]
 
     gold_job = []

@@ -27,7 +27,7 @@ class StreamSilverJob(BaseJob):
         self.is_batch = is_batch
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
-class DimUserLocation(StreamSilverJob):
+class UserLocation(StreamSilverJob):
     """
     # Full Outer Join 기반 실시간 사용자 위치 보강 (Iceberg 저장)
     
@@ -126,7 +126,7 @@ class DimUserLocation(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class FactOrderStatus(StreamSilverJob):
+class OrderEvent(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
         super().__init__(spark_session, is_batch)
 
@@ -193,7 +193,7 @@ class FactOrderStatus(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class DimProduct(StreamSilverJob):
+class ProductMetadata(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
         super().__init__(spark_session, is_batch)
 
@@ -279,7 +279,7 @@ class DimProduct(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
     
-class FactOrderItem(StreamSilverJob):
+class OrderDetail(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
         super().__init__(spark_session, is_batch)
 
@@ -373,15 +373,15 @@ class FactOrderItem(StreamSilverJob):
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
-class FactOrderReview(StreamSilverJob):
+class ReviewMetadata(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
         super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.REVIEW]
         
-        self.schema = silver.ORDER_REVIEW
-        self.dst_table_name = 'fact_order_review'
+        self.schema = silver.REVIEW_METADATA
+        self.dst_table_name = 'review_metadata'
         self.initialize_dst_table()
 
     def extract(self):
