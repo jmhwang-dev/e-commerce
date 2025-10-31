@@ -13,7 +13,7 @@ QUERY_LIST: List[StreamingQuery] = []
 
 if __name__ == "__main__":
     spark_session = get_spark_session("Stream Job")
-    spark_session.sparkContext.setLogLevel("DEBUG")
+    # spark_session.sparkContext.setLogLevel("TRACE")
 
     initialize_namespace(spark_session, 'silver', is_drop=True)
     initialize_namespace(spark_session, 'gold', is_drop=True)
@@ -21,11 +21,13 @@ if __name__ == "__main__":
     silver_job = [DimUserLocation, FactOrderStatus, DimProduct, FactOrderItem, FactOrderReview]
     gold_job = [FactOrderTimeline, DeliveryDetal]
 
+    gold_job = []
+
     job_class_list:List[BaseJob] = silver_job + gold_job
 
     for job_class in job_class_list:
         job_instance:BaseJob = job_class(spark_session)
-        QUERY_LIST += [job_instance.get_query(process_time='20 seconds')]
+        QUERY_LIST += [job_instance.get_query(process_time='10 seconds')]
 
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()

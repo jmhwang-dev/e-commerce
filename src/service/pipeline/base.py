@@ -63,6 +63,8 @@ class BaseJob(ABC):
 
     def get_query(self, process_time='5 seconds'):
         self.extract()
+
+        # TODO: 표준 checkpointLocation 으로 변경: s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         return self.src_df.writeStream \
             .foreachBatch(self.transform) \
             .queryName(self.job_name) \

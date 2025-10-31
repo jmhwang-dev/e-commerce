@@ -3,12 +3,18 @@ from typing import Optional
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType, IntegerType
+from pyspark.sql.avro.functions import to_avro
+from pyspark.sql.streaming.state import GroupStateTimeout
+import pandas as pd
 
 from ..base import BaseJob
 from schema import silver
 from service.producer.bronze import BronzeTopic
+from service.producer.silver import SilverTopic
 from service.utils.iceberg import write_iceberg
-from service.utils.spark import get_spark_session, get_kafka_stream_df
+from service.utils.spark import get_spark_session, get_kafka_stream_df, start_console_stream
+from service.utils.schema.reader import AvscReader
+from config.kafka import BOOTSTRAP_SERVERS_INTERNAL
 
 class StreamSilverJob(BaseJob):
     src_namespace: str = 'bronze'
@@ -17,8 +23,10 @@ class StreamSilverJob(BaseJob):
     output_df: Optional[DataFrame] = None
     schema: Optional[StructType] = None
 
-    def __init__(self, spark_session: Optional[SparkSession] = None):
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool=False):
         self._dev = True
+        
+        self.is_batch = is_batch
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
 class DimUserLocation(StreamSilverJob):
@@ -36,17 +44,17 @@ class DimUserLocation(StreamSilverJob):
         4. Unmatched → 상태 저장
         5. 워터마크 초과 → 자동 삭제
     """
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
         self.job_name = self.__class__.__name__
-        self.src_topic_names = [BronzeTopic.CUSTOMER, BronzeTopic.SELLER, BronzeTopic.GEOLOCATION]
+
         self.schema = silver.DIM_USER_LOCATION
         self.dst_table_name = 'dim_user_location'
         self.initialize_dst_table()  # Iceberg 테이블 초기화
 
     def extract(self):
         # customer
-        customer_stream = self.get_topic_df(
+        self.customer_stream = self.get_topic_df(
             get_kafka_stream_df(self.spark_session, BronzeTopic.CUSTOMER),
             BronzeTopic.CUSTOMER
         ) \
@@ -54,7 +62,7 @@ class DimUserLocation(StreamSilverJob):
         .withColumn('user_type', F.lit('customer')) \
 
         # seller
-        seller_stream = self.get_topic_df(
+        self.seller_stream = self.get_topic_df(
             get_kafka_stream_df(self.spark_session, BronzeTopic.SELLER),
             BronzeTopic.SELLER
         ) \
@@ -71,10 +79,10 @@ class DimUserLocation(StreamSilverJob):
         .withWatermark('ingest_time', '30 days') \
         .dropDuplicates(['zip_code'])
 
-        self.users_stream = customer_stream.unionByName(seller_stream).dropDuplicates() \
+    def transform(self):
+        self.users_stream = self.customer_stream.unionByName(self.seller_stream).dropDuplicates() \
             .withWatermark('ingest_time', '30 days')
 
-    def transform(self):
         self.output_df = self.users_stream.alias('users').join(
             self.geo_stream.alias('geo'),
             F.expr("""
@@ -121,48 +129,75 @@ class DimUserLocation(StreamSilverJob):
             .start()
 
 class FactOrderStatus(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
-        self.src_topic_names = [BronzeTopic.ESTIMATED_DELIVERY_DATE, BronzeTopic.ORDER_ITEM, BronzeTopic.ORDER_STATUS]
         
-        self.schema = silver.FACT_ORDER_STATUS
-        self.dst_table_name = 'fact_order_status'
-        self.initialize_dst_table()
+        if is_batch:
+            self.schema = silver.FACT_ORDER_STATUS
+            self.dst_table_name = 'fact_order_status'
+            self.initialize_dst_table()
 
     def extract(self):
-        self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+        # self.src_df = get_kafka_stream_df(self.spark_session, self.src_topic_names)
+        self.estimated_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ESTIMATED_DELIVERY_DATE), BronzeTopic.ESTIMATED_DELIVERY_DATE)
+        self.shippimt_limit_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM)
+        self.order_status_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_STATUS), BronzeTopic.ORDER_STATUS)
 
-    def transform(self, micro_batch:DataFrame, batch_id: int):
-        
+        if not self.is_batch:
+            # 데이터에 기록된 timestamp 열은 Watermark 로 사용할 수 없음
+            #   - data_type이 estimated_delivery 와 shipping_limit_date은 실제 이벤트 시간과 기간이 차이남
+            #   - 불필요하게 긴 워터마크 설정으로 인해 상태 스토어가 커질 수 있음
+            self.estimated_df = self.estimated_df.withWatermark('ingest_time', '10 minutes')
+            self.shippimt_limit_df = self.shippimt_limit_df.withWatermark('ingest_time', '10 minutes')
+            self.order_status_df = self.order_status_df.withWatermark('ingest_time', '10 minutes')
+            
+    def transform(self):
         # TODO: chage timezone to UTC. (현재는 KST로 들어감)
-        estimated_df = self.get_topic_df(micro_batch, BronzeTopic.ESTIMATED_DELIVERY_DATE) \
+        estimated_df = self.estimated_df \
             .withColumnRenamed('estimated_delivery_date', 'timestamp') \
-            .withColumn('data_type', F.lit('estimated_delivery')) \
+            .withColumn('data_type', F.lit('estimated_delivery'))
         
-        shippimt_limit_df = self.get_topic_df(micro_batch, BronzeTopic.ORDER_ITEM) \
+        shippimt_limit_df = self.shippimt_limit_df \
             .select('order_id', 'shipping_limit_date', 'ingest_time') \
             .withColumnRenamed('shipping_limit_date', 'timestamp') \
-            .withColumn('data_type', F.lit('shipping_limit')) \
+            .withColumn('data_type', F.lit('shipping_limit'))
         
-        order_status_df = self.get_topic_df(micro_batch, BronzeTopic.ORDER_STATUS)
-        order_status_df = order_status_df.withColumnRenamed('status', 'data_type')
+        order_status_df = self.order_status_df.withColumnRenamed('status', 'data_type')
 
-        # add process_timestamp
-        tmp_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
-        max_value = tmp_df.agg(F.max("ingest_time").alias("process_timestamp")).collect()[0]["process_timestamp"]
-        self.output_df = tmp_df.drop('ingest_time').withColumn('process_timestamp', F.lit(max_value)).dropDuplicates()
+        self.output_df = order_status_df.unionByName(estimated_df).unionByName(shippimt_limit_df)
 
-        self.load()
-        self.get_current_dst_count(micro_batch, batch_id, False)
+        if self.is_batch:
+            self.load()
+            return
+        
+        self.avsc_reader = AvscReader(SilverTopic.FACT_ORDER_STATUS)
+        self.output_df = self.output_df.select(
+            F.col("order_id").cast("string").alias("key"),
+            to_avro(
+                F.struct("data_type", "timestamp", "ingest_time"),
+                self.avsc_reader.schema_str).alias('value'))
 
     def load(self,):
         write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
 
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        self.transform()
+
+        return self.output_df.writeStream \
+            .trigger(processingTime=process_time) \
+            .queryName(self.job_name) \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
+            .option("topic", self.avsc_reader.table_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+            .start()
+
 class DimProduct(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.PRODUCT, BronzeTopic.ORDER_ITEM]
@@ -172,21 +207,31 @@ class DimProduct(StreamSilverJob):
         self.initialize_dst_table()
 
     def extract(self):
+        if self.is_batch:
+            self.product_df = self.spark_session.read.table(f"{self.src_namespace}.product")
+            self.order_item_df = self.spark_session.read.table(f"{self.src_namespace}.order_item")
+            return
+        
         self.product_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.PRODUCT), BronzeTopic.PRODUCT)
+        self.product_df = self.product_df.withWatermark('ingest_time', '30 days')
+
         self.order_item_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM)
+        self.order_item_df = self.order_item_df.withWatermark('ingest_time', '30 days')
 
     def transform(self, ):
 
         product_category = self.product_df \
             .select('product_id', 'category', 'ingest_time') \
             .dropna() \
-            .dropDuplicates() \
-            .withWatermark('ingest_time', '30 days')
+            .dropDuplicates()
             
         product_seller = self.order_item_df \
             .select('product_id', 'seller_id', 'ingest_time') \
-            .dropDuplicates() \
-            .withWatermark('ingest_time', '30 days')
+            .dropDuplicates()
+        
+        if self.is_batch:
+            self.output_df = product_category.join(product_seller, on='product_id', how='inner')
+            return
         
         self.output_df = product_category.alias('p_cat').join(
             product_seller.alias('p_sel'),
@@ -224,6 +269,10 @@ class DimProduct(StreamSilverJob):
     def get_query(self, process_time='5 seconds'):
         self.extract()
         self.transform()
+        
+        if self.is_batch:
+            self.load()
+            return
 
         return self.output_df.writeStream \
             .trigger(processingTime=process_time) \
@@ -233,8 +282,8 @@ class DimProduct(StreamSilverJob):
             .start()
     
 class FactOrderItem(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
         self.schema = silver.FACT_ORDER_ITEM
@@ -243,37 +292,63 @@ class FactOrderItem(StreamSilverJob):
 
     def extract(self):
         self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM) \
-            .withWatermark('ingest_time', '30 days')
-        
+            .withWatermark('ingest_time', '3 days')
         self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.PAYMENT), BronzeTopic.PAYMENT) \
-            .withWatermark('ingest_time', '30 days')
+            .withWatermark('ingest_time', '3 days')
+        
+        # self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.ORDER_ITEM), BronzeTopic.ORDER_ITEM)
+        # self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeTopic.PAYMENT), BronzeTopic.PAYMENT)
 
     def transform(self):
-        # Stream-Stream Join (Append 모드 지원)
-        order_item = self.order_item_stream.select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time')
-        order_customer = self.payment_stream.select('order_id', 'customer_id', 'ingest_time')
+        """
+        Non-windowed groupBy: 전체 스트림 기간 동안 누적 집로, 상태가 무한이 증가한다. (unbounded state)
+        - watermark는 배치에서 late data를 처리하는 목적이다.
+        - 따라서 watermark가 있어도 상태를 drop할 시간 경계가 없어서 상태가 finalized 되지 않음
+        - 결국 OOM으로 이어질 가능성이 매우 높아지기 때문에, 다음과 같은 예외를 발생시킨다.
+        (AnalysisException: "Append output mode not supported for streaming aggregations without watermark")
 
-        joined_stream = order_item.alias("oi") \
-            .join(
-                order_customer.alias("oc"),
-                F.expr("""
-                    oi.order_id = oc.order_id AND
-                    oc.ingest_time >= oi.ingest_time - interval 30 days AND
-                    oc.ingest_time <= oi.ingest_time + interval 30 days
-                """),
-                how="fullouter"
-            ).select(
-                "oc.customer_id",
-                "oi.order_id",
-                "oi.order_item_id",
-                "oi.product_id",
-                "oi.price",
-                F.least("oi.ingest_time", "oc.ingest_time").alias('process_timestamp')
-            ).dropDuplicates() \
-            .dropna()
+        대안1. window 함수
 
-        # Append 모드에서는 groupBy 직접 불가 → foreachBatch에서 처리
-        self.output_df = joined_stream
+        대안2. Append 대신 update (변경된 행만 출력) 또는 complete (전체 결과 재출력) mode로 전환
+        - 상태 drop: Update mode에서 watermark 설정 시 오래된 상태 정리 가능 (complete는 모든 상태 유지, drop 안 함).
+        - 한계: Append가 필요한 싱크 (e.g., Kafka append-only)에서 불가. Complete는 대규모 데이터에서 비효율적 (전체 재출력).
+
+        대안 3: mapGroupsWithState 또는 flatMapGroupsWithState로 커스텀 상태 관리
+        """
+
+        # order_customer state
+        order_item = self.order_item_stream.select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time').dropna()
+        aggregated_df = order_item.groupBy(
+            F.window("ingest_time", "5 minutes"),  # 필수: non-windowed → windowed
+            "order_id", "product_id", "price") \
+            .agg(
+                F.count("order_item_id").alias("quantity"),
+                F.max("ingest_time").alias('agg_ingest_time')
+            ).withColumnRenamed("price", "unit_price") \
+            .drop('window')                    
+
+    
+        order_customer = self.payment_stream.groupBy(
+            F.window("ingest_time", "5 minutes"),  # 필수: non-windowed → windowed
+            'order_id', 'customer_id').agg(F.max('ingest_time').alias('oc_ingest_time')) \
+            .drop('window')
+        
+        self.output_df = aggregated_df.alias('agg').join(
+            order_customer.alias('oc'),
+            F.expr("""
+                agg.order_id = oc.order_id AND
+            """),
+            "inner"
+        ).select(
+            F.col('agg.order_id').alias('order_id'), 'customer_id', 'product_id', 'unit_price', 'quantity'
+        )
+
+        self.avsc_reader = AvscReader(SilverTopic.FACT_ORDER_ITEM)
+        self.output_df = self.output_df.select(
+            F.col("order_id").cast("string").alias("key"),
+            to_avro(
+                F.struct("product_id", "unit_price", "customer_id", "quantity"),
+                self.avsc_reader.schema_str).alias('value'))
 
     def load(self, micro_batch: DataFrame, batch_id: int):
         """
@@ -291,16 +366,18 @@ class FactOrderItem(StreamSilverJob):
         self.transform()
 
         return self.output_df.writeStream \
-            .outputMode("append") \
             .trigger(processingTime=process_time) \
+            .outputMode('append') \
             .queryName(self.job_name) \
-            .foreachBatch(self.load) \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
+            .option("topic", self.avsc_reader.table_name) \
             .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
             .start()
 
 class FactOrderReview(StreamSilverJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
 
         self.job_name = self.__class__.__name__
         self.src_topic_names = [BronzeTopic.REVIEW]

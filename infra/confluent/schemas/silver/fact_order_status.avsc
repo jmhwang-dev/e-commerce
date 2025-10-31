@@ -1,0 +1,16 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "fact_order_status",
+  "fields": [
+    { "name": "data_type", "type": "string" },
+    {
+      "name": "timestamp",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    },
+    {
+      "name": "ingest_time",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    }
+  ]
+}

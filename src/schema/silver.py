@@ -24,12 +24,11 @@ DIM_PRODUCT = StructType([
 ])
 
 FACT_ORDER_ITEM = StructType([
-    StructField("customer_id", StringType(), False),
     StructField("order_id", StringType(), False),
-    StructField("order_item_id", StringType(), False),
-    StructField("product_id", StringType(), True),
-    StructField("price", FloatType(), True),
-    StructField("process_timestamp", TimestampType(), True),
+    StructField("customer_id", StringType(), False),
+    StructField("product_id", StringType(), False),
+    StructField("quantity", IntegerType(), False),
+    StructField("unit_price", FloatType(), False),
 ])
 
 FACT_ORDER_REVIEW = StructType([

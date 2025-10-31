@@ -1,0 +1,11 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "fact_order_item",
+  "fields": [
+    { "name": "customer_id", "type": "string" },
+    { "name": "product_id", "type": "string" },
+    { "name": "quantity", "type": "long" },
+    { "name": "unit_price", "type": "float" }
+  ]
+}
