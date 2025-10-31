@@ -27,76 +27,48 @@ class StreamSilverJob(BaseJob):
         self.is_batch = is_batch
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
 
-class UserLocation(StreamSilverJob):
-    """
-    # Full Outer Join 기반 실시간 사용자 위치 보강 (Iceberg 저장)
-    
-    ## 핵심 로직
-    # `users_stream` (customer + seller) + `geo_stream` → `fullouter`
-        - 조건: `zip_code` 동일 + `ingest_time ±10분`
-
-    ## 상태 스토어 (RocksDB) 동작
-        1. 배치 시작 → 기존 unmatched 로드
-        2. 새 데이터와 fullouter join
-        3. Matched → 출력 + 상태 제거
-        4. Unmatched → 상태 저장
-        5. 워터마크 초과 → 자동 삭제
-    """
+class GeoCoord(StreamSilverJob):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
         super().__init__(spark_session, is_batch)
         self.job_name = self.__class__.__name__
 
-        self.schema = silver.USER_LOCATION
-        self.dst_table_name = 'user_location'
-        self.initialize_dst_table()  # Iceberg 테이블 초기화
+        self.schema = silver.GEO_COORD
+        if self.is_batch:
+            self.dst_table_name = 'geo_coord'
+            self.initialize_dst_table()  # Iceberg 테이블 초기화
 
     def extract(self):
-        # customer
-        self.customer_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeTopic.CUSTOMER),
-            BronzeTopic.CUSTOMER
-        ) \
-        .withColumnRenamed('customer_id', 'user_id') \
-        .withColumn('user_type', F.lit('customer')) \
-
-        # seller
-        self.seller_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeTopic.SELLER),
-            BronzeTopic.SELLER
-        ) \
-        .withColumnRenamed('seller_id', 'user_id') \
-        .withColumn('user_type', F.lit('seller')) \
-
-        # geolocation
         self.geo_stream = self.get_topic_df(
             get_kafka_stream_df(self.spark_session, BronzeTopic.GEOLOCATION),
             BronzeTopic.GEOLOCATION
         ) \
         .select('zip_code', 'lng', 'lat', 'ingest_time') \
         .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
-        .withWatermark('ingest_time', '30 days') \
+        .withWatermark('ingest_time', '1 days') \
         .dropDuplicates(['zip_code'])
 
     def transform(self):
-        self.users_stream = self.customer_stream.unionByName(self.seller_stream).dropDuplicates() \
-            .withWatermark('ingest_time', '30 days')
+        # 브라질 위경도 범위 상수
+        BRAZIL_BOUNDS = {
+            "min_lat": -33.69111,
+            "max_lat": 2.81972,
+            "min_lon": -72.89583,
+            "max_lon": -34.80861
+        }
 
-        self.output_df = self.users_stream.alias('users').join(
-            self.geo_stream.alias('geo'),
-            F.expr("""
-                users.zip_code = geo.zip_code AND
-                users.ingest_time >= geo.ingest_time - interval 30 days AND
-                users.ingest_time <= geo.ingest_time + interval 30 days
-            """),
-            how="fullouter"
-        ).select(
-            F.col("users.user_type").alias("user_type"),
-            F.col("users.user_id").alias("user_id"),
-            F.col("users.zip_code").alias("zip_code"),
-            F.col("geo.lng").alias("lng"),
-            F.col("geo.lat").alias("lat")
-        ).dropDuplicates() \
-        .dropna()
+        self.output_df = self.geo_stream \
+            .dropDuplicates(['zip_code']) \
+            .filter(
+                (F.col("lat").between(BRAZIL_BOUNDS["min_lat"], BRAZIL_BOUNDS["max_lat"])) &
+                (F.col("lng").between(BRAZIL_BOUNDS["min_lon"], BRAZIL_BOUNDS["max_lon"]))
+            )
+        
+        self.avsc_reader = AvscReader(SilverTopic.GEO_COORD)
+        self.output_df = self.output_df.select(
+            F.col("zip_code").cast("string").alias("key"),
+            to_avro(
+                F.struct("lat", "lng"),
+                self.avsc_reader.schema_str).alias('value'))
 
     def load(self, micro_batch: DataFrame, batch_id: int):
         
@@ -110,6 +82,77 @@ class UserLocation(StreamSilverJob):
             USING updates AS source
             ON target.user_type = source.user_type AND target.user_id = source.user_id
             WHEN MATCHED and target.lng is null THEN UPDATE SET *
+            WHEN NOT MATCHED THEN INSERT *
+        """)
+
+        self.get_current_dst_count(micro_batch, batch_id)
+        
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        self.transform()
+
+        if self.is_batch:
+            self.load()
+            return
+
+        return self.output_df.writeStream \
+            .trigger(processingTime=process_time) \
+            .queryName(self.job_name) \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
+            .option("topic", self.avsc_reader.table_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+            .start()
+    
+class OlistUser(StreamSilverJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_batch:bool = False):
+        super().__init__(spark_session, is_batch)
+        self.job_name = self.__class__.__name__
+
+        self.schema = silver.OLIST_USER
+        self.dst_table_name = 'olist_user'
+        self.initialize_dst_table()  # Iceberg 테이블 초기화
+
+    def extract(self):
+        # customer
+        self.customer_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, BronzeTopic.CUSTOMER),
+            BronzeTopic.CUSTOMER
+        ).withWatermark('ingest_time', '1 days')
+
+        # seller
+        self.seller_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, BronzeTopic.SELLER),
+            BronzeTopic.SELLER
+        ).withWatermark('ingest_time', '1 days')
+
+    def transform(self):
+        
+        customer_df = self.customer_stream \
+            .withColumnRenamed('customer_id', 'user_id') \
+            .withColumn('user_type', F.lit('customer')) \
+            .drop('ingest_time') \
+            .dropDuplicates()
+
+        seller_df = self.seller_stream \
+            .withColumnRenamed('seller_id', 'user_id') \
+            .withColumn('user_type', F.lit('seller')) \
+            .drop('ingest_time') \
+            .dropDuplicates()
+        
+        self.output_df = customer_df.unionByName(seller_df)
+
+    def load(self, micro_batch: DataFrame, batch_id: int):
+        
+        if micro_batch.isEmpty():
+            return
+        
+        # TODO: watermark 기간에서 제외된 누락된 데이터는 배치로 처리
+        micro_batch.createOrReplaceTempView("updates")
+        micro_batch.sparkSession.sql(f"""
+            MERGE INTO {self.dst_table_identifier} AS target
+            USING updates AS source
+            ON target.user_type = source.user_type AND target.user_id = source.user_id
             WHEN NOT MATCHED THEN INSERT *
         """)
 

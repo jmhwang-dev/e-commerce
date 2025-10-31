@@ -1,0 +1,9 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "geo_coord",
+  "fields": [
+    { "name": "lat", "type": "float" },
+    { "name": "lng", "type": "float" }
+  ]
+}

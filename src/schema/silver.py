@@ -9,12 +9,17 @@ from pyspark.sql.types import (
     LongType
 )
 
-USER_LOCATION = StructType([
-    StructField("user_type", StringType(), True),
-    StructField("user_id", StringType(), True),
-    StructField("zip_code", IntegerType(), True),
-    StructField("lat", FloatType(), True),
-    StructField("lng", FloatType(), True),
+
+GEO_COORD = StructType([
+    StructField("zip_code", IntegerType(), False),
+    StructField("lat", FloatType(), False),
+    StructField("lng", FloatType(), False),
+])
+
+OLIST_USER = StructType([
+    StructField("user_type", StringType(), False),
+    StructField("user_id", StringType(), False),
+    StructField("zip_code", IntegerType(), False),
 ])
 
 PRODUCT_METADATA = StructType([

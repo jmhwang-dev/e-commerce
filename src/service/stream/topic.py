@@ -40,3 +40,4 @@ class SilverTopic(BaseTopic):
     REVIEW_METADATA = "review_metadata"
     ORDER_EVENT = "order_event"
     ORDER_DETAIL = "order_detail"
+    GEO_COORD = "geo_coord"
