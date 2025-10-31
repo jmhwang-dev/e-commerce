@@ -33,8 +33,8 @@ class GeoCoord(StreamSilverJob):
         self.job_name = self.__class__.__name__
 
         self.schema = silver.GEO_COORD
+        self.dst_table_name = 'geo_coord'
         if self.is_batch:
-            self.dst_table_name = 'geo_coord'
             self.initialize_dst_table()  # Iceberg 테이블 초기화
 
     def extract(self):

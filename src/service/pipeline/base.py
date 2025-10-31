@@ -7,7 +7,7 @@ from pyspark.sql import functions as F
 
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_deserialized_avro_stream_df
-from service.utils.helper import get_producer
+from service.utils.helper import get_avro_key_column
 
 class BaseJob(ABC):
     """
@@ -75,8 +75,8 @@ class BaseJob(ABC):
     def get_topic_df(self, micro_batch:DataFrame, topic_name: str) -> DataFrame:
         ser_df = micro_batch.filter(F.col("topic") == topic_name)
         avsc_reader = AvscReader(topic_name)
-        producer_class = get_producer(topic_name)
-        return get_deserialized_avro_stream_df(ser_df, producer_class.key_column, avsc_reader.schema_str)
+        key_column = get_avro_key_column(topic_name)
+        return get_deserialized_avro_stream_df(ser_df, key_column, avsc_reader.schema_str)
     
     def get_incremental_df(self, src_table_identifier: str) -> Optional[DataFrame]:
         """

@@ -9,6 +9,14 @@ from pyspark.sql.types import (
     LongType
 )
 
+DIM_USER_LOCATION = StructType([
+    StructField("user_type", StringType(), True),
+    StructField("user_id", StringType(), True),
+    StructField("zip_code", IntegerType(), True),
+    StructField("lat", FloatType(), True),
+    StructField("lng", FloatType(), True),
+])
+
 DELIVERY_DETAIL = StructType([
     StructField("order_id", StringType(), False),
     StructField("product_id", StringType(), False),

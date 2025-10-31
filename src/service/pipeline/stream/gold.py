@@ -2,12 +2,14 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import StructType
+from pyspark.sql.types import StructType, IntegerType
 
 from ..base import BaseJob
-from schema import gold
+from schema import silver, gold
+from service.producer.silver import SilverTopic
+
 from service.utils.iceberg import write_iceberg
-from service.utils.spark import get_spark_session
+from service.utils.spark import get_spark_session, get_kafka_stream_df
 
 class StreamGoldJob(BaseJob):
     src_namespace: str = 'silver'
@@ -19,6 +21,52 @@ class StreamGoldJob(BaseJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self._dev = True
         self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
+
+class DimUserLocation(StreamGoldJob):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        super().__init__(spark_session)
+
+        self.job_name = self.__class__.__name__
+        self.schema = gold.DIM_USER_LOCATION
+        self.dst_table_name = 'dim_user_location'
+        self.initialize_dst_table()
+
+    def extract(self):
+        self.geo_coord_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverTopic.GEO_COORD),
+            SilverTopic.GEO_COORD
+        )
+
+        self.olist_user = self.spark_session.read.table(f'{self.src_namespace}.olist_user')
+
+    def transform(self,):
+        self.output_df = self.geo_coord_stream \
+            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
+            .join(self.olist_user, on='zip_code', how='left')
+        
+    def load(self, micro_batch:DataFrame, batch_id: int):
+        micro_batch.createOrReplaceTempView(self.dst_table_name)
+        micro_batch.sparkSession.sql(
+            f"""
+            MERGE INTO {self.dst_table_identifier} t
+            USING {self.dst_table_name} s
+            ON t.zip_code = s.zip_code
+            WHEN NOT MATCHED THEN
+                INSERT *
+            """)
+        self.get_current_dst_count(micro_batch, batch_id, False)
+
+    def get_query(self, process_time='5 seconds'):
+        self.extract()
+        self.transform()
+
+        return self.output_df.writeStream \
+            .outputMode("update") \
+            .foreachBatch(self.load) \
+            .trigger(processingTime=process_time) \
+            .queryName(self.job_name) \
+            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+            .start()
 
 class FactOrderTimeline(StreamGoldJob):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -32,7 +80,7 @@ class FactOrderTimeline(StreamGoldJob):
     def extract(self):
         self.src_df = self.spark_session.readStream \
             .format('iceberg') \
-            .table(f'{self.src_namespace}.fact_order_status')
+            .table(f'{self.src_namespace}.order_event')
             # .withWatermark('process_timestamp', '60 days')
 
     def transform(self,):
@@ -93,7 +141,7 @@ class DeliveryDetal(StreamGoldJob):
         # Iceberg 테이블 변경 스트림 읽기 (Spark 3.5.6 지원)
         self.src_df = self.spark_session.readStream \
             .format('iceberg') \
-            .table(f'{self.src_namespace}.fact_order_item') \
+            .table(f'{self.src_namespace}.order_detail') \
             .withWatermark('process_timestamp', '60 days')
 
     def transform(self, micro_batch: DataFrame, batch_id: int):
@@ -104,13 +152,13 @@ class DeliveryDetal(StreamGoldJob):
             ).withColumnRenamed("price", "unit_price")
         
         # # TODO: compare with join after filter
-        dim_product = micro_batch.sparkSession.read.table(f'{self.src_namespace}.dim_product')
-        dim_user_location = micro_batch.sparkSession.read.table(f'{self.src_namespace}.dim_user_location')
+        product_metadata = micro_batch.sparkSession.read.table(f'{self.src_namespace}.product_metadata')
+        user_location = micro_batch.sparkSession.read.table(f'{self.src_namespace}.dim_user_location')
         
-        # Customer 쪽: aggregated_df (FACT_ORDER_ITEM 기반) + dim_user_location 조인 + category 추가
+        # Customer 쪽: aggregated_df (ORDER_DETAIL 기반) + dim_user_location 조인 + category 추가
         with_customer = aggregated_df \
             .join(dim_user_location.alias("cust_loc"), aggregated_df["customer_id"] == F.col("cust_loc.user_id"), "inner") \
-            .join(dim_product, "product_id", "inner") \
+            .join(product_metadata, "product_id", "inner") \
             .withColumn("user_type", F.lit("customer")) \
             .select(
                 "order_id", "product_id", "category", "quantity", 'unit_price',
@@ -121,9 +169,9 @@ class DeliveryDetal(StreamGoldJob):
             ) \
             .drop("zip_code")  # 불필요 컬럼 제거
 
-        # Seller 쪽: aggregated_df + dim_product (seller_id) + dim_user_location 조인
+        # Seller 쪽: aggregated_df + product_metadata (seller_id) + dim_user_location 조인
         with_seller = aggregated_df \
-            .join(dim_product, "product_id", "inner") \
+            .join(product_metadata, "product_id", "inner") \
             .join(dim_user_location.alias("sell_loc"), F.col("seller_id") == F.col("sell_loc.user_id"), "inner") \
             .withColumn("user_type", F.lit("seller")) \
             .select(
