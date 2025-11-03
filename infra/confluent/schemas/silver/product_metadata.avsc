@@ -1,0 +1,10 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "product_metadata",
+  "fields": [
+    { "name": "category", "type": "string" },
+    { "name": "product_id", "type": "string" },
+    { "name": "seller_id", "type": "string" },
+  ]
+}

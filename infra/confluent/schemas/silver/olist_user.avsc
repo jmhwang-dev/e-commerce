@@ -1,0 +1,10 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "olist_user",
+  "fields": [
+    { "name": "user_type", "type": "string" },
+    { "name": "user_id", "type": "string" },
+    { "name": "zip_code", "type": "int" },
+  ]
+}
