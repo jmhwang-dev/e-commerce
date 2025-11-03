@@ -28,10 +28,6 @@
     {
       "name": "review_score",
       "type": "int"
-    },
-    {
-      "name": "order_id",
-      "type": "string"
     }
   ]
 }

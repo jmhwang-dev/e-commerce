@@ -5,6 +5,6 @@
   "fields": [
     { "name": "user_type", "type": "string" },
     { "name": "user_id", "type": "string" },
-    { "name": "zip_code", "type": "int" },
+    { "name": "zip_code", "type": "int" }
   ]
 }

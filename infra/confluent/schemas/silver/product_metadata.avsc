@@ -5,6 +5,6 @@
   "fields": [
     { "name": "category", "type": "string" },
     { "name": "product_id", "type": "string" },
-    { "name": "seller_id", "type": "string" },
+    { "name": "seller_id", "type": "string" }
   ]
 }

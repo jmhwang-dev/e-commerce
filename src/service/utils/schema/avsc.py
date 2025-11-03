@@ -31,8 +31,13 @@ class BronzeAvroSchema(BaseAvroSchema):
     REVIEW = "review"
 
 class SilverAvroSchema(BaseAvroSchema):
+    # schema for batch and stream
     REVIEW_CLEAN_COMMENT = "review_clean_comment" 
     REVIEW_METADATA = "review_metadata"
     ORDER_EVENT = "order_event"
     ORDER_DETAIL = "order_detail"
     GEO_COORD = "geo_coord"
+
+    # schema for batch
+    OLIST_USER = 'olist_user'
+    PRODUCT_METADATA = "product_metadata"
