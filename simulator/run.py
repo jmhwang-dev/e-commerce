@@ -1,4 +1,4 @@
-from service.stream.topic import *
+from service.utils.schema.avsc import *
 from service.utils.schema.registry_manager import *
 from service.producer.bronze import *
 from service.utils.kafka import *
@@ -7,10 +7,12 @@ import time
 
 if __name__=="__main__":
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    topic_names = BronzeTopic.get_all_topics()
-    delete_topics(admin_client, topic_names)
-    SchemaRegistryManager.delete_subject(topic_names, False)
-    create_topics(admin_client, topic_names)
+    avsc_filenames = [SilverAvroSchema.ORDER_DETAIL, SilverAvroSchema.ORDER_EVENT, SilverAvroSchema.GEO_COORD]
+    avsc_filenames = BronzeAvroSchema.get_all_filenames()
+
+    delete_topics(admin_client, avsc_filenames)
+    SchemaRegistryManager.delete_subject(avsc_filenames, False)
+    create_topics(admin_client, avsc_filenames)
     register_schema()
 
     base_interval = 10  # seconds

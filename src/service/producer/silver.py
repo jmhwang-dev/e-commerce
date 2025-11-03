@@ -1,10 +1,10 @@
 from service.producer.base.spark import SparkProducer
-from service.stream.topic import SilverTopic
+from service.utils.schema.avsc import SilverAvroSchema
 
 class ReviewCleanCommentSilverProducer(SparkProducer):
-    dst_topic = SilverTopic.REVIEW_CLEAN_COMMENT
+    dst_topic = SilverAvroSchema.REVIEW_CLEAN_COMMENT
     key_column = ['review_id']
 
 class ReviewMetadataSilverProducer(SparkProducer):
-    dst_topic = SilverTopic.REVIEW_METADATA
+    dst_topic = SilverAvroSchema.REVIEW_METADATA
     key_column = ['review_id']

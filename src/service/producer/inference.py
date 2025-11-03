@@ -1,4 +1,4 @@
-from service.stream.topic import InferenceTopic
+from service.utils.schema.avsc import InferenceTopic
 from service.producer.base.pandas import PandasProducer
 
 class ReviewConflictSentimentSilverProducer(PandasProducer):

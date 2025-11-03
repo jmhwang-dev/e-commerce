@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import lru_cache, reduce
 
 from service.producer.base.pandas import PandasProducer
-from service.stream.topic import *
+from service.utils.schema.avsc import *
 from config.kafka import DATASET_DIR
 
 class BronzeProducer(PandasProducer):
@@ -49,41 +49,41 @@ class BronzeProducer(PandasProducer):
         return df[final_condition]
             
 class GeolocationBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.GEOLOCATION
+    dst_topic = BronzeAvroSchema.GEOLOCATION
     key_column = 'zip_code'
     
 class CustomerBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.CUSTOMER
+    dst_topic = BronzeAvroSchema.CUSTOMER
     key_column = 'customer_id'
     
 class SellerBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.SELLER
+    dst_topic = BronzeAvroSchema.SELLER
     key_column = 'seller_id'
 
 ###
 class ProductBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.PRODUCT
+    dst_topic = BronzeAvroSchema.PRODUCT
     key_column = 'product_id'
 
 class OrderStatusBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.ORDER_STATUS
+    dst_topic = BronzeAvroSchema.ORDER_STATUS
     key_column = 'order_id'
 
 class PaymentBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.PAYMENT
+    dst_topic = BronzeAvroSchema.PAYMENT
     key_column = 'order_id'
     
 class OrderItemBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.ORDER_ITEM
+    dst_topic = BronzeAvroSchema.ORDER_ITEM
     key_column = 'order_id'
 ###
 
 class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.ESTIMATED_DELIVERY_DATE
+    dst_topic = BronzeAvroSchema.ESTIMATED_DELIVERY_DATE
     key_column = 'order_id'
     
 class ReviewBronzeProducer(BronzeProducer):
-    dst_topic = BronzeTopic.REVIEW
+    dst_topic = BronzeAvroSchema.REVIEW
     key_column = 'review_id'
     end_timestamp: Optional[pd.Timestamp] = None
 

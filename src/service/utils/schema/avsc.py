@@ -1,17 +1,12 @@
 from typing import List
 from enum import Enum
 
-from confluent_kafka import Consumer
-from confluent_kafka import Producer
-from confluent_kafka.admin import NewTopic
-
-from service.stream.topic import *
 from service.utils.schema.registry_manager import *
 
-class BaseTopic:
+class BaseAvroSchema:
     """Base class for Kafka topic definitions with common methods."""
     @classmethod
-    def get_all_topics(cls) -> List[str]:
+    def get_all_filenames(cls) -> List[str]:
         """모든 토픽 이름을 prefix와 함께 반환"""
         topics = []
         for attr_name in dir(cls):
@@ -24,7 +19,7 @@ class BaseTopic:
                 topics.append(attr_value)
         return topics
 
-class BronzeTopic(BaseTopic):
+class BronzeAvroSchema(BaseAvroSchema):
     PRODUCT = "product" 
     CUSTOMER = "customer"
     SELLER = "seller"
@@ -35,7 +30,7 @@ class BronzeTopic(BaseTopic):
     PAYMENT = "payment"
     REVIEW = "review"
 
-class SilverTopic(BaseTopic):
+class SilverAvroSchema(BaseAvroSchema):
     REVIEW_CLEAN_COMMENT = "review_clean_comment" 
     REVIEW_METADATA = "review_metadata"
     ORDER_EVENT = "order_event"

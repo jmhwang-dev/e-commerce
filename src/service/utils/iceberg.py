@@ -12,7 +12,7 @@ class TimeBoundary(Enum):
     EARLIEST = "Earlies"
     LATEST = "Latest"
 
-def initialize_namespace(spark:SparkSession, namespace:str, table_name: str = '', is_drop: bool = False):
+def init_catalog(spark:SparkSession, namespace:str, table_name: str = '', is_drop: bool = False):
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
 
     if not is_drop:

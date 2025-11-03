@@ -1,9 +1,11 @@
+from typing import Union, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from confluent_kafka.serialization import SerializationError
 
-from service.producer.base.common import *
-from service.utils.kafka import *
+from service.producer.base.common import BaseProducer
+from service.utils.kafka import get_confluent_kafka_producer, get_confluent_serializer_conf
+from service.utils.schema.avsc import BronzeAvroSchema
 
 class PandasProducer(BaseProducer):
 
@@ -55,7 +57,7 @@ class PandasProducer(BaseProducer):
         for producer_record in producer_record_list:
             try:
                 cls.producer.produce(cls.dst_topic, key=producer_record['key'], value=producer_record['value'])
-                if cls.dst_topic != BronzeTopic.ORDER_STATUS:
+                if cls.dst_topic != BronzeAvroSchema.ORDER_STATUS:
                     continue
                 if producer_record['value']['status'] != 'delivered_customer':
                     continue
