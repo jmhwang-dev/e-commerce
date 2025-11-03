@@ -1,19 +1,6 @@
 #!/bin/bash
 set -e
 
-CHECKPOINT_BASE="data/minio/warehousedev/silver"
-CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
-
-if [ -n "$CHECKPOINT_DIRS" ]; then
-  echo "Found checkpoint directories:"
-  echo "$CHECKPOINT_DIRS"
-  while IFS= read -r dir; do
-    echo "Removing checkpoint directory: $dir"
-    rm -rf "$dir" && echo "Successfully removed: $dir" || echo "Failed to remove: $dir"
-  done <<< "$CHECKPOINT_DIRS"
-else
-  echo "No checkpoint directories found in $CHECKPOINT_BASE/*/checkpoint"
-fi
 
 SRC_ZIP="src.zip"
 if [ -f "$SRC_ZIP" ]; then
