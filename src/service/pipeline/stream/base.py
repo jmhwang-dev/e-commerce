@@ -24,7 +24,7 @@ class BaseStream(ABC):
 
     src_df: Optional[DataFrame] = None
     output_df: Optional[DataFrame] = None
-    avsc_reader: Optional[AvscReader] = None
+    dst_avsc_reader: Optional[AvscReader] = None
     checpoint_path: Optional[str] = None
     process_time: str = '5 seconds'
 
@@ -41,9 +41,9 @@ class BaseStream(ABC):
             F.col(key_column).cast("string").alias("key"),
             to_avro(
                 F.struct(*value_columns),
-                self.avsc_reader.schema_str).alias('value'))
+                self.dst_avsc_reader.schema_str).alias('value'))
         
-        schema_id_hex = f"{self.avsc_reader.schema_id:08x}"  # AvscReader에 schema_id 추가 필요
+        schema_id_hex = f"{self.dst_avsc_reader.schema_id:08x}"  # AvscReader에 schema_id 추가 필요
         self.output_df = self.output_df.withColumn(
             "value",
             F.concat(
@@ -62,12 +62,12 @@ class BaseStream(ABC):
             .queryName(self.query_name) \
             .format("kafka") \
             .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
-            .option("topic", self.avsc_reader.table_name) \
+            .option("topic", self.dst_avsc_reader.table_name) \
             .option("checkpointLocation", self.checpoint_path) \
             .start()
     
     def get_topic_df(self, micro_batch:DataFrame, topic_name: str) -> DataFrame:
         ser_df = micro_batch.filter(F.col("topic") == topic_name)
-        avsc_reader = AvscReader(topic_name)
+        dst_avsc_reader = AvscReader(topic_name)
         key_column = get_avro_key_column(topic_name)
-        return get_deserialized_avro_stream_df(ser_df, key_column, avsc_reader.schema_str)
+        return get_deserialized_avro_stream_df(ser_df, key_column, dst_avsc_reader.schema_str)

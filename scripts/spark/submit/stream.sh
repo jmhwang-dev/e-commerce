@@ -2,17 +2,15 @@
 set -e
 
 rm -rf "data/minio/tmp/*"
-# 대상 베이스 디렉터리 (silver / gold)
 BASE_PATHS=(
-  "data/minio/warehousedev/silver"
-  "data/minio/warehousedev/gold"
+  "data/minio/warehousedev/stream/dev"
 )
 
 for CHECKPOINT_BASE in "${BASE_PATHS[@]}"; do
   echo "=== Checking $CHECKPOINT_BASE ==="
 
   # */checkpoint 형태의 디렉터리 전부 찾기
-  CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
+  CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*" 2>/dev/null || true)
 
   if [ -n "$CHECKPOINT_DIRS" ]; then
     echo "Found checkpoint directories:"

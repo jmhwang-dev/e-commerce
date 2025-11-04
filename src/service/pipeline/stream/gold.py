@@ -2,202 +2,147 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import StructType, IntegerType
+from pyspark.sql.types import IntegerType
+from pyspark.sql.utils import AnalysisException
 
-from ..base import BaseJob
-from schema import silver, gold
-from service.producer.silver import SilverTopic
+from .base import BaseStream
+from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
+from service.pipeline.common.gold import *
+from service.pipeline.batch.silver import OlistUserBatch, ProductMetadataBatch
+from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderTimelineBatch, FactOrderLocationBatch
 
-from service.utils.iceberg import write_iceberg
-from service.utils.spark import get_spark_session, get_kafka_stream_df
 
-class StreamGoldJob(BaseJob):
-    src_namespace: str = 'silver'
-    dst_namespace: str = "gold"
+from service.utils.spark import get_kafka_stream_df, start_console_stream
+from service.utils.schema.reader import AvscReader
 
-    output_df: Optional[DataFrame] = None
-    schema: Optional[StructType] = None
 
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        self._dev = True
-        self.spark_session = get_spark_session(f"{self.job_name}", dev=self._dev) if spark_session is None else spark_session
+class GoldStream(BaseStream):
+    dst_layer: Optional[str] = None
+    dst_name: Optional[str] = None
 
-class DimUserLocation(StreamGoldJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+    def __init__(self, is_dev:bool, process_time:str, spark_session: Optional[SparkSession] = None):
+        self.process_time = process_time
+        self.dst_layer = 'gold'
+        self.dst_env = 'prod' if not is_dev else 'dev'
+        self.spark_session = spark_session
 
-        self.job_name = self.__class__.__name__
-        self.schema = gold.DIM_USER_LOCATION
-        self.dst_table_name = 'dim_user_location'
-        self.initialize_dst_table()
+class DimUserLocationStream(GoldStream):
+    def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
+        super().__init__(is_dev, process_time, spark_session)
 
+        self.query_name = self.__class__.__name__
+        self.dst_name = GoldAvroSchema.DIM_USER_LOCATION
+        self.dst_avsc_reader = AvscReader(self.dst_name)
+    
+        # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
+        self.checpoint_path = \
+            f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
+    
     def extract(self):
         self.geo_coord_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverTopic.GEO_COORD),
-            SilverTopic.GEO_COORD
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.GEO_COORD),
+            SilverAvroSchema.GEO_COORD
         )
-
-        self.olist_user = self.spark_session.read.table(f'{self.src_namespace}.olist_user')
+        olist_user_avc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
+        self.olist_user = self.spark_session.read.table(olist_user_avc_reader.dst_table_identifier)
 
     def transform(self,):
-        self.output_df = self.geo_coord_stream \
-            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
-            .join(self.olist_user, on='zip_code', how='left')
-        
+        # query = start_console_stream(self.geo_coord_stream, output_mode='append')
+        # query.awaitTermination()
+        # return
+        self.output_df = DimUserLocationBase.transform(olist_user=self.olist_user, geo_coord_df=self.geo_coord_stream)
+    
     def load(self, micro_batch:DataFrame, batch_id: int):
-        micro_batch.createOrReplaceTempView(self.dst_table_name)
-        micro_batch.sparkSession.sql(
-            f"""
-            MERGE INTO {self.dst_table_identifier} t
-            USING {self.dst_table_name} s
-            ON t.zip_code = s.zip_code
-            WHEN NOT MATCHED THEN
-                INSERT *
-            """)
-        self.get_current_dst_count(micro_batch, batch_id, False)
-
-    def get_query(self, process_time='5 seconds'):
+        DimUserLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        
+    def get_query(self):
         self.extract()
         self.transform()
 
         return self.output_df.writeStream \
-            .outputMode("update") \
+            .trigger(processingTime=self.process_time) \
+            .queryName(self.query_name) \
             .foreachBatch(self.load) \
-            .trigger(processingTime=process_time) \
-            .queryName(self.job_name) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", self.checpoint_path) \
             .start()
 
-class FactOrderTimeline(StreamGoldJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
+class FactOrderTimelineStream(GoldStream):
+    def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
+        super().__init__(is_dev, process_time, spark_session)
 
-        self.job_name = self.__class__.__name__
-        self.schema = gold.FACT_ORDER_TIMELINE
-        self.dst_table_name = 'fact_order_timeline'
-        self.initialize_dst_table()
+        self.query_name = self.__class__.__name__
+        self.dst_name = GoldAvroSchema.FACT_ORDER_TIMELINE
+        self.dst_avsc_reader = AvscReader(self.dst_name)
+    
+        # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
+        self.checpoint_path = \
+            f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
         self.order_event_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverTopic.ORDER_EVENT),
-            SilverTopic.ORDER_EVENT
-        )
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.ORDER_EVENT),
+            SilverAvroSchema.ORDER_EVENT
+        ).withWatermark('ingest_time', '30 days')
 
     def transform(self,):
-        self.output_df = self.order_event_stream \
-            .groupBy('order_id') \
-            .agg(
-                F.max(F.when(F.col('data_type') == 'purchase', F.col('timestamp'))).alias('purchase'),
-                F.max(F.when(F.col('data_type') == 'approved', F.col('timestamp'))).alias('approve'),
-                F.max(F.when(F.col('data_type') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier'),
-                F.max(F.when(F.col('data_type') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer'),
-                F.max(F.when(F.col('data_type') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
-                F.max(F.when(F.col('data_type') == 'estimated_delivery', F.col('timestamp'))).alias('estimated_delivery'),
-            )
+        self.output_df = FactOrderTimelineBase.transform(self.order_event_stream)
         
     def load(self, micro_batch:DataFrame, batch_id: int):
-        micro_batch.createOrReplaceTempView(self.dst_table_name)
-        micro_batch.sparkSession.sql(
-            f"""
-            MERGE INTO {self.dst_table_identifier} t
-            USING {self.dst_table_name} s
-            ON t.order_id = s.order_id
-            WHEN MATCHED THEN
-                UPDATE SET
-                    t.purchase = COALESCE(s.purchase, t.purchase),
-                    t.approve = COALESCE(s.approve, t.approve),
-                    t.delivered_carrier = COALESCE(s.delivered_carrier, t.delivered_carrier),
-                    t.delivered_customer = COALESCE(s.delivered_customer, t.delivered_customer),
-                    t.shipping_limit = COALESCE(s.shipping_limit, t.shipping_limit),
-                    t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery)
-            WHEN NOT MATCHED THEN
-                INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
-                VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
-            """)
-        self.get_current_dst_count(micro_batch, batch_id, False)
+        FactOrderTimelineBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
 
-    def get_query(self, process_time='5 seconds'):
+    def get_query(self):
         self.extract()
         self.transform()
+
         return self.output_df.writeStream \
-            .outputMode("update") \
-            .trigger(processingTime=process_time) \
-            .queryName(self.job_name) \
+            .outputMode('update') \
+            .trigger(processingTime=self.process_time) \
+            .queryName(self.query_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+            .option("checkpointLocation", self.checpoint_path) \
             .start()
+    
+class FactOrderLocationStream(GoldStream):
+    def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
+        super().__init__(is_dev, process_time, spark_session)
 
-class DeliveryDetal(StreamGoldJob):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(spark_session)
-
-        self.job_name = self.__class__.__name__
-        self.schema = gold.DELIVERY_DETAIL
-        self.dst_table_name = 'delivery_detail'
-        self.dst_namespace = "gold"  # Gold 레이어로 설정
-        self.initialize_dst_table()  # Iceberg 테이블 초기화
+        self.query_name = self.__class__.__name__
+        self.dst_name = GoldAvroSchema.FACT_ORDER_LOCATION
+        self.dst_avsc_reader = AvscReader(self.dst_name)
+    
+        # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
+        self.checpoint_path = \
+            f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        # Iceberg 테이블 변경 스트림 읽기 (Spark 3.5.6 지원)
-        self.src_df = self.spark_session.readStream \
-            .format('iceberg') \
-            .table(f'{self.src_namespace}.order_detail') \
-            .withWatermark('process_timestamp', '60 days')
+        self.order_detail_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.ORDER_DETAIL),
+            SilverAvroSchema.ORDER_DETAIL
+        )
 
-    def transform(self, micro_batch: DataFrame, batch_id: int):
-    
-        aggregated_df = micro_batch.groupBy("order_id", "product_id", "price", "customer_id") \
-            .agg(
-                F.count("order_item_id").alias("quantity"),
-            ).withColumnRenamed("price", "unit_price")
-        
-        # # TODO: compare with join after filter
-        product_metadata = micro_batch.sparkSession.read.table(f'{self.src_namespace}.product_metadata')
-        user_location = micro_batch.sparkSession.read.table(f'{self.src_namespace}.dim_user_location')
-        
-        # Customer 쪽: aggregated_df (ORDER_DETAIL 기반) + dim_user_location 조인 + category 추가
-        with_customer = aggregated_df \
-            .join(dim_user_location.alias("cust_loc"), aggregated_df["customer_id"] == F.col("cust_loc.user_id"), "inner") \
-            .join(product_metadata, "product_id", "inner") \
-            .withColumn("user_type", F.lit("customer")) \
-            .select(
-                "order_id", "product_id", "category", "quantity", 'unit_price',
-                F.col("customer_id").alias("user_id"),
-                "user_type",
-                F.col("cust_loc.lat").alias("lat"),
-                F.col("cust_loc.lng").alias("lng")
-            ) \
-            .drop("zip_code")  # 불필요 컬럼 제거
+        dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
+        self.dim_user_location_df = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
 
-        # Seller 쪽: aggregated_df + product_metadata (seller_id) + dim_user_location 조인
-        with_seller = aggregated_df \
-            .join(product_metadata, "product_id", "inner") \
-            .join(dim_user_location.alias("sell_loc"), F.col("seller_id") == F.col("sell_loc.user_id"), "inner") \
-            .withColumn("user_type", F.lit("seller")) \
-            .select(
-                "order_id", "product_id", "category", "quantity", "unit_price",
-                F.col("seller_id").alias("user_id"),
-                "user_type",
-                F.col("sell_loc.lat").alias("lat"),
-                F.col("sell_loc.lng").alias("lng")
-            ) \
-            .drop("zip_code")
-
-        self.output_df = with_customer.unionByName(with_seller)
+        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
         
-        self.load()
-        self.get_current_dst_count(self.output_df, batch_id, False)
-
-    def load(self, ):
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='a')
+    def transform(self,):
+        self.output_df = FactOrderLocationBase.transform(
+            order_detail_df=self.order_detail_stream,
+            product_metadata_df=self.product_metadata_df,
+            dim_user_location_df=self.dim_user_location_df
+        )
         
-    def get_query(self, process_time='5 seconds'):
+    def load(self, micro_batch:DataFrame, batch_id: int):
+        FactOrderLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+
+    def get_query(self):
         self.extract()
+        self.transform()
 
-        return self.src_df.writeStream \
-            .outputMode("update") \
-            .trigger(processingTime=process_time) \
-            .queryName(self.job_name) \
-            .foreachBatch(self.transform) \
-            .option("checkpointLocation", f"s3a://warehousedev/{self.dst_namespace}/{self.dst_table_name}/checkpoint") \
+        return self.output_df.writeStream \
+            .trigger(processingTime=self.process_time) \
+            .queryName(self.query_name) \
+            .foreachBatch(self.load) \
+            .option("checkpointLocation", self.checpoint_path) \
             .start()

@@ -8,13 +8,11 @@ from .base import BaseStream
 from ..batch.silver import *
 from ..common.silver import *
 
-from service.producer.bronze import BronzeAvroSchema
-from service.producer.silver import SilverAvroSchema
+from service.utils.schema.avsc import BronzeAvroSchema, SilverAvroSchema
 from service.utils.spark import get_kafka_stream_df, start_console_stream
 from service.utils.schema.reader import AvscReader
 
 class SilverStream(BaseStream):
-
     dst_layer: Optional[str] = None
     dst_name: Optional[str] = None
 
@@ -30,7 +28,7 @@ class GeoCoordStream(SilverStream):
 
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.GEO_COORD
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
@@ -56,7 +54,7 @@ class OlistUserStream(SilverStream):
 
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.OLIST_USER
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
@@ -83,12 +81,12 @@ class OlistUserStream(SilverStream):
             return
         OlistUserBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
         
-    def get_query(self, process_time='5 seconds'):
+    def get_query(self):
         self.extract()
         self.transform()
 
         return self.output_df.writeStream \
-            .trigger(processingTime=process_time) \
+            .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .foreachBatch(self.load) \
             .option("checkpointLocation", self.checpoint_path) \
@@ -100,7 +98,7 @@ class OrderEventStream(SilverStream):
         
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.ORDER_EVENT
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
@@ -115,14 +113,13 @@ class OrderEventStream(SilverStream):
         self.output_df = OrderEventBase.transform(self.estimated_df, self.shippimt_limit_df, self.order_status_df)
         self.set_byte_stream('order_id', ["data_type", "timestamp", "ingest_time"])
 
-
 class ProductMetadataStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
         
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.PRODUCT_METADATA
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
@@ -144,12 +141,12 @@ class ProductMetadataStream(SilverStream):
             return
         ProductMetadataBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
 
-    def get_query(self, process_time='5 seconds'):
+    def get_query(self):
         self.extract()
         self.transform()
         
         return self.output_df.writeStream \
-            .trigger(processingTime=process_time) \
+            .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .foreachBatch(self.load) \
             .option("checkpointLocation", self.checpoint_path) \
@@ -161,7 +158,7 @@ class OrderDetailStream(SilverStream):
         
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.ORDER_DETAIL
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
@@ -183,7 +180,7 @@ class ReviewMetadataStream(SilverStream):
         
         self.query_name = self.__class__.__name__
         self.dst_name = SilverAvroSchema.REVIEW_METADATA
-        self.avsc_reader = AvscReader(self.dst_name)
+        self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
         self.checpoint_path = \
