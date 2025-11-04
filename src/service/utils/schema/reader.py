@@ -10,6 +10,7 @@ class AvscReader:
 
         # SchemaRegistryError could be raised if schema_name != topic_name
         self.schema_str = self.client.get_latest_version(schema_name).schema.schema_str
+        self.schema_id = self.client.get_latest_version(schema_name).schema_id
         self.set_metadata(self.schema_str)
 
     def set_metadata(self, schema_str):

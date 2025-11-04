@@ -1,0 +1,31 @@
+{
+  "type": "record",
+  "name": "fact_product_period_portfolio",
+  "namespace": "gold",
+  "fields": [
+    {
+      "name": "product_id",
+      "type": "string"
+    },
+    {
+      "name": "sales_period",
+      "type": "string"
+    },
+    {
+      "name": "category",
+      "type": "string"
+    },
+    {
+      "name": "total_sales_quantity",
+      "type": "double"
+    },
+    {
+      "name": "mean_sales",
+      "type": "double"
+    },
+    {
+      "name": "group",
+      "type": "string"
+    }
+  ]
+}

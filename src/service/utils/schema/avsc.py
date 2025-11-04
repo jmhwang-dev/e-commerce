@@ -41,3 +41,15 @@ class SilverAvroSchema(BaseAvroSchema):
     # schema for batch
     OLIST_USER = 'olist_user'
     PRODUCT_METADATA = "product_metadata"
+
+class GoldAvroSchema(BaseAvroSchema):
+    # schema for batch and stream
+    DIM_USER_LOCATION = "dim_user_location" 
+    FACT_ORDER_TIMELINE = "fact_order_timeline"
+    FACT_ORDER_LOCATION = "fact_order_location"
+
+    # batch
+    FACT_PRODUCT_PERIOD_SALES = "fact_product_period_sales"
+    FACT_PRODUCT_PERIOD_PORTFOLIO = "fact_product_period_portfolio"
+    FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
+    FACT_REVIEW_STATS = "fact_review_stats"

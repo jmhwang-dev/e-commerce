@@ -1,0 +1,13 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "fact_order_lead_days",
+  "fields": [
+    { "name": "order_id", "type": "string" },
+    { "name": "until_approve", "type": "int" },
+    { "name": "until_delivered_carrier", "type": "int" },
+    { "name": "until_delivered_customer", "type": "int" },
+    { "name": "shipping_delay", "type": "int" },
+    { "name": "delivery_customer_delay", "type": "int" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "dim_user_location",
+  "fields": [
+    { "name": "user_type", "type": "string" },
+    { "name": "user_id", "type": "string" },
+    { "name": "zip_code", "type": "int" },
+    { "name": "lat", "type": "float" },
+    { "name": "lng", "type": "float" }
+  ]
+}

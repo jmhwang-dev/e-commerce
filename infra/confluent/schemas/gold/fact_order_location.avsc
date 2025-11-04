@@ -1,0 +1,13 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "fact_order_location",
+  "fields": [
+    { "name": "order_id", "type": "string" },
+    { "name": "user_id", "type": "string" },
+    { "name": "user_type", "type": "string" },
+    { "name": "zip_code", "type": "int" },
+    { "name": "lng", "type": "float" },
+    { "name": "lat", "type": "float" }
+  ]
+}
