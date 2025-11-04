@@ -3,12 +3,12 @@ from pyspark.sql import DataFrame
 
 from abc import ABC, abstractmethod
 
-class CommonTask(ABC):
+class CommonSilverTask(ABC):
     @abstractmethod
     def transform(self, ):
         pass
 
-class GeoCoordBase(CommonTask):
+class GeoCoordBase(CommonSilverTask):
     
     @classmethod
     def transform(cls, geo_df: DataFrame):
@@ -28,7 +28,7 @@ class GeoCoordBase(CommonTask):
                 (F.col("lng").between(BRAZIL_BOUNDS["min_lon"], BRAZIL_BOUNDS["max_lon"]))
             )
 
-class OlistUserBase(CommonTask):
+class OlistUserBase(CommonSilverTask):
 
     @classmethod
     def transform(cls, customer_df:DataFrame, seller_df:DataFrame ):
@@ -46,7 +46,7 @@ class OlistUserBase(CommonTask):
         
         return _customer_df.unionByName(_seller_df)
     
-class OrderEventBase(CommonTask):
+class OrderEventBase(CommonSilverTask):
     
     @classmethod
     def transform(cls, estimated_df:DataFrame, shippimt_limit_df:DataFrame, order_status_df:DataFrame):
@@ -64,7 +64,7 @@ class OrderEventBase(CommonTask):
 
         return _order_status_df.unionByName(_estimated_df).unionByName(_shippimt_limit_df)
     
-class ProductMetadataBase(CommonTask):
+class ProductMetadataBase(CommonSilverTask):
     
     @classmethod
     def transform(cls, product_df:DataFrame, order_item_df:DataFrame):
@@ -93,7 +93,7 @@ class ProductMetadataBase(CommonTask):
             .dropna()
     
 
-class OrderDetailBase(CommonTask):
+class OrderDetailBase(CommonSilverTask):
     
     @classmethod
     def transform(cls, order_item_df:DataFrame, payment_df:DataFrame):
@@ -139,7 +139,7 @@ class OrderDetailBase(CommonTask):
                 F.col('agg.order_id').alias('order_id'), 'customer_id', 'product_id', 'unit_price', 'quantity'
             )
     
-class ReviewMetadataBase(CommonTask):
+class ReviewMetadataBase(CommonSilverTask):
     
     @classmethod
     def transform(cls, review_stream:DataFrame):

@@ -1,0 +1,392 @@
+from typing import Optional
+
+from pyspark.sql import functions as F
+from pyspark.sql import DataFrame, SparkSession
+
+from .base import BaseBatch
+from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
+
+from service.pipeline.common.gold import *
+from service.utils.spark import get_spark_session
+from service.utils.schema.reader import AvscReader
+
+class GoldBatch(BaseBatch):
+    src_namespace: str = 'silver'
+    dst_namespace: str = "gold"
+
+class DimUserLocationBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.DIM_USER_LOCATION)
+
+    def extract(self):
+        geo_coord_avc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
+        self.geo_coord_df = self.spark_session.read.table(f'{self.src_namespace}.{geo_coord_avc_reader.table_name}')
+
+        olist_user_avc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
+        self.olist_user = self.spark_session.read.table(olist_user_avc_reader.dst_table_identifier)
+
+    def transform(self,):
+        self.output_df = DimUserLocationBase.transform(olist_user=self.olist_user, geo_coord_df=self.geo_coord_df)
+        
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        if df is not None:
+            output_df = df
+        else:
+            output_df = self.output_df
+
+        output_df.createOrReplaceTempView("updates")
+        output_df.sparkSession.sql(
+            f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
+            USING updates s
+            ON t.zip_code = s.zip_code AND t.user_id = s.user_id AND t.zip_code = s.zip_code
+            WHEN MATCHED AND t.lng != s.lng THEN
+                UPDATE SET t.lng = s.lng
+            WHEN MATCHED AND t.lat != s.lat THEN
+                UPDATE SET t.lat = s.lat
+            WHEN NOT MATCHED THEN
+                INSERT *
+            """)
+        
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+
+class FactOrderTimelineBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_TIMELINE)
+
+    def extract(self):
+        order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
+        self.order_event_df = self.spark_session.read.table(f"{self.src_namespace}.{order_event_avsc_reader.table_name}")
+
+    def transform(self,):
+        self.output_df = FactOrderTimelineBase.transform(self.order_event_df)
+
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        if df is not None:
+            output_df = df
+        else:
+            output_df = self.output_df
+
+        output_df.createOrReplaceTempView("updates")
+        output_df.sparkSession.sql(
+            f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
+            USING updates s
+            ON t.order_id = s.order_id
+            WHEN MATCHED THEN
+                UPDATE SET
+                    t.purchase = COALESCE(s.purchase, t.purchase),
+                    t.approve = COALESCE(s.approve, t.approve),
+                    t.delivered_carrier = COALESCE(s.delivered_carrier, t.delivered_carrier),
+                    t.delivered_customer = COALESCE(s.delivered_customer, t.delivered_customer),
+                    t.shipping_limit = COALESCE(s.shipping_limit, t.shipping_limit),
+                    t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery)
+            WHEN NOT MATCHED THEN
+                INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
+                VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
+            """)
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+
+class FactOrderLocationBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LOCATION)
+
+    def extract(self):
+        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
+        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+
+        dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
+        self.dim_user_location_df = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
+
+        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+
+    def transform(self,):
+        self.output_df = FactOrderLocationBase.transform(
+            order_detail_df=self.order_detail_df,
+            product_metadata_df=self.product_metadata_df,
+            dim_user_location_df=self.dim_user_location_df
+        )
+        
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        if df is not None:
+            output_df = df
+        else:
+            output_df = self.output_df
+
+        output_df.createOrReplaceTempView("updates")
+        output_df.sparkSession.sql(
+            f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
+            USING updates s
+            ON t.order_id = s.order_id and t.user_id = s.user_id
+            WHEN MATCHED AND t.lng != s.lng OR s.lat != s.lat THEN
+                UPDATE SET
+                    t.lng = COALESCE(s.lng, t.lng),
+                    t.lat = COALESCE(s.lat, t.lat)
+            WHEN NOT MATCHED THEN
+                INSERT *
+            """)
+        
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+
+class FactOrderLeadDaysBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LOCATION)
+
+    def extract(self):
+        fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
+        self.fact_order_timeline = self.spark_session.read.table(fact_order_timeline_avsc_reader.dst_table_identifier)
+
+    def transform(self,):
+        """
+        `shipping_delay > 0` means late shipping
+        `delivery_customer_delay > 0` means late delivery to customer
+        """
+        self.output_df = self.fact_order_timeline.select(
+            'order_id',
+            F.date_diff("approve", "purchase").alias("until_approve"),
+            F.date_diff("delivered_carrier", "approve").alias("until_delivered_carrier"),
+            F.date_diff("delivered_customer", "delivered_carrier").alias("until_delivered_customer"),
+            F.date_diff("delivered_carrier", "shipping_limit").alias("shipping_delay"),
+            F.date_diff("delivered_customer", "estimated_delivery").alias("delivery_customer_delay")
+        )
+
+        self.output_df = self.output_df.select(
+            "order_id",
+            "until_approve",
+            "until_delivered_carrier",
+            "until_delivered_customer",
+            "shipping_delay",
+            "delivery_customer_delay"
+        )
+
+    def load(self,):
+        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
+        self.output_df.createOrReplaceTempView("updates")
+        self.spark_session.sql(f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
+            USING updates s
+            ON t.order_id = s.order_id
+            WHEN MATCHED AND t.until_approve != s.until_approve THEN
+                UPDATE SET until_approve = s.until_approve
+
+            WHEN MATCHED AND t.until_delivered_carrier != s.until_delivered_carrier THEN
+                UPDATE SET until_delivered_carrier = s.until_delivered_carrier
+            
+            WHEN MATCHED AND t.until_delivered_customer != s.until_delivered_customer THEN
+                UPDATE SET until_delivered_customer = s.until_delivered_customer
+            
+            WHEN MATCHED AND t.shipping_delay != s.shipping_delay THEN
+                UPDATE SET shipping_delay = s.shipping_delay
+            
+            WHEN MATCHED AND t.delivery_customer_delay != s.delivery_customer_delay THEN
+                UPDATE SET delivery_customer_delay = s.delivery_customer_delay
+            
+            WHEN NOT MATCHED THEN
+                INSERT *
+        """)
+
+class FactProductPeriodSalesBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
+
+    def extract(self):
+        order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
+        self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
+
+        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
+        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+
+        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+
+    def transform(self):
+        complete_order_df = self.order_event_df.filter(F.col('delivered_customer').isNotNull()) \
+                                            .select('order_id', 'delivered_customer')
+        
+        complete_order_detail_df = self.order_detail_df.join(complete_order_df, on='order_id', how='inner')
+        
+        complete_order_detail_df = complete_order_detail_df.withColumn(
+            'sales_period', 
+            F.date_format(F.col('delivered_customer'), 'yyyy-MM')
+        )
+        
+        period_product_sales_df = complete_order_detail_df.groupBy('product_id', 'sales_period') \
+            .agg(
+                F.sum('quantity').alias('total_sales_quantity'),
+                F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
+            )
+        
+        period_product_sales_df = period_product_sales_df.withColumn(
+            'mean_sales', 
+            F.col('total_sales_amount') / F.col('total_sales_quantity')
+        )
+        
+        product_category_df = self.product_metadata_df.select('product_id', 'category').dropna()
+        
+        self.output_df = period_product_sales_df.join(
+            product_category_df, 
+            on='product_id', 
+            how='inner'
+        ).orderBy('sales_period', F.desc('total_sales_amount'))
+
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        if df is not None:
+            output_df = df
+        else:
+            output_df = self.output_df
+
+        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
+        self.output_df.createOrReplaceTempView("updates")
+        self.spark_session.sql(f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
+            USING updates source
+            ON target.product_id = source.product_id AND target.sales_period = source.sales_period
+            WHEN MATCHED THEN
+            UPDATE SET
+                target.total_sales_quantity = source.total_sales_quantity,
+                target.total_sales_amount = source.total_sales_amount,
+                target.mean_sales = source.mean_sales,
+                target.category = source.category
+            WHEN NOT MATCHED THEN
+            INSERT (product_id, sales_period, total_sales_quantity, total_sales_amount, mean_sales, category)
+            VALUES (source.product_id, source.sales_period, source.total_sales_quantity, source.total_sales_amount, source.mean_sales, source.category);
+        """)
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        
+
+class FactProductPeriodPortfolioBatch(GoldBatch):
+    """
+    목적: 기간별 및 전체 누적 제품 매출 기록을 기반으로 카테고리 별 매출이 있는 제품을 4개 그룹으로 분류하는 제품 포트폴리오 매트릭스 생성
+    분류 기준:
+        - 판매량 기준점: 카테고리 내 75 백분위수 (상위 25%)
+        - 가격 기준점: 카테고리 내 중앙값 (50 백분위수)
+    분류 그룹:
+        - Star Products: 높은 판매량 + 높은 가격 (고수익 인기 제품)
+        - Volume Drivers: 높은 판매량 + 낮은 가격 (대량 판매 제품)
+        - Niche Gems: 낮은 판매량 + 높은 가격 (프리미엄 틈새 제품)
+        - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
+    """
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO)
+
+    def extract(self):
+        product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
+        self.product_period_sales_metrics_df = self.spark_session.read.table(product_period_sales_metrics_avsc_reader.dst_table_identifier)
+
+    def transform(self):
+        # 1. 기간별 임계값 계산 (category, sales_period별)
+        period_thresholds_df = self.product_period_sales_metrics_df.groupBy('category', 'sales_period').agg(
+            F.percentile_approx('total_sales_quantity', 0.75).alias('sold_count_threshold'),
+            F.percentile_approx('mean_sales', 0.5).alias('median_avg_price')
+        )
+
+        # 2. 기간별 데이터에 임계값 조인 및 그룹 분류
+        period_matrix_df = self.product_period_sales_metrics_df.join(
+            period_thresholds_df, 
+            on=['category', 'sales_period'], 
+            how='inner'
+        ).withColumn(
+            "group",
+            F.when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Star Products")
+             .when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") < F.col("median_avg_price")), "Volume Drivers")
+             .when((F.col("total_sales_quantity") < F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Niche Gems")
+             .otherwise("Question Marks")
+        ).select('product_id', 'sales_period', 'category', 'total_sales_quantity', 'mean_sales', 'group')  # 필요 컬럼만 선택
+
+        # 3. 전체 누적 메트릭 계산 (sales_period = 'all_time')
+        cumul_df = self.product_period_sales_metrics_df.groupBy('product_id', 'category').agg(
+            F.sum('total_sales_quantity').alias('total_sales_quantity'),
+            F.sum('total_sales_amount').alias('total_sales_amount')
+        ).withColumn('mean_sales', F.col('total_sales_amount') / F.col('total_sales_quantity'))
+
+        # 4. 누적 임계값 계산 (category별)
+        cumul_thresholds_df = cumul_df.groupBy('category').agg(
+            F.percentile_approx('total_sales_quantity', 0.75).alias('sold_count_threshold'),
+            F.percentile_approx('mean_sales', 0.5).alias('median_avg_price')
+        )
+
+        # 5. 누적 데이터에 임계값 조인 및 그룹 분류, sales_period = 'all_time' 추가
+        cumul_matrix_df = cumul_df.join(
+            cumul_thresholds_df, 
+            on='category', 
+            how='inner'
+        ).withColumn(
+            "group",
+            F.when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Star Products")
+             .when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") < F.col("median_avg_price")), "Volume Drivers")
+             .when((F.col("total_sales_quantity") < F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Niche Gems")
+             .otherwise("Question Marks")
+        ).withColumn('sales_period', F.lit('all_time')) \
+         .select('product_id', 'sales_period', 'category', 'total_sales_quantity', 'mean_sales', 'group')  # 기간별과 컬럼 순서 일치
+
+        # 6. 기간별과 누적 데이터 union
+        self.output_df = period_matrix_df.unionByName(cumul_matrix_df)
+        
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        if df is not None:
+            output_df = df
+        else:
+            output_df = self.output_df
+
+        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
+        self.output_df.createOrReplaceTempView("updates")
+        self.spark_session.sql(f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
+            USING updates source
+            ON target.product_id = source.product_id AND target.sales_period = source.sales_period
+            WHEN MATCHED THEN
+            UPDATE SET
+                target.category = source.category,
+                target.total_sales_quantity = source.total_sales_quantity,
+                target.mean_sales = source.mean_sales,
+                target.group = source.group
+            WHEN NOT MATCHED THEN
+            INSERT (product_id, sales_period, category, total_sales_quantity, mean_sales, group)
+            VALUES (source.product_id, source.sales_period, source.category, source.total_sales_quantity, source.mean_sales, source.group);
+        """)
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+
+
+class FactReviewStatsBatch(GoldBatch):
+    def __init__(self, spark_session: Optional[SparkSession] = None):
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
+        self.initialize_dst_table(GoldAvroSchema.FACT_REVIEW_STATS)
+
+    def extract(self):
+        review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)
+        self.review_metadata_df = self.spark_session.read.table(review_metadata_avsc_reader.dst_table_identifier)
+
+        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
+        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+
+        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+
+    def transform(self):
+        product_cateogory_df = self.product_metadata_df.select('product_id', 'category').dropDuplicates()
+        order_product_df = self.order_detail_df.select('order_id', 'product_id').dropDuplicates()
+        product_review = self.review_metadata_df \
+            .join(order_product_df, on='order_id', how='inner') \
+            .join(product_cateogory_df, on='product_id', how='inner')
+
+        self.output_df = product_review.withColumn('until_answer_lead_days',F.date_diff('review_answer_timestamp', 'review_creation_date'))
+        
+    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
+        self.output_df.createOrReplaceTempView("updates")
+        self.spark_session.sql(f"""
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
+            USING updates source
+            ON target.product_id = source.product_id AND target.review_id = source.review_id AND target.order_id = source.order_id
+            WHEN NOT MATCHEC THEN
+                INSERT *
+        """)
+        self.get_current_dst_count(self.output_df.sparkSession, batch_id, False)

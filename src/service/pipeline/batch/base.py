@@ -24,7 +24,8 @@ class BaseBatch(ABC):
     dst_namespace: str = ''
     dst_table_name: str = ''
     dst_table_identifier: str = ''
-    avsc_reader: Optional[AvscReader] = None
+    dst_table_schema: Optional[StructType] = None
+    dst_avsc_reader: Optional[AvscReader] = None
 
     @abstractmethod
     def extract(self,):
@@ -41,38 +42,33 @@ class BaseBatch(ABC):
         """
         pass
 
-        
     def initialize_dst_table(self, avsc_filename):
-        self.avsc_reader = AvscReader(avsc_filename)
+        self.dst_avsc_reader = AvscReader(avsc_filename)
+
+        if self.spark_session.catalog.tableExists(self.dst_avsc_reader.dst_table_identifier):
+            return
 
         jvm = self.spark_session._jvm
-        avro_schema_java = jvm.org.apache.avro.Schema.Parser().parse(self.avsc_reader.schema_str)
+        avro_schema_java = jvm.org.apache.avro.Schema.Parser().parse(self.dst_avsc_reader.schema_str)
 
         # Spark StructType으로 변환
         SchemaConverters = jvm.org.apache.spark.sql.avro.SchemaConverters
         converted = SchemaConverters.toSqlType(avro_schema_java)
         json_str = converted.dataType().json()  # JSON 문자열
         json_dict = json.loads(json_str)  # dict로 변환
-        iceberg_schema = StructType.fromJson(json_dict)
+        self.dst_table_schema = StructType.fromJson(json_dict)
 
-        # initialized table
-        self.dst_table_name = self.avsc_reader.table_name
-        self.dst_table_identifier: str = f"{self.dst_namespace}.{self.dst_table_name}"
-
-        if self.spark_session.catalog.tableExists(self.dst_table_identifier):
-            return
-
-        dst_df = self.spark_session.createDataFrame([], iceberg_schema)
-        write_iceberg(self.spark_session, dst_df, self.dst_table_identifier, mode='a')
+        dst_df = self.spark_session.createDataFrame([], self.dst_table_schema)
+        write_iceberg(self.spark_session, dst_df, self.dst_avsc_reader.dst_table_identifier, mode='a')
 
     def get_current_dst_count(self, spark_session:SparkSession, batch_id:int=-1, debug=False, line_number=200):
-        dst_df = spark_session.read.table(f"{self.dst_table_identifier}")
+        dst_df = spark_session.read.table(self.dst_avsc_reader.dst_table_identifier)
         if batch_id == -1:
             info_message = ''
         else:
             info_message = f'batch_id: {batch_id} '
 
-        print(f"{info_message}Current # of {self.dst_table_identifier }: ", dst_df.count())
+        print(f"{info_message}Current # of {self.dst_avsc_reader.dst_table_identifier }: ", dst_df.count())
 
         if debug:
             conditions = [F.col(c).isNull() for c in dst_df.columns]

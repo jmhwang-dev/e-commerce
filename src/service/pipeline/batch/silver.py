@@ -30,7 +30,7 @@ class GeoCoordBatch(SilverBatch):
         self.output_df = GeoCoordBase.transform(self.geo_df)
 
     def load(self,):
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='w')
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
     
 class OlistUserBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -53,13 +53,13 @@ class OlistUserBatch(SilverBatch):
 
         output_df.createOrReplaceTempView("updates")
         output_df.sparkSession.sql(f"""
-            MERGE INTO {self.dst_table_identifier} AS target
-            USING updates AS source
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
+            USING updates source
             ON target.user_type = source.user_type AND target.user_id = source.user_id
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        self.get_current_dst_count(output_df.sparkSession, batch_id)
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
         
 class OrderEventBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -75,7 +75,7 @@ class OrderEventBatch(SilverBatch):
         self.output_df = OrderEventBase.transform(self.estimated_df, self.shippimt_limit_df, self.order_status_df)
 
     def load(self):
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='w')
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
         self.get_current_dst_count(self.output_df.sparkSession)
 
 
@@ -100,7 +100,7 @@ class ProductMetadataBatch(SilverBatch):
 
         output_df.createOrReplaceTempView("updates")
         output_df.sparkSession.sql(f"""
-            MERGE INTO {self.dst_table_identifier} t
+            MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
             ON t.product_id = s.product_id AND t.seller_id = s.seller_id
             WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
@@ -110,7 +110,7 @@ class ProductMetadataBatch(SilverBatch):
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
 
-        self.get_current_dst_count(output_df.sparkSession, batch_id)
+        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
     
 class OrderDetailBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -125,7 +125,7 @@ class OrderDetailBatch(SilverBatch):
         self.output_df = OrderDetailBase.transform(self.order_item_df, self.payment_df)
 
     def load(self):
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='w')
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
         self.get_current_dst_count(self.output_df.sparkSession)
     
 class ReviewMetadataBatch(SilverBatch):
@@ -140,5 +140,5 @@ class ReviewMetadataBatch(SilverBatch):
         self.output_df = ReviewMetadataBase.transform(self.review_df)
 
     def load(self):
-        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_table_identifier, mode='w')
+        write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
         self.get_current_dst_count(self.output_df.sparkSession)
