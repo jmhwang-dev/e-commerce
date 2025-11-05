@@ -31,7 +31,7 @@ class GeoCoordStream(SilverStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
@@ -56,7 +56,7 @@ class OlistUserStream(SilverStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
@@ -85,7 +85,7 @@ class OrderEventStream(SilverStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
@@ -106,57 +106,116 @@ class ProductMetadataStream(SilverStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
         
     def extract(self):        
         self.product_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.PRODUCT), BronzeAvroSchema.PRODUCT)
-        self.product_df = self.product_df.withWatermark('ingest_time', '30 days')
-
         self.order_item_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM)
-        self.order_item_df = self.order_item_df.withWatermark('ingest_time', '30 days')
 
     def transform(self, ):
-        self.output_df = ProductMetadataBase.transform(self.product_df, self.order_item_df)
+        product_category = self.product_df \
+            .withWatermark('ingest_time', '30 days') \
+            .select('product_id', 'category', 'ingest_time') \
+            .dropDuplicates(['product_id'])  # latest ingest_time 기준 자동 정렬 필요 시 sort 추가
 
-
-    def load(self, micro_batch: DataFrame, batch_id: int):
-        if micro_batch.isEmpty():
-            return
-        ProductMetadataBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
-
-    def get_query(self):
-        self.extract()
-        self.transform()
+        product_seller = self.order_item_df \
+            .withWatermark('ingest_time', '30 days') \
+            .select('product_id', 'seller_id', 'ingest_time') \
+            .dropDuplicates(['product_id'])
         
-        return self.output_df.writeStream \
-            .trigger(processingTime=self.process_time) \
-            .queryName(self.query_name) \
-            .foreachBatch(self.load) \
-            .option("checkpointLocation", self.checpoint_path) \
-            .start()
+        self.output_df = product_category.alias('p_cat').join(
+            product_seller.alias('p_sel'),
+            on=F.expr("""
+                p_cat.product_id = p_sel.product_id and
+                p_cat.ingest_time >= p_sel.ingest_time - interval 30 days AND
+                p_cat.ingest_time <= p_sel.ingest_time + interval 30 days
+            """),
+            how='fullouter'
+            ).select(
+                F.col('p_cat.category').alias('category'),
+                F.col('p_cat.product_id').alias('product_id'),
+                F.col('p_sel.seller_id').alias('seller_id'),
+                F.greatest('p_cat.ingest_time', 'p_sel.ingest_time').alias('ingest_time'),
+            ).dropna()
+                    
+        self.set_byte_stream('product_id', ["category", "seller_id", "ingest_time"])
     
-class OrderDetailStream(SilverStream):
+class CustomerOrderStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
         
         self.query_name = self.__class__.__name__
-        self.dst_name = SilverAvroSchema.ORDER_DETAIL
+        self.dst_name = SilverAvroSchema.CUSTOMER_ORDER
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM) \
-            .withWatermark('ingest_time', '3 days')
-        self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.PAYMENT), BronzeAvroSchema.PAYMENT) \
-            .withWatermark('ingest_time', '3 days')
+        self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM)
+        self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.PAYMENT), BronzeAvroSchema.PAYMENT)
         
     def transform(self):
-        self.output_df = OrderDetailBase.transform(self.order_item_stream, self.payment_stream)
-        self.set_byte_stream('order_id', ["product_id", "unit_price", "customer_id", "quantity"])
+        """
+        Non-windowed groupBy: 전체 스트림 기간 동안 누적 집로, 상태가 무한이 증가한다. (unbounded state)
+        - watermark는 배치에서 late data를 처리하는 목적이다.
+        - 따라서 watermark가 있어도 상태를 drop할 시간 경계가 없어서 상태가 finalized 되지 않음
+        - 결국 OOM으로 이어질 가능성이 매우 높아지기 때문에, 다음과 같은 예외를 발생시킨다.
+        (AnalysisException: "Append output mode not supported for streaming aggregations without watermark")
+
+        대안1. window 함수
+
+        대안2. Append 대신 update (변경된 행만 출력) 또는 complete (전체 결과 재출력) mode로 전환
+        - 상태 drop: Update mode에서 watermark 설정 시 오래된 상태 정리 가능 (complete는 모든 상태 유지, drop 안 함).
+        - 한계: Append가 필요한 싱크 (e.g., Kafka append-only)에서 불가. Complete는 대규모 데이터에서 비효율적 (전체 재출력).
+
+        대안 3: mapGroupsWithState 또는 flatMapGroupsWithState로 커스텀 상태 관리
+        """
+        # TODO: check logic one more
+
+        # order_item_price: 워터마크 유지
+        order_item_price = self.order_item_stream \
+            .withWatermark('ingest_time', '3 days') \
+            .select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time') \
+            .dropna()
+
+        # windowed aggregation
+        aggregated_df = order_item_price \
+            .groupBy(
+                F.window("ingest_time", "5 minutes"),
+                "order_id", "product_id", "price"
+            ).agg(
+                F.count("order_item_id").alias("quantity"),
+                F.max("ingest_time").alias('agg_ingest_time')
+            ).withColumnRenamed("price", "unit_price")  # window 유지
+
+        # order_customer: 워터마크 추가
+        order_customer = self.payment_stream \
+            .withWatermark('ingest_time', '3 days') \
+            .select('order_id', 'customer_id', 'ingest_time') \
+            .dropDuplicates(['order_id'])
+
+        # fullouter 조인에 시간 범위 조건 추가
+        self.output_df = aggregated_df.alias('agg').join(
+            order_customer.alias('oc'),
+            F.expr("""
+                agg.order_id = oc.order_id AND
+                agg.agg_ingest_time >= oc.ingest_time - interval 3 days AND
+                agg.agg_ingest_time <= oc.ingest_time + interval 3 days
+            """),
+            "fullouter"
+        ).select(
+            F.col('agg.order_id').alias('order_id'),
+            F.col('oc.customer_id').alias('customer_id'),
+            F.col('agg.product_id').alias('product_id'),
+            F.col('agg.unit_price').alias('unit_price'),
+            F.col('agg.quantity').alias('quantity'),
+            F.greatest('agg.agg_ingest_time', 'oc.ingest_time').alias('ingest_time')
+        ).dropna()
+
+        self.set_byte_stream('order_id', ["customer_id", "product_id", "unit_price", "quantity", "ingest_time"])
 
 class ReviewMetadataStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
@@ -167,7 +226,7 @@ class ReviewMetadataStream(SilverStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
 
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):

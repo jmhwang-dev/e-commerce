@@ -2,14 +2,14 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StructType, StructField, StringType, FloatType, LongType
 from pyspark.sql.utils import AnalysisException
 
 from .base import BaseStream
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 from service.pipeline.common.gold import *
 from service.pipeline.batch.silver import OlistUserBatch, ProductMetadataBatch
-from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderTimelineBatch, FactOrderLocationBatch
+from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderTimelineBatch, OrderDetailBatch
 
 
 from service.utils.spark import get_kafka_stream_df, start_console_stream
@@ -35,7 +35,7 @@ class DimUserLocationStream(GoldStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
     
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
     
     def extract(self):
@@ -81,7 +81,7 @@ class DimUserLocationStream(GoldStream):
             .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", self.checpoint_path) \
+            .option("checkpointLocation", self.checkpoint_path) \
             .start()
 
 class FactOrderTimelineStream(GoldStream):
@@ -93,7 +93,7 @@ class FactOrderTimelineStream(GoldStream):
         self.dst_avsc_reader = AvscReader(self.dst_name)
     
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
@@ -117,44 +117,67 @@ class FactOrderTimelineStream(GoldStream):
             .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", self.checpoint_path) \
+            .option("checkpointLocation", self.checkpoint_path) \
             .start()
-    
-class FactOrderLocationStream(GoldStream):
-    def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
+
+class OrderDetailStream(GoldStream):
+    def __init__(self, is_dev: bool, process_time: str, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
-
         self.query_name = self.__class__.__name__
-        self.dst_name = GoldAvroSchema.FACT_ORDER_LOCATION
+        self.dst_name = GoldAvroSchema.ORDER_DETAIL
         self.dst_avsc_reader = AvscReader(self.dst_name)
-    
+        
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
-        self.checpoint_path = \
+        self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
-
+        
     def extract(self):
-        self.order_detail_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.ORDER_DETAIL),
-            SilverAvroSchema.ORDER_DETAIL
+        self.customer_order_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.CUSTOMER_ORDER),
+            SilverAvroSchema.CUSTOMER_ORDER
+        )
+        self.product_metadata_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.PRODUCT_METADATA),
+            SilverAvroSchema.PRODUCT_METADATA
         )
 
-        dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
-        self.check_table(dim_user_location_avsc_reader.dst_table_identifier)
-        self.dim_user_location_df = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
+    def transform(self):
+        self.customer_order_stream = self.customer_order_stream.withWatermark('ingest_time', '30 days')
+        self.product_metadata_stream = self.product_metadata_stream.withWatermark('ingest_time', '30 days')
+        
+        # join 후 바로 중복 컬럼 병합 (product_id는 co 쪽 선택, ingest_time은 greatest)
+        joined_df = self.customer_order_stream.alias('co').join(
+            self.product_metadata_stream.alias('pm'),
+            on=F.expr("""
+                co.product_id = pm.product_id AND
+                co.ingest_time >= pm.ingest_time - INTERVAL 30 DAYS AND
+                co.ingest_time <= pm.ingest_time + INTERVAL 30 DAYS
+            """),
+            how='fullouter'
+        ).select(
+            F.col('co.order_id').alias('order_id'),
+            F.col('co.customer_id').alias('customer_id'),
+            F.col('co.product_id').alias('product_id'),  # co.product_id 선택 (pm drop)
+            F.col('pm.category').alias('category'),
+            F.col('co.quantity').alias('quantity'),
+            F.col('co.unit_price').alias('unit_price'),
+            F.col('pm.seller_id').alias('seller_id'),
+            F.greatest(F.col('co.ingest_time'), F.col('pm.ingest_time')).alias('ingest_time')
+        ).dropna()
+            
+        common_columns = ["order_id", "product_id", "category", "quantity", "unit_price"]
+        order_seller_df = joined_df \
+            .select(*(common_columns + ['seller_id'])) \
+            .withColumnRenamed('seller_id', 'user_id')
 
-        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
-        self.check_table(product_metadata_avsc_reader.dst_table_identifier)
-        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+        order_customer_df = joined_df \
+            .select(*(common_columns + ['customer_id'])) \
+            .withColumnRenamed('customer_id', 'user_id')
         
-    def transform(self,):
-        self.output_df = FactOrderLocationBase.transform(
-            order_detail_df=self.order_detail_stream,
-            product_metadata_df=self.product_metadata_df,
-            dim_user_location_df=self.dim_user_location_df
-        )
-        
+        self.output_df = order_seller_df.unionByName(order_customer_df)
+    
     def load(self, micro_batch:DataFrame, batch_id: int):
-        FactOrderLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        OrderDetailBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
 
     def get_query(self):
         self.extract()
@@ -164,5 +187,5 @@ class FactOrderLocationStream(GoldStream):
             .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .foreachBatch(self.load) \
-            .option("checkpointLocation", self.checpoint_path) \
+            .option("checkpointLocation", self.checkpoint_path) \
             .start()

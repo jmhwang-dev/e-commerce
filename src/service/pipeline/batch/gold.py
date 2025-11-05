@@ -90,27 +90,35 @@ class FactOrderTimelineBatch(GoldBatch):
             """)
         self.get_current_dst_count(output_df.sparkSession, batch_id, False)
 
-class FactOrderLocationBatch(GoldBatch):
+class OrderDetailBatch(GoldBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LOCATION)
+        self.initialize_dst_table(GoldAvroSchema.ORDER_DETAIL)
 
     def extract(self):
-        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
-        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
-
-        dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
-        self.dim_user_location_df = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
+        customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
+        self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
 
         product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
 
     def transform(self,):
-        self.output_df = FactOrderLocationBase.transform(
-            order_detail_df=self.order_detail_df,
-            product_metadata_df=self.product_metadata_df,
-            dim_user_location_df=self.dim_user_location_df
-        )
+
+        joined_df = self.customer_order_df.alias('co').join(
+            self.product_metadata_df.alias('pm'),
+            on='product_id',
+            how='inner')
+        
+        common_columns = ["order_id", "product_id", "category", "quantity", "unit_price"]
+        order_seller_df = joined_df \
+            .select(*(common_columns + ['seller_id'])) \
+            .withColumnRenamed('seller_id', 'user_id')
+
+        order_customer_df = joined_df \
+            .select(*(common_columns + ['customer_id'])) \
+            .withColumnRenamed('customer_id', 'user_id')
+        
+        self.output_df = order_seller_df.unionByName(order_customer_df)
         
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
@@ -123,13 +131,10 @@ class FactOrderLocationBatch(GoldBatch):
             f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
-            ON t.order_id = s.order_id and t.user_id = s.user_id
-            WHEN MATCHED AND t.lng != s.lng OR s.lat != s.lat THEN
-                UPDATE SET
-                    t.lng = COALESCE(s.lng, t.lng),
-                    t.lat = COALESCE(s.lat, t.lat)
+            ON t.order_id = s.order_id
             WHEN NOT MATCHED THEN
-                INSERT *
+                INSERT (order_id, user_id, product_id, category, quantity, unit_price)
+                VALUES (s.order_id, s.user_id, s.product_id, s.category, s.quantity, s.unit_price)
             """)
         
         self.get_current_dst_count(output_df.sparkSession, batch_id, False)
@@ -137,7 +142,7 @@ class FactOrderLocationBatch(GoldBatch):
 class FactOrderLeadDaysBatch(GoldBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LOCATION)
+        self.initialize_dst_table(GoldAvroSchema.ORDER_DETAIL)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
@@ -201,8 +206,8 @@ class FactProductPeriodSalesBatch(GoldBatch):
         order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
         self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
 
-        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
-        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+        customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
+        self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
 
         product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
@@ -211,14 +216,14 @@ class FactProductPeriodSalesBatch(GoldBatch):
         complete_order_df = self.order_event_df.filter(F.col('delivered_customer').isNotNull()) \
                                             .select('order_id', 'delivered_customer')
         
-        complete_order_detail_df = self.order_detail_df.join(complete_order_df, on='order_id', how='inner')
+        complete_customer_order_df = self.customer_order_df.join(complete_order_df, on='order_id', how='inner')
         
-        complete_order_detail_df = complete_order_detail_df.withColumn(
+        complete_customer_order_df = complete_customer_order_df.withColumn(
             'sales_period', 
             F.date_format(F.col('delivered_customer'), 'yyyy-MM')
         )
         
-        period_product_sales_df = complete_order_detail_df.groupBy('product_id', 'sales_period') \
+        period_product_sales_df = complete_customer_order_df.groupBy('product_id', 'sales_period') \
             .agg(
                 F.sum('quantity').alias('total_sales_quantity'),
                 F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
@@ -365,15 +370,15 @@ class FactReviewStatsBatch(GoldBatch):
         review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)
         self.review_metadata_df = self.spark_session.read.table(review_metadata_avsc_reader.dst_table_identifier)
 
-        order_detail_avsc_reader = AvscReader(SilverAvroSchema.ORDER_DETAIL)
-        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+        customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
+        self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
 
         product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
 
     def transform(self):
         product_cateogory_df = self.product_metadata_df.select('product_id', 'category').dropDuplicates()
-        order_product_df = self.order_detail_df.select('order_id', 'product_id').dropDuplicates()
+        order_product_df = self.customer_order_df.select('order_id', 'product_id').dropDuplicates()
         product_review = self.review_metadata_df \
             .join(order_product_df, on='order_id', how='inner') \
             .join(product_cateogory_df, on='product_id', how='inner')

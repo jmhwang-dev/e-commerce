@@ -92,7 +92,20 @@ class ProductMetadataBatch(SilverBatch):
         self.order_item_df = self.spark_session.read.table("bronze.order_item")
 
     def transform(self, ):
-        self.output_df = ProductMetadataBase.transform(self.product_df, self.order_item_df)
+        product_category = self.product_df \
+            .select('product_id', 'category') \
+            .dropna() \
+            .dropDuplicates()
+            
+        product_seller = self.order_item_df \
+            .select('product_id', 'seller_id') \
+            .dropDuplicates()
+        
+        self.output_df = product_category.join(
+            product_seller,
+            on='product_id',
+            how='inner'
+            ).dropna()
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         # watermark 기간에서 제외된 누락된 데이터는 배치로 처리
@@ -106,26 +119,38 @@ class ProductMetadataBatch(SilverBatch):
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
             ON t.product_id = s.product_id AND t.seller_id = s.seller_id
-            WHEN MATCHED AND t.category IS NULL AND s.category IS NOT NULL THEN
-                UPDATE SET t.category = s.category
-            WHEN NOT MATCHED AND s.seller_id IS NOT NULL THEN
+            WHEN NOT MATCHED THEN
                 INSERT (product_id, category, seller_id)
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
 
         self.get_current_dst_count(output_df.sparkSession, batch_id, False)
     
-class OrderDetailBatch(SilverBatch):
+class CustomerOrderBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.ORDER_DETAIL)
+        self.initialize_dst_table(SilverAvroSchema.CUSTOMER_ORDER)
 
     def extract(self):
         self.order_item_df = self.spark_session.read.table("bronze.order_item")
         self.payment_df = self.spark_session.read.table("bronze.payment")
         
     def transform(self):
-        self.output_df = OrderDetailBase.transform(self.order_item_df, self.payment_df)
+        order_item_price = self.order_item_df.select('order_id', 'order_item_id', 'product_id', 'price').dropna()
+        aggregated_df = order_item_price \
+            .groupBy("order_id", "product_id", "price") \
+            .agg(F.count("order_item_id").alias("quantity")) \
+            .withColumnRenamed("price", "unit_price") \
+
+        order_customer = self.payment_df \
+            .select('order_id', 'customer_id') \
+            .dropDuplicates()
+            
+        self.output_df = aggregated_df.join(
+                order_customer,
+                'order_id'
+                "inner"
+            )
 
     def load(self):
         write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')

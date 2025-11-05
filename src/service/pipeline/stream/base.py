@@ -27,7 +27,7 @@ class BaseStream(ABC):
     src_df: Optional[DataFrame] = None
     output_df: Optional[DataFrame] = None
     dst_avsc_reader: Optional[AvscReader] = None
-    checpoint_path: Optional[str] = None
+    checkpoint_path: Optional[str] = None
     process_time: str = '5 seconds'
 
     @abstractmethod
@@ -71,7 +71,7 @@ class BaseStream(ABC):
             .format("kafka") \
             .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
             .option("topic", self.dst_avsc_reader.table_name) \
-            .option("checkpointLocation", self.checpoint_path) \
+            .option("checkpointLocation", self.checkpoint_path) \
             .start()
     
     def get_topic_df(self, micro_batch:DataFrame, topic_name: str) -> DataFrame:
