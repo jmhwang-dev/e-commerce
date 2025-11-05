@@ -64,8 +64,11 @@ def get_avro_key_column(topic_name):
     elif topic_name == 'geo_coord':
         return 'zip_code'
     
-    elif topic_name in ['order_event', 'order_detail']:
+    elif topic_name in ['order_event', 'customer_order']:
         return 'order_id'
     
     elif topic_name == 'olist_user':
         return 'user_id'
+    
+    elif topic_name == 'product_metadata':
+        return 'product_id'

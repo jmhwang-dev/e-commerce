@@ -35,7 +35,7 @@ class SilverAvroSchema(BaseAvroSchema):
     REVIEW_CLEAN_COMMENT = "review_clean_comment" 
     REVIEW_METADATA = "review_metadata"
     ORDER_EVENT = "order_event"
-    ORDER_DETAIL = "order_detail"
+    CUSTOMER_ORDER = "customer_order"
     GEO_COORD = "geo_coord"
 
     # schema for batch
@@ -46,7 +46,7 @@ class GoldAvroSchema(BaseAvroSchema):
     # schema for batch and stream
     DIM_USER_LOCATION = "dim_user_location" 
     FACT_ORDER_TIMELINE = "fact_order_timeline"
-    FACT_ORDER_LOCATION = "fact_order_location"
+    ORDER_DETAIL = "order_detail"
 
     # batch
     FACT_PRODUCT_PERIOD_SALES = "fact_product_period_sales"

@@ -1,0 +1,13 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "order_detail",
+  "fields": [
+    { "name": "order_id", "type": "string" },
+    { "name": "product_id", "type": "string" },
+    { "name": "category", "type": "string" },
+    { "name": "quantity", "type": "long" },
+    { "name": "unit_price", "type": "float" },
+    { "name": "user_id", "type": "string" }
+  ]
+}
