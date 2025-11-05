@@ -43,15 +43,33 @@ class DimUserLocationStream(GoldStream):
             get_kafka_stream_df(self.spark_session, SilverAvroSchema.GEO_COORD),
             SilverAvroSchema.GEO_COORD
         )
-        olist_user_avc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
-        self.olist_user = self.spark_session.read.table(olist_user_avc_reader.dst_table_identifier)
+
+        self.olist_user_stream = self.get_topic_df(
+            get_kafka_stream_df(self.spark_session, SilverAvroSchema.OLIST_USER),
+            SilverAvroSchema.OLIST_USER
+        )
 
     def transform(self,):
-        # query = start_console_stream(self.geo_coord_stream, output_mode='append')
-        # query.awaitTermination()
-        # return
-        self.output_df = DimUserLocationBase.transform(olist_user=self.olist_user, geo_coord_df=self.geo_coord_stream)
-    
+        self.geo_coord_stream = self.geo_coord_stream.withWatermark('ingest_time', '30 days')
+        self.olist_user_stream = self.olist_user_stream.withWatermark('ingest_time', '30 days')
+
+        joined_df = self.geo_coord_stream \
+            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())).alias('geo_coord') \
+            .join(self.olist_user_stream.alias('olist_user'), 
+                F.expr("""
+                geo_coord.zip_code = olist_user.zip_code AND
+                geo_coord.ingest_time >= olist_user.ingest_time - INTERVAL 30 DAYS AND
+                geo_coord.ingest_time <= olist_user.ingest_time + INTERVAL 30 DAYS
+                """), "fullouter")
+
+        self.output_df = joined_df.select(
+            F.coalesce(F.col("geo_coord.zip_code"), F.col("olist_user.zip_code")).alias("zip_code"),
+            F.col("geo_coord.lat").alias("lat"),
+            F.col("geo_coord.lng").alias("lng"),
+            F.col("olist_user.user_id").alias("user_id"),
+            F.col("olist_user.user_type").alias("user_type")
+        )
+        
     def load(self, micro_batch:DataFrame, batch_id: int):
         DimUserLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
         
@@ -121,9 +139,11 @@ class FactOrderLocationStream(GoldStream):
         )
 
         dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
+        self.check_table(dim_user_location_avsc_reader.dst_table_identifier)
         self.dim_user_location_df = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
 
         product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.check_table(product_metadata_avsc_reader.dst_table_identifier)
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
         
     def transform(self,):

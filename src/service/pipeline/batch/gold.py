@@ -27,7 +27,11 @@ class DimUserLocationBatch(GoldBatch):
         self.olist_user = self.spark_session.read.table(olist_user_avc_reader.dst_table_identifier)
 
     def transform(self,):
-        self.output_df = DimUserLocationBase.transform(olist_user=self.olist_user, geo_coord_df=self.geo_coord_df)
+        unique_olist_user_df = self.olist_user.dropDuplicates()
+        unique_geo_coord_df = self.geo_coord_df.dropDuplicates()
+        self.output_df = unique_geo_coord_df \
+            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
+            .join(unique_olist_user_df, on='zip_code', how='inner')
         
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
@@ -40,13 +44,10 @@ class DimUserLocationBatch(GoldBatch):
             f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
-            ON t.zip_code = s.zip_code AND t.user_id = s.user_id AND t.zip_code = s.zip_code
-            WHEN MATCHED AND t.lng != s.lng THEN
-                UPDATE SET t.lng = s.lng
-            WHEN MATCHED AND t.lat != s.lat THEN
-                UPDATE SET t.lat = s.lat
+            ON t.user_id = s.user_id AND t.zip_code = s.zip_code
             WHEN NOT MATCHED THEN
-                INSERT *
+                INSERT (user_id, zip_code, lng, lat, user_type)
+                VALUES (s.user_id, s.zip_code, s.lng, s.lat, s.user_type)
             """)
         
         self.get_current_dst_count(output_df.sparkSession, batch_id, False)

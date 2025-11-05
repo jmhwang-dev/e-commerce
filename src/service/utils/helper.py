@@ -66,3 +66,6 @@ def get_avro_key_column(topic_name):
     
     elif topic_name in ['order_event', 'order_detail']:
         return 'order_id'
+    
+    elif topic_name == 'olist_user':
+        return 'user_id'

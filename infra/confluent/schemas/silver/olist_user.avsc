@@ -4,7 +4,7 @@
   "name": "olist_user",
   "fields": [
     { "name": "user_type", "type": "string" },
-    { "name": "user_id", "type": "string" },
-    { "name": "zip_code", "type": "int" }
+    { "name": "zip_code", "type": "int" },
+    { "name": "ingest_time", "type": { "type": "long", "logicalType": "timestamp-millis" } }
   ]
 }

@@ -41,12 +41,11 @@ class GeoCoordStream(SilverStream):
         ) \
         .select('zip_code', 'lng', 'lat', 'ingest_time') \
         .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
-        .withWatermark('ingest_time', '1 days') \
-        .dropDuplicates(['zip_code'])
+        .withWatermark('ingest_time', '1 days')
 
     def transform(self):
-        self.output_df = GeoCoordBase.transform(self.geo_stream)        
-        self.set_byte_stream('zip_code', ['lng', 'lat'])
+        self.output_df = GeoCoordBase.transform(self.geo_stream)
+        self.set_byte_stream('zip_code', ['lng', 'lat', 'ingest_time'])
     
 class OlistUserStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
@@ -75,23 +74,8 @@ class OlistUserStream(SilverStream):
 
     def transform(self):
         self.output_df = OlistUserBase.transform(self.customer_stream, self.seller_stream)
-
-    def load(self, micro_batch: DataFrame, batch_id: int):
-        if micro_batch.isEmpty():
-            return
-        OlistUserBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
-        
-    def get_query(self):
-        self.extract()
-        self.transform()
-
-        return self.output_df.writeStream \
-            .trigger(processingTime=self.process_time) \
-            .queryName(self.query_name) \
-            .foreachBatch(self.load) \
-            .option("checkpointLocation", self.checpoint_path) \
-            .start()
-
+        self.set_byte_stream('user_id', ['user_type', 'zip_code', 'ingest_time'])
+    
 class OrderEventStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)

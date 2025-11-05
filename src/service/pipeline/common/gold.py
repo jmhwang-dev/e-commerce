@@ -1,9 +1,10 @@
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame
 from pyspark.sql.types import IntegerType
-
-
 from abc import ABC, abstractmethod
+
+from service.utils.spark import  start_console_stream
+
 
 class CommonGoldTask(ABC):
     @abstractmethod
@@ -25,20 +26,6 @@ class FactOrderTimelineBase(CommonGoldTask):
                 F.max(F.when(F.col('data_type') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
                 F.max(F.when(F.col('data_type') == 'estimated_delivery', F.col('timestamp'))).alias('estimated_delivery'),
             )
-    
-
-class DimUserLocationBase(CommonGoldTask):
-    
-    @classmethod
-    def transform(cls, olist_user: DataFrame, geo_coord_df: DataFrame):
-
-        unique_olist_user_df = olist_user.dropDuplicates()
-        unique_geo_coord_df = geo_coord_df.dropDuplicates()
-
-        return unique_geo_coord_df \
-            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
-            .join(unique_olist_user_df, on='zip_code', how='left')
-    
 
 class FactOrderLocationBase(CommonGoldTask):
     

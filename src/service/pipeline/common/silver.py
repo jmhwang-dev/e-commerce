@@ -22,7 +22,6 @@ class GeoCoordBase(CommonSilverTask):
         }
 
         return geo_df \
-            .dropDuplicates(['zip_code']) \
             .filter(
                 (F.col("lat").between(BRAZIL_BOUNDS["min_lat"], BRAZIL_BOUNDS["max_lat"])) &
                 (F.col("lng").between(BRAZIL_BOUNDS["min_lon"], BRAZIL_BOUNDS["max_lon"]))
@@ -35,14 +34,10 @@ class OlistUserBase(CommonSilverTask):
         _customer_df = customer_df \
             .withColumnRenamed('customer_id', 'user_id') \
             .withColumn('user_type', F.lit('customer')) \
-            .drop('ingest_time') \
-            .dropDuplicates()
 
         _seller_df = seller_df \
             .withColumnRenamed('seller_id', 'user_id') \
             .withColumn('user_type', F.lit('seller')) \
-            .drop('ingest_time') \
-            .dropDuplicates()
         
         return _customer_df.unionByName(_seller_df)
     

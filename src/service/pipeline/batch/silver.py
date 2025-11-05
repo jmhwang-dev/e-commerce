@@ -28,6 +28,7 @@ class GeoCoordBatch(SilverBatch):
 
     def transform(self):
         self.output_df = GeoCoordBase.transform(self.geo_df)
+        self.output_df = self.output_df.dropDuplicates()
 
     def load(self,):
         write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
@@ -43,6 +44,8 @@ class OlistUserBatch(SilverBatch):
 
     def transform(self):
         self.output_df = OlistUserBase.transform(self.customer_df, self.seller_df)
+        self.output_df = self.output_df.drop('ingest_time')
+        self.output_df = self.output_df.dropDuplicates()
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         # watermark 기간에서 제외된 누락된 데이터는 배치로 처리
