@@ -99,26 +99,30 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
 
     if not dev:
         spark = SparkSession.builder.appName(app_name).getOrCreate()
+        # spark = SparkSession.builder.appName(app_name).config("spark.sql.session.timeZone", "UTC").getOrCreate()
             
     else:
         spark = SparkSession.builder.config(conf=dev_conf).getOrCreate()
+        # spark = SparkSession.builder.config(conf=dev_conf).config("spark.sql.session.timeZone", "UTC").getOrCreate()
     
     spark.sparkContext.setLogLevel("WARN")
     return spark
 
-def start_console_stream(df: DataFrame, output_mode: str, checkpoint_dir: str = '') -> StreamingQuery:
+def start_console_stream(df: DataFrame, output_mode: str='append', checkpoint_dir: str = '') -> None:
     # .queryName(query_name)
     options = {
         "truncate": "false",
+        "numRows": "100",
         "checkpointLocation": f"s3a://tmp/{uuid.uuid4() if len(checkpoint_dir) == 0 else checkpoint_dir}",
         "trigger": {"processingTime": "5 second"}
     }
 
-    return df.writeStream \
+    df.writeStream \
         .outputMode(output_mode) \
         .format("console") \
         .options(**options) \
-        .start()
+        .start() \
+        .awaitTermination()
 
 def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterable[str], str]) -> DataFrame:
     """
@@ -155,26 +159,48 @@ def get_deserialized_avro_stream_df(kafka_stream_df:DataFrame, key_column: str, 
         ).alias("data")
     return kafka_stream_df.select(deserialized_key, deserialized_value).select(key_column, "data.*")
 
-def run_stream_queries(spark_session:SparkSession, query_list:List[StreamingQuery], logger: Logger):
-    try:
-        spark_session.streams.awaitAnyTermination()
 
-    except StreamingQueryException as e:
-        write_log(logger, f"StreamingQueryException occurred: {str(e)}")
-        for q in query_list[:]:
-            if not q.isActive():
-                logger.error(f"Query for {q.name} failed. Last progress: {q.lastProgress}")
-                query_list.remove(q)
-        write_log(logger, f"Stack trace: {traceback.format_exc()}")
+def run_stream_queries(spark_session: SparkSession, query_list: List[StreamingQuery], logger: Logger):
+    logger.info(f"Started {len(query_list)} streaming queries")
+    
+    while any(q.isActive for q in query_list):
+        try:
+            # awaitAnyTermination()은 내부적으로 timeout 있음 (기본 60초)
+            terminated = spark_session.streams.awaitAnyTermination()
+            
+            if not terminated:
+                # 타임아웃 발생 시 주기적 헬스체크
+                logger.debug("No query terminated in this cycle, continuing...")
+                continue
+                
+        except StreamingQueryException as e:
+            logger.error(f"StreamingQueryException: {e}", exc_info=True)
+            _cleanup_inactive_queries(query_list, logger)
+            
+        except AnalysisException as e:
+            logger.error(f"AnalysisException in streaming query: {e}", exc_info=True)
+            _cleanup_inactive_queries(query_list, logger)
+            
+        except KeyboardInterrupt:
+            logger.info("Shutdown requested by user...")
+            stop_streams(spark_session, query_list)
+            return
+            
+        except Exception as e:
+            logger.error(f"Unexpected error in stream manager: {e}", exc_info=True)
+            _cleanup_inactive_queries(query_list, logger)
+    
+    logger.info("All streaming queries have terminated.")
 
-    except AnalysisException as e:
-        write_log(logger, f"AnalysisException occurred: {str(e)}")
-        for q in query_list[:]:
-            if not q.isActive:
-                write_log(logger, f"Query for {q.name} failed. Last progress: {q.lastProgress}")
-                query_list.remove(q)
-        write_log(logger, f"Stack trace: {traceback.format_exc()}")
 
-    except KeyboardInterrupt:
-        print("Stopping all streaming query_list and sessions...")
-        stop_streams(spark_session, query_list)
+def _cleanup_inactive_queries(query_list: List[StreamingQuery], logger: Logger):
+    """죽은 쿼리 정리 헬퍼"""
+    for q in query_list[:]:
+        if not q.isActive:
+            exception = q.exception() or "Unknown"
+            status_msg = q.status.get('message', 'No message') if q.status else 'No status'
+            logger.error(f"Query {q.name} failed or stopped. "
+                         f"Exception: {exception}, Status: {status_msg}")
+            if q.lastProgress:
+                logger.error(f"Last progress: {q.lastProgress}")
+            query_list.remove(q)
