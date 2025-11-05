@@ -1,3 +1,5 @@
+import time
+
 from abc import ABC, abstractmethod
 from pyspark.sql import SparkSession
 from service.utils.iceberg import *
@@ -35,6 +37,12 @@ class BaseStream(ABC):
     @abstractmethod
     def transform(self,):
         pass
+
+    def check_table(self, dst_table_identifier):
+        while True:
+            if self.spark_session.catalog.tableExists(dst_table_identifier):
+                break
+            time.sleep(3)
 
     def set_byte_stream(self, key_column:str, value_columns: List[str]):
         self.output_df = self.output_df.select(
