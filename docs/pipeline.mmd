@@ -3,51 +3,60 @@ config:
   layout: elk
 ---
 flowchart TD
- subgraph Kafka_Topics["Bronze"]
-        order_status["order_status"]
-        order_item["order_item"]
-        estimated_delivery_date["estimated_delivery_date"]
-        product["product"]
-        payment["payment"]
-        customer["customer"]
-        seller["seller"]
-        geolocation["geolocation"]
-        review["review"]
+  subgraph Kafka_Topics["Bronze"]
+    order_status["order_status"]
+    order_item["order_item"]
+    estimated_delivery_date["estimated_delivery_date"]
+    product["product"]
+    payment["payment"]
+    customer["customer"]
+    seller["seller"]
+    geolocation["geolocation"]
+    review["review"]
   end
- subgraph Silver_layer["Silver_layer"]
-        order_event["order_event"]
-        order_detail["order_detail"]
-        product_metadata["product_metadata"]
-        user["user"]
-        geo_coord["geo_coord"]
-        review_metadata["review_metadata"]
+
+  subgraph Silver_layer["Silver_layer"]
+    order_event["order_event"]
+    customer_order["customer_order"]
+    product_metadata["product_metadata"]
+    olist_user["olist_user"]
+    geo_coord["geo_coord"]
+    review_metadata["review_metadata"]
   end
- subgraph Gold_layer_stream["Gold_layer_stream"]
-        fact_order_timeline["fact_order_timeline"]
-        fact_order_location["fact_order_location"]
-        dim_user_location["dim_user_location"]
+
+  subgraph Gold_layer_stream["Gold_layer_stream"]
+    fact_order_timeline["fact_order_timeline"]
+    order_detail["order_detail"]
+    dim_user_location["dim_user_location"]
   end
- subgraph Gold_layer_batch["Gold_layer_batch"]
-        product_portfolio_matrix["product_portfolio_matrix"]
-        fact_order_lead_days["fact_order_lead_days"]
-        fact_review_stats["fact_review_stats"]
+
+  subgraph Gold_layer_batch["Gold_layer_batch"]
+    product_period_sales_metrics["product_period_sales_metrics"]
+    product_period_portfolio_matrix["product_period_portfolio_matrix"]
+    fact_review_stats["fact_review_stats"]
+    fact_order_lead_days["fact_order_lead_days"]
   end
-    order_status --> order_event
-    order_item -- drop shipping_limit_date, seller_id --> order_detail
-    order_item -- select order_id, shipping_limit_date --> order_event
-    estimated_delivery_date -- select order_id, estimated_delivery_date --> order_event
-    product -- select product_id, category --> product_metadata
-    review -- drop review_comment_title, review_comment_message --> review_metadata
-    review_metadata --> fact_review_stats
-    order_event --> product_portfolio_matrix & fact_order_timeline
-    order_item -- select product_id, seller_id --> product_metadata
-    payment --> order_detail
-    product_metadata --> product_portfolio_matrix
-    order_detail --> fact_order_location
-    fact_order_timeline --> fact_order_lead_days
-    user --> dim_user_location
-    geo_coord --> dim_user_location
-    seller --> user
-    customer --> user
-    geolocation -- valid coordinate --> geo_coord
-    dim_user_location --> fact_order_location
+
+  order_status --> order_event
+  order_item -->|drop shipping_limit_date, seller_id| customer_order
+  order_item -->|select order_id, shipping_limit_date| order_event
+  estimated_delivery_date -->|select order_id, estimated_delivery_date| order_event
+  product -->|select product_id, category| product_metadata
+  review -->|drop review_comment_title, review_comment_message| review_metadata
+  review_metadata --> fact_review_stats
+  order_event --> fact_order_timeline
+  order_item -->|select product_id, seller_id| product_metadata
+  payment --> customer_order
+  product_metadata --> order_detail
+  product_metadata --> product_period_sales_metrics
+  customer_order --> order_detail
+  customer_order --> fact_review_stats
+  customer_order --> product_period_sales_metrics
+  fact_order_timeline --> fact_order_lead_days
+  fact_order_timeline --> product_period_sales_metrics
+  olist_user --> dim_user_location
+  geo_coord --> dim_user_location
+  seller --> olist_user
+  customer --> olist_user
+  geolocation -->|valid coordinate| geo_coord
+  product_period_sales_metrics --> product_period_portfolio_matrix
