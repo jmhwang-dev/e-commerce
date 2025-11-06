@@ -1,15 +1,17 @@
 from typing import List
 
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 from pyspark.sql.streaming.query import StreamingQuery
 
 from service.utils.schema.reader import AvscReader
-from service.utils.spark import get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams
+from service.utils.spark import get_deserialized_avro_stream_df, get_kafka_stream_df, stop_streams, run_stream_queries
 from service.utils.iceberg import load_stream_to_iceberg
 from service.utils.helper import get_producer, get_avro_key_column
+from service.producer.bronze import BronzeAvroSchema
 
-def get_load_cdc_query_list(src_topic_names: List[str], spark_session: SparkSession) -> List[StreamingQuery]:
+
+def load_cdc(src_topic_names: List[str], spark_session: SparkSession, logger) -> List[StreamingQuery]:
     try:
         query_list: List[StreamingQuery] = []
 
@@ -23,7 +25,7 @@ def get_load_cdc_query_list(src_topic_names: List[str], spark_session: SparkSess
             query = load_stream_to_iceberg(deser_stream_df, dst_avsc_reader.dst_table_identifier, process_time='5 seconds')
             query_list.append(query)
         
-        return query_list
+        run_stream_queries(spark_session, query_list, logger)
 
     except SchemaRegistryError as e:
         # From `AvscReader()`

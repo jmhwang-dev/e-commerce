@@ -1,8 +1,8 @@
 from service.producer.bronze import BronzeAvroSchema
-from service.utils.spark import get_spark_session, run_stream_queries
+from service.utils.spark import get_spark_session
 from service.utils.iceberg import init_catalog
 from service.utils.logger import *
-from service.pipeline.stream.bronze import get_load_cdc_query_list
+from service.pipeline.stream.bronze import load_cdc
 
 if __name__ == "__main__":
     src_avsc_filenames = BronzeAvroSchema.get_all_filenames()
@@ -11,5 +11,5 @@ if __name__ == "__main__":
     logger = get_logger(__name__, '/opt/spark/logs/cdc.log')
 
     init_catalog(spark_session, dst_namespace, is_drop=True)
-    query_list = get_load_cdc_query_list(src_avsc_filenames, spark_session)
-    run_stream_queries(spark_session, query_list, logger)
+    load_cdc(src_avsc_filenames, spark_session, logger)
+    
