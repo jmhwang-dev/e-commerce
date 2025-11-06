@@ -23,8 +23,6 @@ def run_stream(job_class_list):
 
 if __name__ == "__main__":
     spark_session = get_spark_session("stream")
-
-    init_catalog(spark_session, 'silver', is_drop=True)
     init_catalog(spark_session, 'gold', is_drop=True)
 
     # TODO: inference

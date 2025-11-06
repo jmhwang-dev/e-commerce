@@ -33,11 +33,11 @@ class OlistUserBase(CommonSilverTask):
     def transform(cls, customer_df:DataFrame, seller_df:DataFrame ):
         _customer_df = customer_df \
             .withColumnRenamed('customer_id', 'user_id') \
-            .withColumn('user_type', F.lit('customer')) \
+            .withColumn('user_type', F.lit('customer'))
 
         _seller_df = seller_df \
             .withColumnRenamed('seller_id', 'user_id') \
-            .withColumn('user_type', F.lit('seller')) \
+            .withColumn('user_type', F.lit('seller'))
         
         return _customer_df.unionByName(_seller_df)
     

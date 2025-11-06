@@ -50,7 +50,7 @@ class DimUserLocationBatch(GoldBatch):
                 VALUES (s.user_id, s.zip_code, s.lng, s.lat, s.user_type)
             """)
         
-        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 class FactOrderTimelineBatch(GoldBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -88,7 +88,7 @@ class FactOrderTimelineBatch(GoldBatch):
                 INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
                 VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
             """)
-        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 class OrderDetailBatch(GoldBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -137,12 +137,12 @@ class OrderDetailBatch(GoldBatch):
                 VALUES (s.order_id, s.user_id, s.product_id, s.category, s.quantity, s.unit_price)
             """)
         
-        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 class FactOrderLeadDaysBatch(GoldBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.ORDER_DETAIL)
+        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LEAD_DAYS)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
@@ -203,8 +203,8 @@ class FactProductPeriodSalesBatch(GoldBatch):
         self.initialize_dst_table(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
 
     def extract(self):
-        order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
-        self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
+        fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
+        self.fact_order_timeline = self.spark_session.read.table(fact_order_timeline_avsc_reader.dst_table_identifier)
 
         customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
         self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
@@ -213,8 +213,9 @@ class FactProductPeriodSalesBatch(GoldBatch):
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
 
     def transform(self):
-        complete_order_df = self.order_event_df.filter(F.col('delivered_customer').isNotNull()) \
-                                            .select('order_id', 'delivered_customer')
+        complete_order_df = self.fact_order_timeline \
+            .filter(F.col('delivered_customer').isNotNull()) \
+            .select('order_id', 'delivered_customer')
         
         complete_customer_order_df = self.customer_order_df.join(complete_order_df, on='order_id', how='inner')
         
@@ -264,9 +265,8 @@ class FactProductPeriodSalesBatch(GoldBatch):
             INSERT (product_id, sales_period, total_sales_quantity, total_sales_amount, mean_sales, category)
             VALUES (source.product_id, source.sales_period, source.total_sales_quantity, source.total_sales_amount, source.mean_sales, source.category);
         """)
-        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
         
-
 class FactProductPeriodPortfolioBatch(GoldBatch):
     """
     목적: 기간별 및 전체 누적 제품 매출 기록을 기반으로 카테고리 별 매출이 있는 제품을 4개 그룹으로 분류하는 제품 포트폴리오 매트릭스 생성
@@ -358,7 +358,7 @@ class FactProductPeriodPortfolioBatch(GoldBatch):
             INSERT (product_id, sales_period, category, total_sales_quantity, mean_sales, group)
             VALUES (source.product_id, source.sales_period, source.category, source.total_sales_quantity, source.mean_sales, source.group);
         """)
-        self.get_current_dst_count(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 
 class FactReviewStatsBatch(GoldBatch):
@@ -392,7 +392,7 @@ class FactReviewStatsBatch(GoldBatch):
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
             USING updates source
             ON target.product_id = source.product_id AND target.review_id = source.review_id AND target.order_id = source.order_id
-            WHEN NOT MATCHEC THEN
+            WHEN NOT MATCHED THEN
                 INSERT *
         """)
-        self.get_current_dst_count(self.output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(self.output_df.sparkSession, batch_id, False)

@@ -50,8 +50,7 @@ def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifi
         # df.writeTo(dst_table_identifier).overwrite()
         # print(f"{dst_table_identifier} has overwrittend: {df.count()}")
         pass
-        
-
+    
     return
 
 def get_snapshot_details(df: DataFrame, boundary: str) -> Optional[dict]:
