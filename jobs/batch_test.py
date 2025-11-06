@@ -9,11 +9,6 @@ if __name__ == "__main__":
     init_catalog(spark_session, 'silver', is_drop=True)
     init_catalog(spark_session, 'gold', is_drop=True)
 
-    # df = spark_session.read.table('bronze.order_status')
-    # # df.filter(F.col('delivered_customer').isNotNull()).show()
-    # df.show()
-    # exit()
-
     job_list: List[base.BaseBatch] = [
         silver.GeoCoordBatch(),
         silver.ReviewMetadataBatch(),

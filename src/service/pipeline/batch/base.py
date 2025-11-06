@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import json
 
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.types import StructType
+from pyspark.sql.types import StructType, StructField, StringType, LongType
 from pyspark.sql import functions as F
 from functools import reduce
 
@@ -27,6 +27,11 @@ class BaseBatch(ABC):
     dst_table_identifier: str = ''
     dst_table_schema: Optional[StructType] = None
     dst_avsc_reader: Optional[AvscReader] = None
+    
+    processed_snapshot_schema = StructType([
+        StructField("job_name", StringType(), True),
+        StructField("last_processed_snapshot_id", LongType(), True)
+    ])
 
     @abstractmethod
     def extract(self,):
@@ -90,8 +95,9 @@ class BaseBatch(ABC):
         """
         증분처리 직접 구현
         """
-        print(f"[{self.job_name}] Setting incremental dataframe...")
-        last_id = get_last_processed_snapshot_id(self.spark_session, self.wartermark_table_identifier, self.job_name)
+        job_name = self.__class__.__name__
+        print(f"[{job_name}] Setting incremental dataframe...")
+        last_id = get_last_processed_snapshot_id(self.spark_session, self.wartermark_table_identifier, job_name)
         if not self.spark_session.catalog.tableExists(src_table_identifier): return None
 
         snapshot_df = get_snapshot_df(self.spark_session, src_table_identifier)
@@ -101,7 +107,7 @@ class BaseBatch(ABC):
             earliest = get_snapshot_details(snapshot_df, TimeBoundary.EARLIEST)
             if not earliest: return None
             self.end_snapshot_id = earliest["snapshot_id"]
-            print(f"[{self.job_name}] Initial load on earliest snapshot: {self.end_snapshot_id}")
+            print(f"[{job_name}] Initial load on earliest snapshot: {self.end_snapshot_id}")
             return self.spark_session.read.format("iceberg").option("snapshot-id", self.end_snapshot_id).load(src_table_identifier)
         else:
             latest = get_snapshot_details(snapshot_df, TimeBoundary.LATEST)
@@ -111,8 +117,8 @@ class BaseBatch(ABC):
             # Correctly compare using commit timestamps
             last_details = snapshot_df.filter(col("snapshot_id") == last_id).select("committed_at").first()
             if not last_details or latest["committed_at"] <= last_details["committed_at"]:
-                print(f"[{self.job_name}] No new data.")
+                print(f"[{job_name}] No new data.")
                 return None
 
-            print(f"[{self.job_name}] Incremental load from {last_id} before {self.end_snapshot_id}")
+            print(f"[{job_name}] Incremental load from {last_id} before {self.end_snapshot_id}")
             return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(src_table_identifier)

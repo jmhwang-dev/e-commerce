@@ -13,11 +13,6 @@ from service.utils.iceberg import write_iceberg, get_snapshot_df
 from service.utils.spark import get_spark_session
 from service.utils.schema.reader import AvscReader
 
-# WATERMARK_SCHEMA = StructType([
-#     StructField("job_name", StringType(), True),
-#     StructField("last_processed_snapshot_id", LongType(), True)
-# ])
-
 class SilverBatch(BaseBatch):
     src_namespace: str = 'bronze'
     dst_namespace: str = "silver"
@@ -33,7 +28,9 @@ class GeoCoordBatch(SilverBatch):
         # df.show()
         # exit()
 
-        self.geo_df = self.spark_session.read.table("bronze.geolocation")
+        # need incremental
+        geo_coord_avc_reader = AvscReader(BronzeAvroSchema.GEOLOCATION)
+        self.geo_df = self.spark_session.read.table(geo_coord_avc_reader.dst_table_identifier)
 
     def transform(self):
         self.geo_df = self.spark_session.read.table("bronze.geolocation") \
@@ -61,14 +58,19 @@ class GeoCoordBatch(SilverBatch):
         
         self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
 
+
 class OlistUserBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
         self.initialize_dst_table(SilverAvroSchema.OLIST_USER)
 
     def extract(self):
-        self.customer_df = self.spark_session.read.table("bronze.customer")
-        self.seller_df = self.spark_session.read.table("bronze.seller")
+        # need incremental
+        customer_avsc_reader = AvscReader(BronzeAvroSchema.CUSTOMER)
+        self.customer_df = self.spark_session.read.table(customer_avsc_reader.dst_table_identifier)
+
+        seller_avsc_reader = AvscReader(BronzeAvroSchema.SELLER)
+        self.seller_df = self.spark_session.read.table(seller_avsc_reader.dst_table_identifier)
 
     def transform(self):
         self.customer_df = self.spark_session.read.table("bronze.customer").dropDuplicates()
@@ -100,9 +102,15 @@ class OrderEventBatch(SilverBatch):
         self.initialize_dst_table(SilverAvroSchema.ORDER_EVENT)
 
     def extract(self):
-        self.estimated_df = self.spark_session.read.table("bronze.estimated_delivery_date")
-        self.shippimt_limit_df = self.spark_session.read.table("bronze.order_item")
-        self.order_status_df = self.spark_session.read.table("bronze.order_status")
+        # need incremental
+        est_avsc_reader = AvscReader(BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
+        self.estimated_df = self.spark_session.read.table(est_avsc_reader.dst_table_identifier)
+
+        order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.shippimt_limit_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
+
+        order_status_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_STATUS)
+        self.order_status_df = self.spark_session.read.table(order_status_avsc_reader.dst_table_identifier)
             
     def transform(self):
         self.output_df = OrderEventBase.transform(self.estimated_df, self.shippimt_limit_df, self.order_status_df)
@@ -131,9 +139,14 @@ class ProductMetadataBatch(SilverBatch):
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
         self.initialize_dst_table(SilverAvroSchema.PRODUCT_METADATA)
 
-    def extract(self):        
-        self.product_df = self.spark_session.read.table("bronze.product")
-        self.order_item_df = self.spark_session.read.table("bronze.order_item")
+    def extract(self):
+        # need incremental + merge dst
+        product_avsc_reader = AvscReader(BronzeAvroSchema.PRODUCT)
+        self.product_df = self.spark_session.read.table(product_avsc_reader.dst_table_identifier)
+
+        # need incremental
+        order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.order_item_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
 
     def transform(self, ):
         product_category = self.product_df \
@@ -178,8 +191,13 @@ class CustomerOrderBatch(SilverBatch):
         self.initialize_dst_table(SilverAvroSchema.CUSTOMER_ORDER)
 
     def extract(self):
-        self.order_item_df = self.spark_session.read.table("bronze.order_item")
-        self.payment_df = self.spark_session.read.table("bronze.payment")
+        # need incremental ?
+        order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.order_item_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
+        
+        # need incremental ?
+        payment_avsc_reader = AvscReader(BronzeAvroSchema.PAYMENT)
+        self.payment_df = self.spark_session.read.table(payment_avsc_reader.dst_table_identifier)
         
     def transform(self):
         order_item_price = self.order_item_df.select('order_id', 'order_item_id', 'product_id', 'price').dropna()
@@ -222,7 +240,9 @@ class ReviewMetadataBatch(SilverBatch):
         self.initialize_dst_table(SilverAvroSchema.REVIEW_METADATA)
 
     def extract(self):
-        self.review_df = self.spark_session.read.table("bronze.review")
+        # need incremental
+        review_avsc_reader = AvscReader(BronzeAvroSchema.REVIEW)
+        self.review_df = self.spark_session.read.table(review_avsc_reader.dst_table_identifier)
     
     def transform(self,):
         self.output_df = ReviewMetadataBase.transform(self.review_df)
