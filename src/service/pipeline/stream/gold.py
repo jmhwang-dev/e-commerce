@@ -2,15 +2,12 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import IntegerType, StructType, StructField, StringType, FloatType, LongType
-from pyspark.sql.utils import AnalysisException
+from pyspark.sql.types import IntegerType
 
 from .base import BaseStream
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 from service.pipeline.common.gold import *
-from service.pipeline.batch.silver import OlistUserBatch, ProductMetadataBatch
 from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderTimelineBatch, OrderDetailBatch
-
 
 from service.utils.spark import get_kafka_stream_df, start_console_stream
 from service.utils.schema.reader import AvscReader
@@ -68,7 +65,7 @@ class DimUserLocationStream(GoldStream):
             F.col("geo_coord.lng").alias("lng"),
             F.col("olist_user.user_id").alias("user_id"),
             F.col("olist_user.user_type").alias("user_type")
-        )
+        ).dropDuplicates()
         
     def load(self, micro_batch:DataFrame, batch_id: int):
         DimUserLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
@@ -174,7 +171,7 @@ class OrderDetailStream(GoldStream):
             .select(*(common_columns + ['customer_id'])) \
             .withColumnRenamed('customer_id', 'user_id')
         
-        self.output_df = order_seller_df.unionByName(order_customer_df)
+        self.output_df = order_seller_df.unionByName(order_customer_df).dropDuplicates()
     
     def load(self, micro_batch:DataFrame, batch_id: int):
         OrderDetailBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
