@@ -124,7 +124,7 @@ def start_console_stream(df: DataFrame, output_mode: str='append', checkpoint_di
         .start() \
         .awaitTermination()
 
-def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterable[str], str]) -> DataFrame:
+def get_kafka_stream_df(spark_session: SparkSession, topic_names: Union[Iterable[str], str]) -> DataFrame:
     """
     - .option("maxOffsetsPerTrigger", "10000")
         : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
@@ -134,14 +134,14 @@ def get_kafka_stream_df(spark_session: SparkSession, _topic_names: Union[Iterabl
     # 추가: spark.streaming.kafka.maxRatePerPartition (파티션당 초당 메시지 수 제한, 예: 1000) 설정으로 입력 속도 제어.
     # .option("groupId", "bronze2silver") \
 
-    if isinstance(_topic_names, str):
-        topic_names = [_topic_names]
+    if isinstance(topic_names, str):
+        _topic_names = [topic_names]
     else:
-        topic_names = _topic_names
+        _topic_names = topic_names
         
     src_stream_df = spark_session.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
-        .option("subscribe", ','.join(topic_names)) \
+        .option("subscribe", ','.join(_topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
         .option("maxOffsetsPerTrigger", "50") \
