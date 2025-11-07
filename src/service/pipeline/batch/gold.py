@@ -227,11 +227,12 @@ class FactProductPeriodSalesBatch(BaseBatch):
         
         product_category_df = self.product_metadata_df.select('product_id', 'category').dropna()
         
+        # TODO: why d41d8cd98f00b204e9800998ecf8427e is duplicated?
         self.output_df = period_product_sales_df.join(
             product_category_df, 
             on='product_id', 
             how='inner'
-        ).orderBy('sales_period', F.desc('total_sales_amount'))
+        ).orderBy('sales_period', F.desc('total_sales_amount')).dropDuplicates()    
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
@@ -239,7 +240,6 @@ class FactProductPeriodSalesBatch(BaseBatch):
         else:
             output_df = self.output_df
 
-        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
         self.output_df.createOrReplaceTempView("updates")
         self.spark_session.sql(f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
@@ -296,34 +296,7 @@ class FactProductPeriodPortfolioBatch(BaseBatch):
              .otherwise("Question Marks")
         ).select('product_id', 'sales_period', 'category', 'total_sales_quantity', 'mean_sales', 'group')  # 필요 컬럼만 선택
 
-        # 3. 전체 누적 메트릭 계산 (sales_period = 'all_time')
-        cumul_df = self.product_period_sales_metrics_df.groupBy('product_id', 'category').agg(
-            F.sum('total_sales_quantity').alias('total_sales_quantity'),
-            F.sum('total_sales_amount').alias('total_sales_amount')
-        ).withColumn('mean_sales', F.col('total_sales_amount') / F.col('total_sales_quantity'))
-
-        # 4. 누적 임계값 계산 (category별)
-        cumul_thresholds_df = cumul_df.groupBy('category').agg(
-            F.percentile_approx('total_sales_quantity', 0.75).alias('sold_count_threshold'),
-            F.percentile_approx('mean_sales', 0.5).alias('median_avg_price')
-        )
-
-        # 5. 누적 데이터에 임계값 조인 및 그룹 분류, sales_period = 'all_time' 추가
-        cumul_matrix_df = cumul_df.join(
-            cumul_thresholds_df, 
-            on='category', 
-            how='inner'
-        ).withColumn(
-            "group",
-            F.when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Star Products")
-             .when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") < F.col("median_avg_price")), "Volume Drivers")
-             .when((F.col("total_sales_quantity") < F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Niche Gems")
-             .otherwise("Question Marks")
-        ).withColumn('sales_period', F.lit('all_time')) \
-         .select('product_id', 'sales_period', 'category', 'total_sales_quantity', 'mean_sales', 'group')  # 기간별과 컬럼 순서 일치
-
-        # 6. 기간별과 누적 데이터 union
-        self.output_df = period_matrix_df.unionByName(cumul_matrix_df)
+        self.output_df = period_matrix_df
         
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
