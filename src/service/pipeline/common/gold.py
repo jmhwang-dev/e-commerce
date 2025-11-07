@@ -1,7 +1,7 @@
+from abc import ABC, abstractmethod
+
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame
-from pyspark.sql.types import IntegerType
-from abc import ABC, abstractmethod
 
 from service.utils.spark import  start_console_stream
 

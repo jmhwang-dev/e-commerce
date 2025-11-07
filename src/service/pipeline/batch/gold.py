@@ -2,29 +2,23 @@ from typing import Optional
 
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.types import IntegerType
 
 from .base import BaseBatch
+from service.pipeline.common.gold import *
+from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
-from service.pipeline.common.gold import *
-from service.utils.spark import get_spark_session
-from service.utils.schema.reader import AvscReader
-
-class GoldBatch(BaseBatch):
-    src_namespace: str = 'silver'
-    dst_namespace: str = "gold"
-
-class DimUserLocationBatch(GoldBatch):
+class DimUserLocationBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.DIM_USER_LOCATION)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.DIM_USER_LOCATION, spark_session)
 
     def extract(self):
-        geo_coord_avc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
-        self.geo_coord_df = self.spark_session.read.table(f'{self.src_namespace}.{geo_coord_avc_reader.table_name}')
+        geo_coord_avsc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
+        self.geo_coord_df = self.spark_session.read.table(geo_coord_avsc_reader.dst_table_identifier)
 
-        olist_user_avc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
-        self.olist_user = self.spark_session.read.table(olist_user_avc_reader.dst_table_identifier)
+        olist_user_avsc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
+        self.olist_user = self.spark_session.read.table(olist_user_avsc_reader.dst_table_identifier)
 
     def transform(self,):
         unique_olist_user_df = self.olist_user.dropDuplicates()
@@ -52,14 +46,13 @@ class DimUserLocationBatch(GoldBatch):
         
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
-class FactOrderTimelineBatch(GoldBatch):
+class FactOrderTimelineBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_TIMELINE)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_TIMELINE, spark_session)
 
     def extract(self):
         order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
-        self.order_event_df = self.spark_session.read.table(f"{self.src_namespace}.{order_event_avsc_reader.table_name}")
+        self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
 
     def transform(self,):
         self.output_df = FactOrderTimelineBase.transform(self.order_event_df)
@@ -88,12 +81,11 @@ class FactOrderTimelineBatch(GoldBatch):
                 INSERT (order_id, purchase, approve, delivered_carrier, delivered_customer, shipping_limit, estimated_delivery)
                 VALUES (s.order_id, s.purchase, s.approve, s.delivered_carrier, s.delivered_customer, s.shipping_limit, s.estimated_delivery)
             """)
-        self.get_current_dst_table(output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(output_df.sparkSession, batch_id)
 
-class OrderDetailBatch(GoldBatch):
+class OrderDetailBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.ORDER_DETAIL)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.ORDER_DETAIL, spark_session)
 
     def extract(self):
         customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
@@ -139,10 +131,9 @@ class OrderDetailBatch(GoldBatch):
         
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
-class FactOrderLeadDaysBatch(GoldBatch):
+class FactOrderLeadDaysBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_ORDER_LEAD_DAYS)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_LEAD_DAYS, spark_session)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
@@ -197,10 +188,9 @@ class FactOrderLeadDaysBatch(GoldBatch):
                 INSERT *
         """)
 
-class FactProductPeriodSalesBatch(GoldBatch):
+class FactProductPeriodSalesBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES, spark_session)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
@@ -267,7 +257,7 @@ class FactProductPeriodSalesBatch(GoldBatch):
         """)
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
         
-class FactProductPeriodPortfolioBatch(GoldBatch):
+class FactProductPeriodPortfolioBatch(BaseBatch):
     """
     목적: 기간별 및 전체 누적 제품 매출 기록을 기반으로 카테고리 별 매출이 있는 제품을 4개 그룹으로 분류하는 제품 포트폴리오 매트릭스 생성
     분류 기준:
@@ -280,8 +270,7 @@ class FactProductPeriodPortfolioBatch(GoldBatch):
         - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
     """
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO, spark_session)
 
     def extract(self):
         product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
@@ -361,10 +350,9 @@ class FactProductPeriodPortfolioBatch(GoldBatch):
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 
-class FactReviewStatsBatch(GoldBatch):
+class FactReviewStatsBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(GoldAvroSchema.FACT_REVIEW_STATS)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_REVIEW_STATS, spark_session)
 
     def extract(self):
         review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)
