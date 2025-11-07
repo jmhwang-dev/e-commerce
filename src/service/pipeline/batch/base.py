@@ -1,15 +1,21 @@
+import uuid
+import time
+
 from pprint import pprint
 from typing import Optional
 from abc import ABC, abstractmethod
 import json
 
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.types import StructType, StructField, StringType, LongType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from pyspark.sql import functions as F
 from functools import reduce
 
 from service.utils.schema.reader import AvscReader
-from service.utils.iceberg import *
+from service.utils.schema.avsc import *
+from service.utils.spark import get_spark_session
+
+from service.utils.iceberg import write_iceberg
 
 
 class BaseBatch(ABC):
@@ -20,18 +26,19 @@ class BaseBatch(ABC):
     """
 
     spark_session: Optional[SparkSession] = None
+    app_name: Optional[str] = None
     output_df: Optional[DataFrame] = None
 
-    dst_namespace: str = ''
-    dst_table_name: str = ''
-    dst_table_identifier: str = ''
-    dst_table_schema: Optional[StructType] = None
+    src_table_identifier: str = ''  # to update watermark table
     dst_avsc_reader: Optional[AvscReader] = None
-    
-    processed_snapshot_schema = StructType([
-        StructField("job_name", StringType(), True),
-        StructField("last_processed_snapshot_id", LongType(), True)
-    ])
+
+    def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None):
+        self.app_name = app_name
+        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.app_name)
+
+        self.dst_avsc_reader = AvscReader(dst_avsc_filename)
+        dst_scheam = BaseBatch.get_schema(self.spark_session, self.dst_avsc_reader)
+        BaseBatch.initialize_dst_table(self.spark_session, dst_scheam, self.dst_avsc_reader.dst_table_identifier)
 
     @abstractmethod
     def extract(self,):
@@ -48,30 +55,75 @@ class BaseBatch(ABC):
         """
         pass
 
-    def initialize_dst_table(self, avsc_filename):
-        self.dst_avsc_reader = AvscReader(avsc_filename)
+    @staticmethod
+    def check_table(spark_session:SparkSession, dst_table_identifier: str):
+        while True:
+            if spark_session.catalog.tableExists(dst_table_identifier):
+                break
+            spark_session.catalog.refreshTable(dst_table_identifier)
+            time.sleep(5)
 
-        if self.spark_session.catalog.tableExists(self.dst_avsc_reader.dst_table_identifier):
-            return
+    @staticmethod
+    def get_schema(spark_session: SparkSession, avsc_reader: AvscReader) -> StructType:
+        # 키 컬럼 매핑
+        KEY_COL_MAPPING = {
+            BronzeAvroSchema.CUSTOMER: StructField('customer_id', StringType(), False),
+            BronzeAvroSchema.ESTIMATED_DELIVERY_DATE: StructField('order_id', StringType(), False),
+            BronzeAvroSchema.GEOLOCATION: StructField('zip_code', IntegerType(), False),
+            BronzeAvroSchema.ORDER_ITEM: StructField('order_id', StringType(), False),
+            BronzeAvroSchema.ORDER_STATUS: StructField('order_id', StringType(), False),
+            BronzeAvroSchema.PAYMENT: StructField('order_id', StringType(), False),
+            BronzeAvroSchema.PRODUCT: StructField('product_id', StringType(), False),
+            BronzeAvroSchema.REVIEW: StructField('review_id', StringType(), False),
+            BronzeAvroSchema.SELLER: StructField('seller_id', StringType(), False),
 
-        jvm = self.spark_session._jvm
-        avro_schema_java = jvm.org.apache.avro.Schema.Parser().parse(self.dst_avsc_reader.schema_str)
+            SilverAvroSchema.CUSTOMER_ORDER: StructField('order_id', StringType(), False),
+            SilverAvroSchema.GEO_COORD: StructField('zip_code', StringType(), False),
+            SilverAvroSchema.OLIST_USER: StructField('user_id', IntegerType(), False),
+            SilverAvroSchema.ORDER_EVENT: StructField('order_id', StringType(), False),
+            SilverAvroSchema.PRODUCT_METADATA: StructField('product_id', StringType(), False),
+            SilverAvroSchema.REVIEW_METADATA: StructField('order_id', StringType(), False),     # consider repartition
 
-        # Spark StructType으로 변환
-        SchemaConverters = jvm.org.apache.spark.sql.avro.SchemaConverters
-        converted = SchemaConverters.toSqlType(avro_schema_java)
-        json_str = converted.dataType().json()  # JSON 문자열
-
-        json_dict = json.loads(json_str)  # dict로 변환
-
-        for filed_dict in json_dict['fields'][:]:
-            if filed_dict['name'] == 'ingest_time':
-                json_dict['fields'].remove(filed_dict)
+            SilverAvroSchema.WATERMARK: None,
+            GoldAvroSchema.DIM_USER_LOCATION: None,
+            GoldAvroSchema.FACT_ORDER_LEAD_DAYS: None,
+            GoldAvroSchema.FACT_ORDER_TIMELINE: None,
+            GoldAvroSchema.FACT_REVIEW_STATS: None,
+            GoldAvroSchema.ORDER_DETAIL: None,
+            GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO: None,
+            GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES: None,
+        }
         
-        self.dst_table_schema = StructType.fromJson(json_dict)
+        # Avro 스키마 파싱
+        jvm = spark_session._jvm
+        try:
+            avro_schema_java = jvm.org.apache.avro.Schema.Parser().parse(avsc_reader.schema_str)
+            converted = jvm.org.apache.spark.sql.avro.SchemaConverters.toSqlType(avro_schema_java)
+            dst_table_schema = StructType.fromJson(json.loads(converted.dataType().json()))
+        except Exception as e:
+            raise ValueError(f"Failed to convert Avro schema to Spark schema: {str(e)}")
+        
+        # # ingest_time 필드 제거
+        # filtered_fields = [field for field in dst_table_schema.fields if field.name != 'ingest_time']
+        
+        # 키 컬럼 추가 (key 컬럼에서 None은 제외)
+        key_col = KEY_COL_MAPPING.get(avsc_reader.table_name)
+        if key_col is None:
+            # return StructType(filtered_fields)  # 키 컬럼 없이 반환
+            return dst_table_schema
+        if not key_col:
+            raise ValueError(f"Unknown table name: {avsc_reader.table_name}")
+        
+        # 새로운 스키마 반환
+        return StructType(dst_table_schema.fields + [key_col])
 
-        dst_df = self.spark_session.createDataFrame([], self.dst_table_schema)
-        write_iceberg(self.spark_session, dst_df, self.dst_avsc_reader.dst_table_identifier, mode='a')
+    @staticmethod
+    def initialize_dst_table(spark_session:SparkSession, dst_table_schema:StructType, dst_table_identifier:str) -> None:
+        if spark_session.catalog.tableExists(dst_table_identifier):
+            return
+        
+        dst_df = spark_session.createDataFrame([], dst_table_schema)
+        write_iceberg(spark_session, dst_df, dst_table_identifier, mode='a')
 
     def get_current_dst_table(self, spark_session:SparkSession, batch_id:int=-1, debug=False, line_number=200):
         dst_df = spark_session.read.table(self.dst_avsc_reader.dst_table_identifier)
@@ -89,36 +141,3 @@ class BaseBatch(ABC):
             info_message = f'batch_id: {batch_id} '
 
         print(f"{info_message}Current # of {self.dst_avsc_reader.dst_table_identifier }: ", dst_df.count())
-
-    
-    def get_incremental_df(self, src_table_identifier: str) -> Optional[DataFrame]:
-        """
-        증분처리 직접 구현
-        """
-        job_name = self.__class__.__name__
-        print(f"[{job_name}] Setting incremental dataframe...")
-        last_id = get_last_processed_snapshot_id(self.spark_session, self.wartermark_table_identifier, job_name)
-        if not self.spark_session.catalog.tableExists(src_table_identifier): return None
-
-        snapshot_df = get_snapshot_df(self.spark_session, src_table_identifier)
-        if snapshot_df.isEmpty(): return None
-
-        if last_id is None:
-            earliest = get_snapshot_details(snapshot_df, TimeBoundary.EARLIEST)
-            if not earliest: return None
-            self.end_snapshot_id = earliest["snapshot_id"]
-            print(f"[{job_name}] Initial load on earliest snapshot: {self.end_snapshot_id}")
-            return self.spark_session.read.format("iceberg").option("snapshot-id", self.end_snapshot_id).load(src_table_identifier)
-        else:
-            latest = get_snapshot_details(snapshot_df, TimeBoundary.LATEST)
-            if not latest: return
-            self.end_snapshot_id = latest["snapshot_id"]
-            
-            # Correctly compare using commit timestamps
-            last_details = snapshot_df.filter(col("snapshot_id") == last_id).select("committed_at").first()
-            if not last_details or latest["committed_at"] <= last_details["committed_at"]:
-                print(f"[{job_name}] No new data.")
-                return None
-
-            print(f"[{job_name}] Incremental load from {last_id} before {self.end_snapshot_id}")
-            return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(src_table_identifier)

@@ -42,6 +42,9 @@ class SilverAvroSchema(BaseAvroSchema):
     OLIST_USER = 'olist_user'
     PRODUCT_METADATA = "product_metadata"
 
+    # watermark
+    WATERMARK = 'watermark'
+
 class GoldAvroSchema(BaseAvroSchema):
     # schema for batch and stream
     DIM_USER_LOCATION = "dim_user_location" 

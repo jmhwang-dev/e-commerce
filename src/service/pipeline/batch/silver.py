@@ -1,44 +1,100 @@
 from typing import Optional
 
 from pyspark.sql import functions as F
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import IntegerType
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, IntegerType
 
 from .base import BaseBatch
 from ..common.silver import *
 
-from service.producer.bronze import BronzeAvroSchema
-from service.producer.silver import SilverAvroSchema
-from service.utils.iceberg import write_iceberg, get_snapshot_df
-from service.utils.spark import get_spark_session
+from service.utils.schema.avsc import BronzeAvroSchema, SilverAvroSchema
+from service.utils.iceberg import write_iceberg, get_last_processed_snapshot_id, get_snapshot_details, get_snapshot_df, TimeBoundary
 from service.utils.schema.reader import AvscReader
 
 class SilverBatch(BaseBatch):
-    src_namespace: str = 'bronze'
-    dst_namespace: str = "silver"
-    
+    watermark_avsc_reader: AvscReader = AvscReader(SilverAvroSchema.WATERMARK)
+    watermark_schema: Optional[StructType] = None
+    is_debug: bool = False
+
+    def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None,):
+        super().__init__(app_name, dst_avsc_filename, spark_session)
+        self.watermark_schema = BaseBatch.get_schema(self.spark_session, self.watermark_avsc_reader)
+
+    def get_incremental_df(self, src_avsc_filename) -> DataFrame:
+        """
+        배치에서 증분처리
+        """
+
+        # TODO: refactoring - too many logic
+
+        src_avsc_reader = AvscReader(src_avsc_filename)
+        src_schema = BaseBatch.get_schema(self.spark_session, src_avsc_reader)
+        BaseBatch.check_table(self.spark_session, src_avsc_reader.dst_table_identifier)
+
+        self.src_table_identifier = src_avsc_reader.dst_table_identifier
+        empty_df = self.spark_session.createDataFrame([], src_schema)
+
+        print(f"[ {self.app_name} | {self.src_table_identifier} ] Setting incremental dataframe...")
+
+        last_id = get_last_processed_snapshot_id(self.spark_session, self.watermark_avsc_reader.dst_table_identifier, self.app_name, self.src_table_identifier)
+        if not self.spark_session.catalog.tableExists(self.src_table_identifier): return None
+
+        snapshot_df = get_snapshot_df(self.spark_session, self.src_table_identifier)
+        if snapshot_df.isEmpty(): return empty_df
+
+        if last_id is None:
+            earliest = get_snapshot_details(snapshot_df, TimeBoundary.EARLIEST)
+            if not earliest: return empty_df
+            self.end_snapshot_id = earliest["snapshot_id"]
+            print(f"[ {self.app_name} | {self.src_table_identifier} ] Initial load on earliest snapshot: {self.end_snapshot_id}")
+            return self.spark_session.read.format("iceberg").option("snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
+        else:
+            latest = get_snapshot_details(snapshot_df, TimeBoundary.LATEST)
+            if not latest: return
+            self.end_snapshot_id = latest["snapshot_id"]
+            
+            # Correctly compare using commit timestamps
+            last_details = snapshot_df.filter(F.col("snapshot_id") == last_id).select("committed_at").first()
+            if not last_details or latest["committed_at"] <= last_details["committed_at"]:
+                print(f"[ {self.app_name} | {self.src_table_identifier} ] No new data.")
+                return empty_df
+
+            print(f"[ {self.app_name} | {self.src_table_identifier} ] Incremental load from {last_id} before {self.end_snapshot_id}")
+            return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
+        
+    def update_watermark(self, ):
+        df: DataFrame = self.spark_session.createDataFrame([[self.app_name, self.src_table_identifier, self.end_snapshot_id]], self.watermark_schema)
+        df.createOrReplaceTempView('updates')
+        self.spark_session.sql(
+            f"""
+            MERGE INTO {self.watermark_avsc_reader.dst_table_identifier} t
+            USING updates s
+            ON t.app_name = s.app_name and t.src = s.src
+            WHEN MATCHED and t.last_processed_snapshot_id != s.last_processed_snapshot_id THEN
+                UPDATE SET t.last_processed_snapshot_id = s.last_processed_snapshot_id
+            WHEN NOT MATCHED THEN INSERT *
+            """)
+
 class GeoCoordBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.GEO_COORD)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.GEO_COORD, spark_session)
 
-    def extract(self):
-        # _avsc_reader = AvscReader(BronzeAvroSchema.GEOLOCATION)
-        # df = get_snapshot_df(self.spark_session, _avsc_reader.dst_table_identifier)
-        # df.show()
-        # exit()
+    def extract(self) -> bool:
+        self.geo_df = self.get_incremental_df(BronzeAvroSchema.GEOLOCATION)
 
-        # need incremental
-        geo_coord_avc_reader = AvscReader(BronzeAvroSchema.GEOLOCATION)
-        self.geo_df = self.spark_session.read.table(geo_coord_avc_reader.dst_table_identifier)
+        if not self.geo_df.isEmpty():
+            self.update_watermark()
+
+            # print(self.geo_df.count())
+            # self.geo_df.orderBy('zip_code').show(n=100)
 
     def transform(self):
-        self.geo_df = self.spark_session.read.table("bronze.geolocation") \
+        geo_df = self.geo_df \
             .select('zip_code', 'lng', 'lat') \
             .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
             .dropDuplicates()
         
-        self.output_df = GeoCoordBase.transform(self.geo_df)
+        self.output_df = GeoCoordBase.transform(geo_df)
 
     def load(self,):
         dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
@@ -56,27 +112,30 @@ class GeoCoordBatch(SilverBatch):
                 INSERT *
         """)
         
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 
 class OlistUserBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.OLIST_USER)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.OLIST_USER, spark_session)
 
     def extract(self):
-        # need incremental
-        customer_avsc_reader = AvscReader(BronzeAvroSchema.CUSTOMER)
-        self.customer_df = self.spark_session.read.table(customer_avsc_reader.dst_table_identifier)
 
-        seller_avsc_reader = AvscReader(BronzeAvroSchema.SELLER)
-        self.seller_df = self.spark_session.read.table(seller_avsc_reader.dst_table_identifier)
+        self.customer_df = self.get_incremental_df(BronzeAvroSchema.CUSTOMER)
+
+        if not self.customer_df.isEmpty():
+            self.update_watermark()
+
+        self.seller_df = self.get_incremental_df(BronzeAvroSchema.SELLER)
+
+        if not self.seller_df.isEmpty():    
+            self.update_watermark()
 
     def transform(self):
-        self.customer_df = self.spark_session.read.table("bronze.customer").dropDuplicates()
-        self.seller_df = self.spark_session.read.table("bronze.seller").dropDuplicates()
+        customer_df = self.customer_df.dropDuplicates()
+        seller_df = self.seller_df.dropDuplicates()
 
-        self.output_df = OlistUserBase.transform(self.customer_df, self.seller_df)
+        self.output_df = OlistUserBase.transform(customer_df, seller_df)
         self.output_df = self.output_df.drop('ingest_time')
 
     def load(self,):
@@ -94,27 +153,36 @@ class OlistUserBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 class OrderEventBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.ORDER_EVENT)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.ORDER_EVENT, spark_session)
 
     def extract(self):
-        # need incremental
-        est_avsc_reader = AvscReader(BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
-        self.estimated_df = self.spark_session.read.table(est_avsc_reader.dst_table_identifier)
+        self.estimated_df = self.get_incremental_df(BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
 
-        order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
-        self.shippimt_limit_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
+        if not self.estimated_df.isEmpty():
+            self.update_watermark()
 
-        order_status_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_STATUS)
-        self.order_status_df = self.spark_session.read.table(order_status_avsc_reader.dst_table_identifier)
+        self.order_item_df = self.get_incremental_df(BronzeAvroSchema.ORDER_ITEM)
+
+        if not self.order_item_df.isEmpty():
+            self.update_watermark()
+
+        self.order_status_df = self.get_incremental_df(BronzeAvroSchema.ORDER_STATUS)
+
+        if not self.order_status_df.isEmpty():
+            self.update_watermark()
             
     def transform(self):
-        self.output_df = OrderEventBase.transform(self.estimated_df, self.shippimt_limit_df, self.order_status_df)
-        self.output_df = self.output_df.drop('ingest_time')
+        # except `ingest_time`
+        estimated_df = self.estimated_df.drop('ingest_time')
+        shippimt_limit_df = self.order_item_df.select('order_id', 'shipping_limit_date')
+        order_status_df = self.order_status_df.drop('ingest_time')
+
+        self.output_df = OrderEventBase.transform(estimated_df, shippimt_limit_df, order_status_df)
+        self.output_df = self.output_df.dropDuplicates()
 
     def load(self):
         dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
@@ -131,20 +199,17 @@ class OrderEventBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
     
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 
 class ProductMetadataBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.PRODUCT_METADATA)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.PRODUCT_METADATA, spark_session)
 
     def extract(self):
-        # need incremental + merge dst
         product_avsc_reader = AvscReader(BronzeAvroSchema.PRODUCT)
         self.product_df = self.spark_session.read.table(product_avsc_reader.dst_table_identifier)
 
-        # need incremental
         order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
         self.order_item_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
 
@@ -153,7 +218,7 @@ class ProductMetadataBatch(SilverBatch):
             .select('product_id', 'category') \
             .dropna() \
             .dropDuplicates()
-            
+        
         product_seller = self.order_item_df \
             .select('product_id', 'seller_id') \
             .dropDuplicates()
@@ -162,7 +227,7 @@ class ProductMetadataBatch(SilverBatch):
             product_seller,
             on='product_id',
             how='inner'
-            ).dropna()
+            )
         
         self.output_df = self.output_df.drop('ingest_time')
 
@@ -183,19 +248,16 @@ class ProductMetadataBatch(SilverBatch):
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
 
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
     
 class CustomerOrderBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.CUSTOMER_ORDER)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.CUSTOMER_ORDER, spark_session)
 
     def extract(self):
-        # need incremental ?
         order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
         self.order_item_df = self.spark_session.read.table(order_item_avsc_reader.dst_table_identifier)
         
-        # need incremental ?
         payment_avsc_reader = AvscReader(BronzeAvroSchema.PAYMENT)
         self.payment_df = self.spark_session.read.table(payment_avsc_reader.dst_table_identifier)
         
@@ -232,18 +294,17 @@ class CustomerOrderBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
     
 class ReviewMetadataBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.__class__.__name__)
-        self.initialize_dst_table(SilverAvroSchema.REVIEW_METADATA)
+        super().__init__(self.__class__.__name__, SilverAvroSchema.REVIEW_METADATA, spark_session)
 
     def extract(self):
-        # need incremental
-        review_avsc_reader = AvscReader(BronzeAvroSchema.REVIEW)
-        self.review_df = self.spark_session.read.table(review_avsc_reader.dst_table_identifier)
-    
+        self.review_df = self.get_incremental_df(BronzeAvroSchema.REVIEW)
+        if not self.review_df.isEmpty():
+            self.update_watermark()
+
     def transform(self,):
         self.output_df = ReviewMetadataBase.transform(self.review_df)
         self.output_df = self.output_df.drop('ingest_time')
@@ -263,4 +324,4 @@ class ReviewMetadataBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        self.get_current_dst_table(self.output_df.sparkSession, -1, True, line_number=5)
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)

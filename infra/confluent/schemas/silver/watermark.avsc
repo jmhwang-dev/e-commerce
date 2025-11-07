@@ -1,0 +1,10 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "watermark",
+  "fields": [
+    { "name": "app_name", "type": "string" },
+    { "name": "src", "type": "string" },
+    { "name": "last_processed_snapshot_id", "type": "long" }
+  ]
+}
