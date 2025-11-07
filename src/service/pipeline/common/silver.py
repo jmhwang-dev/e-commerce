@@ -46,18 +46,18 @@ class OrderEventBase(CommonSilverTask):
     @classmethod
     def transform(cls, estimated_df:DataFrame, shippimt_limit_df:DataFrame, order_status_df:DataFrame):
         # TODO: chage timezone to UTC. (현재는 KST로 들어감)
-        _estimated_df = estimated_df \
+        renamed_est_delivery_df = estimated_df \
             .withColumnRenamed('estimated_delivery_date', 'timestamp') \
             .withColumn('data_type', F.lit('estimated_delivery'))
         
-        _shippimt_limit_df = shippimt_limit_df \
-            .select('order_id', 'shipping_limit_date', 'ingest_time') \
+        renamed_shippimt_limit_df = shippimt_limit_df \
             .withColumnRenamed('shipping_limit_date', 'timestamp') \
-            .withColumn('data_type', F.lit('shipping_limit'))
+            .withColumn('data_type', F.lit('shipping_limit')) \
+            .dropDuplicates()
         
-        _order_status_df = order_status_df.withColumnRenamed('status', 'data_type')
+        renamed_order_status_df = order_status_df.withColumnRenamed('status', 'data_type')
 
-        return _order_status_df.unionByName(_estimated_df).unionByName(_shippimt_limit_df)
+        return renamed_order_status_df.unionByName(renamed_est_delivery_df).unionByName(renamed_shippimt_limit_df)
     
 class ReviewMetadataBase(CommonSilverTask):
     
