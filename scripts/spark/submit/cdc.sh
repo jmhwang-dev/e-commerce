@@ -1,19 +1,33 @@
 #!/bin/bash
 set -e
 
-CHECKPOINT_BASE="data/minio/warehousedev/bronze"
-CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*/checkpoint" 2>/dev/null || true)
+# MinIO 임시 디렉토리 삭제
+rm -rf "data/minio/tmp/*" 2>/dev/null || true
 
-if [ -n "$CHECKPOINT_DIRS" ]; then
-  echo "Found checkpoint directories:"
-  echo "$CHECKPOINT_DIRS"
-  while IFS= read -r dir; do
-    echo "Removing checkpoint directory: $dir"
-    rm -rf "$dir" && echo "Successfully removed: $dir" || echo "Failed to remove: $dir"
-  done <<< "$CHECKPOINT_DIRS"
-else
-  echo "No checkpoint directories found in $CHECKPOINT_BASE/*/checkpoint"
-fi
+# 체크포인트 기본 경로
+BASE_PATHS=("data/minio/warehousedev/cdc/dev")
+
+for CHECKPOINT_BASE in "${BASE_PATHS[@]}"; do
+  echo "=== Cleaning checkpoints in $CHECKPOINT_BASE ==="
+  
+  # 체크포인트 디렉토리 검색 및 삭제
+  if CHECKPOINT_DIRS=$(find "$CHECKPOINT_BASE" -type d -path "*" 2>/dev/null); then
+    if [ -n "$CHECKPOINT_DIRS" ]; then
+      echo "Found checkpoint directories, removing..."
+      # find로 직접 삭제, 성공/실패 로깅 간소화
+      find "$CHECKPOINT_BASE" -type d -path "*" -exec rm -rf {} \; 2>/dev/null && \
+        echo "All checkpoint directories removed successfully" || \
+        echo "Failed to remove some checkpoint directories"
+    else
+      echo "No checkpoint directories found"
+    fi
+  else
+    echo "Error accessing $CHECKPOINT_BASE"
+  fi
+  echo
+done
+
+echo "Checkpoint cleanup completed."
 
 SRC_ZIP="src.zip"
 if [ -f "$SRC_ZIP" ]; then
