@@ -38,12 +38,6 @@ class BaseStream(ABC):
     def transform(self,):
         pass
 
-    def check_table(self, dst_table_identifier):
-        while True:
-            if self.spark_session.catalog.tableExists(dst_table_identifier):
-                break
-            time.sleep(3)
-
     def set_byte_stream(self, key_column:str, value_columns: List[str]):
         self.output_df = self.output_df.select(
             F.col(key_column).cast("string").alias("key"),
@@ -74,8 +68,8 @@ class BaseStream(ABC):
             .option("checkpointLocation", self.checkpoint_path) \
             .start()
     
-    def get_topic_df(self, micro_batch:DataFrame, topic_name: str) -> DataFrame:
-        ser_df = micro_batch.filter(F.col("topic") == topic_name)
-        dst_avsc_reader = AvscReader(topic_name)
-        key_column = get_avro_key_column(topic_name)
+    @staticmethod
+    def get_topic_df(micro_batch:DataFrame, dst_avsc_reader: AvscReader) -> DataFrame:
+        ser_df = micro_batch.filter(F.col("topic") == dst_avsc_reader.table_name)
+        key_column = get_avro_key_column(dst_avsc_reader.table_name)
         return get_deserialized_avro_stream_df(ser_df, key_column, dst_avsc_reader.schema_str)

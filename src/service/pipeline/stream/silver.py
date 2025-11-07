@@ -35,15 +35,18 @@ class GeoCoordStream(SilverStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.geo_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeAvroSchema.GEOLOCATION),
-            BronzeAvroSchema.GEOLOCATION
-        ) \
-        .select('zip_code', 'lng', 'lat', 'ingest_time') \
-        .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
-        .withWatermark('ingest_time', '1 days')
+        geo_avsc_reader = AvscReader(BronzeAvroSchema.GEOLOCATION)
+        self.geo_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, geo_avsc_reader.table_name),
+            geo_avsc_reader
+        )
 
     def transform(self):
+        self.geo_stream = self.geo_stream \
+            .select('zip_code', 'lng', 'lat', 'ingest_time') \
+            .withColumn('zip_code', F.col('zip_code').cast(IntegerType())) \
+            .withWatermark('ingest_time', '1 days')
+        
         self.output_df = GeoCoordBase.transform(self.geo_stream)
         self.set_byte_stream('zip_code', ['lng', 'lat', 'ingest_time'])
     
@@ -60,19 +63,22 @@ class OlistUserStream(SilverStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        # customer
-        self.customer_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeAvroSchema.CUSTOMER),
-            BronzeAvroSchema.CUSTOMER
-        ).withWatermark('ingest_time', '1 days')
+        customer_avsc_reader = AvscReader(BronzeAvroSchema.CUSTOMER)
+        self.customer_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, customer_avsc_reader.table_name),
+            customer_avsc_reader
+        )
 
-        # seller
-        self.seller_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeAvroSchema.SELLER),
-            BronzeAvroSchema.SELLER
+        seller_avsc_reader = AvscReader(BronzeAvroSchema.SELLER)
+        self.seller_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, seller_avsc_reader.table_name),
+            seller_avsc_reader
         ).withWatermark('ingest_time', '1 days')
 
     def transform(self):
+        self.customer_stream = self.customer_stream.withWatermark('ingest_time', '1 days')
+        self.seller_stream = self.seller_stream.withWatermark('ingest_time', '1 days')
+
         self.output_df = OlistUserBase.transform(self.customer_stream, self.seller_stream)
         self.set_byte_stream('user_id', ['user_type', 'zip_code', 'ingest_time'])
     
@@ -89,12 +95,20 @@ class OrderEventStream(SilverStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.estimated_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ESTIMATED_DELIVERY_DATE), BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
-        self.shippimt_limit_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM)
-        self.order_status_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_STATUS), BronzeAvroSchema.ORDER_STATUS)
+        est_avsc_reader = AvscReader(BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
+        self.estimated_stream = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, est_avsc_reader.table_name), est_avsc_reader)
+
+        order_item_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.order_item_stream = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, order_item_avsc_reader.table_name), order_item_avsc_reader)
+
+        order_status_avsc_reader = AvscReader(BronzeAvroSchema.ORDER_STATUS)
+        self.order_status_stream = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, order_status_avsc_reader.table_name), order_status_avsc_reader)
             
     def transform(self):
-        self.output_df = OrderEventBase.transform(self.estimated_df, self.shippimt_limit_df, self.order_status_df)
+        shippimt_limit_df = self.order_item_stream \
+            .select('order_id', 'shipping_limit_date', 'ingest_time')
+
+        self.output_df = OrderEventBase.transform(self.estimated_stream, shippimt_limit_df, self.order_status_stream)
         self.set_byte_stream('order_id', ["data_type", "timestamp", "ingest_time"])
 
 class ProductMetadataStream(SilverStream):
@@ -109,9 +123,12 @@ class ProductMetadataStream(SilverStream):
         self.checkpoint_path = \
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
         
-    def extract(self):        
-        self.product_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.PRODUCT), BronzeAvroSchema.PRODUCT)
-        self.order_item_df = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM)
+    def extract(self):
+        product_asvc_reader = AvscReader(BronzeAvroSchema.PRODUCT)
+        self.product_df = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, product_asvc_reader.table_name), product_asvc_reader)
+
+        order_item_asvc_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.order_item_df = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, order_item_asvc_reader.table_name), order_item_asvc_reader)
 
     def transform(self, ):
         product_category = self.product_df \
@@ -154,8 +171,11 @@ class CustomerOrderStream(SilverStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.order_item_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.ORDER_ITEM), BronzeAvroSchema.ORDER_ITEM)
-        self.payment_stream = self.get_topic_df(get_kafka_stream_df(self.spark_session, BronzeAvroSchema.PAYMENT), BronzeAvroSchema.PAYMENT)
+        order_item_reader = AvscReader(BronzeAvroSchema.ORDER_ITEM)
+        self.order_item_stream = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, order_item_reader.table_name), order_item_reader)
+        
+        payment_reader = AvscReader(BronzeAvroSchema.PAYMENT)
+        self.payment_stream = BaseStream.get_topic_df(get_kafka_stream_df(self.spark_session, payment_reader.table_name), payment_reader)
         
     def transform(self):
         """
@@ -230,9 +250,11 @@ class ReviewMetadataStream(SilverStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.review_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, BronzeAvroSchema.REVIEW),
-            BronzeAvroSchema.REVIEW)
+        review_avsc_reader = AvscReader(BronzeAvroSchema.REVIEW)
+
+        self.review_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, review_avsc_reader.table_name),
+            review_avsc_reader)
     
     def transform(self,):
         self.output_df = ReviewMetadataBase.transform(self.review_stream)

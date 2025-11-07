@@ -36,14 +36,16 @@ class DimUserLocationStream(GoldStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
     
     def extract(self):
-        self.geo_coord_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.GEO_COORD),
-            SilverAvroSchema.GEO_COORD
+        geo_coord_avsc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
+        self.geo_coord_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, geo_coord_avsc_reader.table_name),
+            geo_coord_avsc_reader
         )
 
-        self.olist_user_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.OLIST_USER),
-            SilverAvroSchema.OLIST_USER
+        olist_user_avsc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
+        self.olist_user_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, olist_user_avsc_reader.table_name),
+            olist_user_avsc_reader
         )
 
     def transform(self,):
@@ -94,13 +96,17 @@ class FactOrderTimelineStream(GoldStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
 
     def extract(self):
-        self.order_event_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.ORDER_EVENT),
-            SilverAvroSchema.ORDER_EVENT
-        ).withWatermark('ingest_time', '30 days')
+        order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
+        self.order_event_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, order_event_avsc_reader.table_name),
+            order_event_avsc_reader
+        )
 
     def transform(self,):
+        self.order_event_stream = self.order_event_stream.withWatermark('ingest_time', '30 days')
         self.output_df = FactOrderTimelineBase.transform(self.order_event_stream)
+
+        # start_console_stream(self.output_df.filter(F.col('order_id') == '1add1aa4c6e709fd74a4eb691a9fc6bc'), output_mode='complete')
         
     def load(self, micro_batch:DataFrame, batch_id: int):
         FactOrderTimelineBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
@@ -129,13 +135,16 @@ class OrderDetailStream(GoldStream):
             f"s3a://warehousedev/{self.spark_session.sparkContext.appName}/{self.dst_env}/{self.dst_layer}/{self.dst_name}/checkpoint/{query_version}"
         
     def extract(self):
-        self.customer_order_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.CUSTOMER_ORDER),
-            SilverAvroSchema.CUSTOMER_ORDER
+        customer_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
+        self.customer_order_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, customer_avsc_reader.table_name),
+            customer_avsc_reader
         )
-        self.product_metadata_stream = self.get_topic_df(
-            get_kafka_stream_df(self.spark_session, SilverAvroSchema.PRODUCT_METADATA),
-            SilverAvroSchema.PRODUCT_METADATA
+
+        product_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.product_metadata_stream = BaseStream.get_topic_df(
+            get_kafka_stream_df(self.spark_session, product_avsc_reader.table_name),
+            product_avsc_reader
         )
 
     def transform(self):
