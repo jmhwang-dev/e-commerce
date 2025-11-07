@@ -10,8 +10,8 @@ from service.utils.schema.avsc import SilverAvroSchema
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=True)
     
-    init_catalog(spark_session, 'silver', is_drop=False)
-    init_catalog(spark_session, 'gold', is_drop=False)
+    init_catalog(spark_session, 'silver', is_drop=True)
+    init_catalog(spark_session, 'gold', is_drop=True)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
