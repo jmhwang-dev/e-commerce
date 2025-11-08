@@ -41,21 +41,22 @@ if __name__ == "__main__":
         gold.FactReviewStatsBatch(spark_session),
     ]
 
-    FactProductPeriodSalesBatch_pipeline = [
+    FactMonthlySalesByProductBatch_pipeline = [
         silver.OrderEventBatch(spark_session),
         silver.CustomerOrderBatch(spark_session),
         silver.ProductMetadataBatch(spark_session),
 
         gold.FactOrderTimelineBatch(spark_session),
         gold.OrderDetailBatch(spark_session),
-        gold.FactProductPeriodSalesBatch(spark_session),
+        gold.FactMonthlySalesByProductBatch(spark_session),
     ]
 
-    job_list = FactReviewStats_pipeline
+    MonthlyCategoryPortfolioMatrix_pipeline = \
+        FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
 
+    job_list = MonthlyCategoryPortfolioMatrix_pipeline
 
-
-    schedule_interval = 5
+    schedule_interval = 30
     try:
         while True:
             for job_instance in job_list:

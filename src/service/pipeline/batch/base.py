@@ -24,7 +24,7 @@ class BaseBatch(ABC):
     Input: Table
     Output: Table
     """
-    is_debug: bool = True
+    is_debug: bool = False
     spark_session: Optional[SparkSession] = None
     app_name: Optional[str] = None
     output_df: Optional[DataFrame] = None
