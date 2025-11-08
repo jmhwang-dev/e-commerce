@@ -17,7 +17,7 @@ if __name__ == "__main__":
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
     base.BaseBatch.initialize_dst_table(spark_session, watermark_scheam, watermark_avsc_reader.dst_table_identifier)
 
-    job_list: List[base.BaseBatch] = [
+    all_job_list: List[base.BaseBatch] = [
         # silver.GeoCoordBatch(spark_session),
         # silver.OlistUserBatch(spark_session),
         # silver.ReviewMetadataBatch(spark_session),
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     MonthlyCategoryPortfolioMatrix_pipeline = \
         FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
 
-    job_list = MonthlyCategoryPortfolioMatrix_pipeline
+    job_list = all_job_list
 
     schedule_interval = 30
     try:

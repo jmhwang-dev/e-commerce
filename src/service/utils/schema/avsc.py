@@ -1,8 +1,6 @@
 from typing import List
 from enum import Enum
 
-from service.utils.schema.registry_manager import *
-
 class BaseAvroSchema:
     """Base class for Kafka topic definitions with common methods."""
     @classmethod
