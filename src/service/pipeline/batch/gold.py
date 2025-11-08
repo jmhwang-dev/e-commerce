@@ -196,43 +196,28 @@ class FactProductPeriodSalesBatch(BaseBatch):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
         self.fact_order_timeline = self.spark_session.read.table(fact_order_timeline_avsc_reader.dst_table_identifier)
 
-        customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
-        self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
-
-        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
-        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+        order_detail_avsc_reader = AvscReader(GoldAvroSchema.ORDER_DETAIL)
+        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
 
     def transform(self):
-        complete_order_df = self.fact_order_timeline \
+        sales_period_df = self.fact_order_timeline \
             .filter(F.col('delivered_customer').isNotNull()) \
-            .select('order_id', 'delivered_customer')
+            .select('order_id', 'delivered_customer') \
+            .withColumn('sales_period', F.date_format(F.col('delivered_customer'), 'yyyy-MM')) \
+            .drop('delivered_customer')
         
-        complete_customer_order_df = self.customer_order_df.join(complete_order_df, on='order_id', how='inner')
-        
-        complete_customer_order_df = complete_customer_order_df.withColumn(
-            'sales_period', 
-            F.date_format(F.col('delivered_customer'), 'yyyy-MM')
-        )
-        
-        period_product_sales_df = complete_customer_order_df.groupBy('product_id', 'sales_period') \
+        period_order_detail_df = sales_period_df.join(self.order_detail_df, on='order_id', how='inner')
+
+        product_period_sales_df = period_order_detail_df.groupBy('product_id', 'category', 'sales_period') \
             .agg(
                 F.sum('quantity').alias('total_sales_quantity'),
                 F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
             )
         
-        period_product_sales_df = period_product_sales_df.withColumn(
+        self.output_df = product_period_sales_df.withColumn(
             'mean_sales', 
             F.col('total_sales_amount') / F.col('total_sales_quantity')
         )
-        
-        product_category_df = self.product_metadata_df.select('product_id', 'category').dropna()
-        
-        # TODO: why d41d8cd98f00b204e9800998ecf8427e is duplicated?
-        self.output_df = period_product_sales_df.join(
-            product_category_df, 
-            on='product_id', 
-            how='inner'
-        ).orderBy('sales_period', F.desc('total_sales_amount')).dropDuplicates()    
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:

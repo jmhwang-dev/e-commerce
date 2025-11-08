@@ -1,4 +1,3 @@
-from service.producer.bronze import BronzeAvroSchema
 from service.utils.spark import get_spark_session
 from service.utils.iceberg import init_catalog
 from service.utils.logger import *
