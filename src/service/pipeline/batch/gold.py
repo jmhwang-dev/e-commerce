@@ -262,27 +262,26 @@ class MonthlyCategoryPortfolioMatrix(BaseBatch):
         self.fact_monthly_sales_by_product_df = self.spark_session.read.table(fact_monthly_sales_by_product_avsc_reader.dst_table_identifier)
 
     def transform(self):
-        # 1. 기간별 임계값 계산 (category, sales_period별)
-        period_thresholds_df = self.fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
-            F.percentile_approx('total_sales_quantity', 0.75).alias('sold_count_threshold'),
-            F.percentile_approx('mean_sales', 0.5).alias('median_avg_price')
+        # 1. category, sales_period 별 매출 기준 사분위수 계산
+        sales_quantile_df = self.fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
+            F.percentile_approx('total_sales_amount', 0.75).alias('q3'),
+            F.percentile_approx('total_sales_amount', 0.5).alias('q2'),
+            F.percentile_approx('total_sales_amount', 0.25).alias('q1')
         )
 
-        # 2. 기간별 데이터에 임계값 조인 및 그룹 분류
-        period_matrix_df = self.fact_monthly_sales_by_product_df.join(
-            period_thresholds_df, 
+        # 2. 사분위수 기준 매출 그룹 분류
+        self.output_df = self.fact_monthly_sales_by_product_df.join(
+            sales_quantile_df, 
             on=['category', 'sales_period'], 
             how='inner'
         ).withColumn(
             "group",
-            F.when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Star Products")
-             .when((F.col("total_sales_quantity") >= F.col("sold_count_threshold")) & (F.col("mean_sales") < F.col("median_avg_price")), "Volume Drivers")
-             .when((F.col("total_sales_quantity") < F.col("sold_count_threshold")) & (F.col("mean_sales") >= F.col("median_avg_price")), "Niche Gems")
+            F.when(F.col("q3") <= (F.col("total_sales_amount")), "Star Products")
+             .when((F.col("q2") <= F.col("total_sales_amount")) & (F.col("total_sales_amount") < F.col("q3")), "Volume Drivers")
+             .when((F.col("q1") <= F.col("total_sales_amount")) & (F.col("total_sales_amount") < F.col("q2")), "Niche Gems")
              .otherwise("Question Marks")
-        ).select('product_id', 'sales_period', 'category', 'total_sales_quantity', 'mean_sales', 'group')  # 필요 컬럼만 선택
+        ).select('product_id', 'sales_period', 'category', 'group')
 
-        self.output_df = period_matrix_df
-        
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
             output_df = df
@@ -294,16 +293,13 @@ class MonthlyCategoryPortfolioMatrix(BaseBatch):
         self.spark_session.sql(f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
             USING updates source
-            ON target.product_id = source.product_id AND target.sales_period = source.sales_period
+            ON target.product_id = source.product_id AND target.sales_period = source.sales_period AND target.category = source.category
             WHEN MATCHED THEN
             UPDATE SET
-                target.category = source.category,
-                target.total_sales_quantity = source.total_sales_quantity,
-                target.mean_sales = source.mean_sales,
                 target.group = source.group
             WHEN NOT MATCHED THEN
-            INSERT (product_id, sales_period, category, total_sales_quantity, mean_sales, group)
-            VALUES (source.product_id, source.sales_period, source.category, source.total_sales_quantity, source.mean_sales, source.group);
+            INSERT (product_id, sales_period, category, group)
+            VALUES (source.product_id, source.sales_period, source.category, source.group);
         """)
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 

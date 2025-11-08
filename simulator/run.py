@@ -6,15 +6,15 @@ from service.utils.kafka import *
 import time
 
 if __name__=="__main__":
+    all_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames() + GoldAvroSchema.get_all_filenames()
+    SchemaRegistryManager.delete_subject(all_avsc_filenames, False)
+    register_schema()
+    
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
     stream_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames()
     
     delete_topics(admin_client, stream_avsc_filenames)
     create_topics(admin_client, stream_avsc_filenames)
-
-    all_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames() + GoldAvroSchema.get_all_filenames()
-    SchemaRegistryManager.delete_subject(all_avsc_filenames, False)
-    register_schema()
 
     base_interval = 0  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()

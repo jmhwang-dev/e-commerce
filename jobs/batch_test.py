@@ -7,11 +7,12 @@ from service.pipeline.batch import base, silver, gold
 from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema
 
+
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=True)
     
-    init_catalog(spark_session, 'silver', is_drop=True)
-    init_catalog(spark_session, 'gold', is_drop=True)
+    init_catalog(spark_session, 'silver', is_drop=False)
+    init_catalog(spark_session, 'gold', is_drop=False)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     MonthlyCategoryPortfolioMatrix_pipeline = \
         FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
 
-    target_job_instance_list = all_job_instance_list
+    target_job_instance_list: List[base.BaseBatch] = MonthlyCategoryPortfolioMatrix_pipeline
 
     try:
         schedule_interval = 30
