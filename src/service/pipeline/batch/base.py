@@ -91,7 +91,7 @@ class BaseBatch(ABC):
             GoldAvroSchema.FACT_REVIEW_STATS: None,
             GoldAvroSchema.ORDER_DETAIL: None,
             GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO: None,
-            GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES: None,
+            GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: None,
         }
         
         # Avro 스키마 파싱

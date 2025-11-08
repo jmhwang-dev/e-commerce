@@ -7,11 +7,13 @@ import time
 
 if __name__=="__main__":
     admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
-    avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames() + GoldAvroSchema.get_all_filenames()
+    stream_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames()
+    
+    delete_topics(admin_client, stream_avsc_filenames)
+    create_topics(admin_client, stream_avsc_filenames)
 
-    delete_topics(admin_client, avsc_filenames)
-    SchemaRegistryManager.delete_subject(avsc_filenames, False)
-    create_topics(admin_client, avsc_filenames)
+    all_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames() + GoldAvroSchema.get_all_filenames()
+    SchemaRegistryManager.delete_subject(all_avsc_filenames, False)
     register_schema()
 
     base_interval = 0  # seconds

@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "fact_product_period_sales",
+  "name": "fact_monthly_sales_by_product",
   "namespace": "gold",
   "fields": [
     {

@@ -52,7 +52,7 @@ class GoldAvroSchema(BaseAvroSchema):
     ORDER_DETAIL = "order_detail"
 
     # batch
-    FACT_PRODUCT_PERIOD_SALES = "fact_product_period_sales"
+    FACT_MONTHLY_SALES_BY_PRODUCT = "fact_monthly_sales_by_product"
     FACT_PRODUCT_PERIOD_PORTFOLIO = "fact_product_period_portfolio"
     FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
     FACT_REVIEW_STATS = "fact_review_stats"

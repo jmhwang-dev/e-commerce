@@ -188,9 +188,9 @@ class FactOrderLeadDaysBatch(BaseBatch):
                 INSERT *
         """)
 
-class FactProductPeriodSalesBatch(BaseBatch):
+class FactMonthlySalesByProductBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES, spark_session)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT, spark_session)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_TIMELINE)
@@ -258,7 +258,7 @@ class FactProductPeriodPortfolioBatch(BaseBatch):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO, spark_session)
 
     def extract(self):
-        product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_PRODUCT_PERIOD_SALES)
+        product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
         self.product_period_sales_metrics_df = self.spark_session.read.table(product_period_sales_metrics_avsc_reader.dst_table_identifier)
 
     def transform(self):
