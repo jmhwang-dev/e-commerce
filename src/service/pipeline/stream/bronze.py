@@ -104,7 +104,7 @@ def load_cdc_batch(spark_session: SparkSession, option_dict: dict[str, str]) -> 
     - micro batch로 모든 토픽을 순차적으로 처리하므로, `{self.dst_layer}/{self.dst_name}`는 `bronze/batch`로 고정
     """
     src_avsc_filenames = BronzeAvroSchema.get_all_filenames()
-    kafka_stream = get_kafka_stream_df(spark_session, src_avsc_filenames)
+    kafka_stream = get_kafka_stream_df(spark_session, src_avsc_filenames, max_offset_per_trigger=1000)
 
     query = kafka_stream.writeStream \
         .foreachBatch(load_medallion_layer) \
