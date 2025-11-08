@@ -2,10 +2,10 @@ import time
 
 from abc import ABC, abstractmethod
 from pyspark.sql import SparkSession
-from service.utils.iceberg import *
 from pyspark.sql import functions as F
 from pyspark.sql.avro.functions import to_avro
 
+from service.utils.iceberg import *
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_deserialized_avro_stream_df
 

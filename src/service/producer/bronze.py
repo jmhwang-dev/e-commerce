@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import pandas as pd
 from pathlib import Path
 from functools import lru_cache, reduce
