@@ -73,7 +73,7 @@ class OlistUserStream(SilverStream):
         self.seller_stream = BaseStream.get_topic_df(
             get_kafka_stream_df(self.spark_session, seller_avsc_reader.table_name),
             seller_avsc_reader
-        ).withWatermark('ingest_time', '1 days')
+        )
 
     def transform(self):
         self.customer_stream = self.customer_stream.withWatermark('ingest_time', '1 days')
