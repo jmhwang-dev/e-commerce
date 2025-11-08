@@ -17,7 +17,7 @@ if __name__ == "__main__":
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
     base.BaseBatch.initialize_dst_table(spark_session, watermark_scheam, watermark_avsc_reader.dst_table_identifier)
 
-    all_job_list: List[base.BaseBatch] = [
+    all_job_instance_list: List[base.BaseBatch] = [
         silver.GeoCoordBatch(spark_session),
         silver.OlistUserBatch(spark_session),
         silver.ReviewMetadataBatch(spark_session),
@@ -54,17 +54,16 @@ if __name__ == "__main__":
     MonthlyCategoryPortfolioMatrix_pipeline = \
         FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
 
-    job_list = all_job_list
+    target_job_instance_list = all_job_instance_list
 
-    schedule_interval = 30
     try:
+        schedule_interval = 30
         while True:
-            for job_instance in job_list:
+            for job_instance in target_job_instance_list:
                 job_instance.extract()
                 job_instance.transform()
                 job_instance.load()
             time.sleep(schedule_interval)
             print('='*80)
     except KeyboardInterrupt:
-        for job_instance in job_list:
-            job_instance.spark_session.stop()
+        spark_session.stop()
