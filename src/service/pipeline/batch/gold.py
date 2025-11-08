@@ -242,9 +242,9 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         """)
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
         
-class FactProductPeriodPortfolioBatch(BaseBatch):
+class MonthlyCategoryPortfolioMatrix(BaseBatch):
     """
-    목적: 기간별 및 전체 누적 제품 매출 기록을 기반으로 카테고리 별 매출이 있는 제품을 4개 그룹으로 분류하는 제품 포트폴리오 매트릭스 생성
+    목적: 월별 제품 매출 기록을 기반으로 카테고리별로 4개 그룹으로 분류된 제품 포트폴리오 매트릭스 생성
     분류 기준:
         - 판매량 기준점: 카테고리 내 75 백분위수 (상위 25%)
         - 가격 기준점: 카테고리 내 중앙값 (50 백분위수)
@@ -255,7 +255,7 @@ class FactProductPeriodPortfolioBatch(BaseBatch):
         - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
     """
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO, spark_session)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX, spark_session)
 
     def extract(self):
         product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)

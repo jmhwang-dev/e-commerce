@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "fact_product_period_portfolio",
+  "name": "montly_category_portfolio_matrix",
   "namespace": "gold",
   "fields": [
     {

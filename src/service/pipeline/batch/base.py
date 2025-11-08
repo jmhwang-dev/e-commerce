@@ -90,7 +90,7 @@ class BaseBatch(ABC):
             GoldAvroSchema.FACT_ORDER_TIMELINE: None,
             GoldAvroSchema.FACT_REVIEW_STATS: None,
             GoldAvroSchema.ORDER_DETAIL: None,
-            GoldAvroSchema.FACT_PRODUCT_PERIOD_PORTFOLIO: None,
+            GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX: None,
             GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: None,
         }
         

@@ -31,7 +31,7 @@ if __name__ == "__main__":
         # gold.FactReviewStatsBatch(spark_session),
         # gold.FactOrderLeadDaysBatch(spark_session),
         # gold.FactProductPeriodSalesBatch(spark_session),
-        # gold.FactProductPeriodPortfolioBatch(spark_session)
+        # gold.MonthlyCategoryPortfolioMatrix(spark_session)
     ]
 
     FactReviewStats_pipeline = [
