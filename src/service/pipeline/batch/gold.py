@@ -258,18 +258,18 @@ class MonthlyCategoryPortfolioMatrix(BaseBatch):
         super().__init__(self.__class__.__name__, GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX, spark_session)
 
     def extract(self):
-        product_period_sales_metrics_avsc_reader = AvscReader(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
-        self.product_period_sales_metrics_df = self.spark_session.read.table(product_period_sales_metrics_avsc_reader.dst_table_identifier)
+        fact_monthly_sales_by_product_avsc_reader = AvscReader(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
+        self.fact_monthly_sales_by_product_df = self.spark_session.read.table(fact_monthly_sales_by_product_avsc_reader.dst_table_identifier)
 
     def transform(self):
         # 1. 기간별 임계값 계산 (category, sales_period별)
-        period_thresholds_df = self.product_period_sales_metrics_df.groupBy('category', 'sales_period').agg(
+        period_thresholds_df = self.fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
             F.percentile_approx('total_sales_quantity', 0.75).alias('sold_count_threshold'),
             F.percentile_approx('mean_sales', 0.5).alias('median_avg_price')
         )
 
         # 2. 기간별 데이터에 임계값 조인 및 그룹 분류
-        period_matrix_df = self.product_period_sales_metrics_df.join(
+        period_matrix_df = self.fact_monthly_sales_by_product_df.join(
             period_thresholds_df, 
             on=['category', 'sales_period'], 
             how='inner'
