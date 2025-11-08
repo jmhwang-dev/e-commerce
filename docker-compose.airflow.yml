@@ -74,9 +74,12 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     # The following line can be used to set a custom config file, stored in the local config folder
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
+    PYTHONPATH: /opt/airflow/jobs/src
+    SPARK_CONN_ID: ${SPARK_CONN_ID}
   volumes:
     - ./src:/opt/airflow/src
-    - ./jobs/batch:/opt/airflow/jobs/batch
+    - ./src/service/utils/schema/avsc.py:/opt/airflow/jobs/src/service/utils/schema/avsc.py
+    - ./jobs/run_dag.py:/opt/airflow/jobs/run_dag.py
     - ${AIRFLOW_PROJ_DIR:-./dags}:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs/airflow:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/configs/airflow:/opt/airflow/config
@@ -301,8 +304,8 @@ services:
 
   airflow-cli:
     <<: *airflow-common
-    profiles:
-      - debug
+    # profiles:
+    #   - debug
     environment:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
@@ -310,9 +313,16 @@ services:
     command:
       - bash
       - -c
-      - airflow
+      - |
+        airflow connections add "${SPARK_CONN_ID}" --conn-json '{
+          "conn_type": "spark",
+          "host": "${SPARK_MASTER}",
+          "extra": {"deploy-mode": "${SPARK_DEPLOY_MODE}"}
+        }'
     depends_on:
       <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
 
   # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
