@@ -51,6 +51,6 @@ class GoldAvroSchema(BaseAvroSchema):
 
     # batch
     FACT_MONTHLY_SALES_BY_PRODUCT = "fact_monthly_sales_by_product"
-    MONTHLY_CATEGORY_PORTFOLIO_MATRIX = "montly_category_portfolio_matrix"
+    MONTHLY_CATEGORY_PORTFOLIO_MATRIX = "monthly_category_portfolio_matrix"
     FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
     FACT_REVIEW_STATS = "fact_review_stats"

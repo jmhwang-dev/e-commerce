@@ -27,7 +27,7 @@ flowchart TD
         order_detail["order_detail"]
         dim_user_location["dim_user_location"]
         fact_monthly_sales_by_product["fact_monthly_sales_by_product"]
-        montly_category_portfolio_matrix["montly_category_portfolio_matrix"]
+        monthly_category_portfolio_matrix["monthly_category_portfolio_matrix"]
         fact_review_stats["fact_review_stats"]
         fact_order_lead_days["fact_order_lead_days"]
   end
@@ -49,6 +49,6 @@ flowchart TD
     seller --> olist_user
     customer --> olist_user
     geolocation -- valid coordinate --> geo_coord
-    fact_monthly_sales_by_product --> montly_category_portfolio_matrix
+    fact_monthly_sales_by_product --> monthly_category_portfolio_matrix
     order_detail --> fact_monthly_sales_by_product & fact_review_stats
-    style montly_category_portfolio_matrix fill:transparent
+    style monthly_category_portfolio_matrix fill:transparent

@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "montly_category_portfolio_matrix",
+  "name": "monthly_category_portfolio_matrix",
   "namespace": "gold",
   "fields": [
     {
