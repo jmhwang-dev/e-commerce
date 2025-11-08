@@ -1,51 +1,28 @@
+import os
+
 from airflow import DAG
 from airflow.sdk import task
 
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from datetime import datetime
 
+from service.utils.schema.avsc import *
+
 SRC_PATH = '/opt/airflow/src'
 ARFTIFACT_DIR_PATH = '/opt/airflow/artifact'
 ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
-
-class Medallion:
-    SILVER = 'silver'
-    GOLD = 'gold'
+SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_defaultz")
 
 def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
-    # TODO: add connections automatically.
-    # 1. Airflow UI에서 Admin > Connections로 이동
-    # 2. 'spark_default' 연결 생성 또는 편집. 아래 conn_id와 동일해야함.
-
-    app_dict = {
-        'customer': Medallion.SILVER,
-        'seller': Medallion.SILVER,
-        'geolocation': Medallion.SILVER,
-        'delivered_order': Medallion.SILVER,
-        'order_customer': Medallion.SILVER,
-        'order_timeline': Medallion.SILVER,
-        'order_transaction': Medallion.SILVER,
-        'product_metadata': Medallion.SILVER,
-        'sales': Medallion.GOLD,
-        'delivered_order_location': Medallion.GOLD,
-        'order_lead_days': Medallion.GOLD,
-        'product_portfolio_matrix': Medallion.GOLD
-    }
-
-    if app_name not in app_dict:
-        return
-
-    app_path = f"{app_dict[app_name]}/{app_name}.py"
-
     return SparkSubmitOperator(
         task_id=app_name,
-        application=f'/opt/airflow/jobs/batch/{app_path}',  # The path to your Spark application file
-        conn_id='spark_default',  # Connection ID for your Spark cluster
+        application=f'/opt/airflow/jobs/run_dag.py',  # The path to your Spark application file
+        conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
         name='spark_job_run',
-        properties_file='/opt/airflow/config/spark-iceberg.conf'
-        # application_args=['--input', 'hdfs://...', '--output', 'hdfs://...'] # Optional arguments for your Spark job
+        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        application_args=['--app_name', app_name] # Optional arguments for your Spark job
     )
 
 @task.bash
@@ -67,32 +44,38 @@ with DAG(
     tags=['spark', 'pipeline']
 ) as dag:
     
-    py_files = zip_src()
+    PY_FILES = zip_src()
+
+    GEO_COORD = get_spark_submit_operator(SilverAvroSchema.GEO_COORD)
+    OLIST_USER = get_spark_submit_operator(SilverAvroSchema.OLIST_USER)
+    REVIEW_METADATA = get_spark_submit_operator(SilverAvroSchema.REVIEW_METADATA)
+    PRODUCT_METADATA = get_spark_submit_operator(SilverAvroSchema.PRODUCT_METADATA)
+    CUSTOMER_ORDER = get_spark_submit_operator(SilverAvroSchema.CUSTOMER_ORDER)
+    ORDER_EVENT = get_spark_submit_operator(SilverAvroSchema.ORDER_EVENT)
+
+    DIM_USER_LOCATION = get_spark_submit_operator(GoldAvroSchema.DIM_USER_LOCATION)
+    ORDER_DETAIL = get_spark_submit_operator(GoldAvroSchema.ORDER_DETAIL)
+    FACT_ORDER_TIMELINE = get_spark_submit_operator(GoldAvroSchema.FACT_ORDER_TIMELINE)
+    FACT_ORDER_LEAD_DAYS = get_spark_submit_operator(GoldAvroSchema.FACT_ORDER_LEAD_DAYS)
+    FACT_MONTHLY_SALES_BY_PRODUCT = get_spark_submit_operator(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
+    FACT_REVIEW_STATS = get_spark_submit_operator(GoldAvroSchema.FACT_REVIEW_STATS)
+    MONTHLY_CATEGORY_PORTFOLIO_MATRIX = get_spark_submit_operator(GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX)
     
-    customer = get_spark_submit_operator('customer')
-    seller = get_spark_submit_operator('seller')
-    geolocation = get_spark_submit_operator('geolocation')
-    delivered_order = get_spark_submit_operator('delivered_order')
-    order_customer = get_spark_submit_operator('order_customer')
-    order_timeline = get_spark_submit_operator('order_timeline')
-    order_transaction = get_spark_submit_operator('order_transaction')
-    product_metadata = get_spark_submit_operator('product_metadata')
+    # batch for silver
+    PY_FILES >> [
+        GEO_COORD,
+        OLIST_USER,
+        REVIEW_METADATA,
+        PRODUCT_METADATA,
+        CUSTOMER_ORDER,
+        ORDER_EVENT,
+    ]
 
-    sales = get_spark_submit_operator('sales')
-    delivered_order_location = get_spark_submit_operator('delivered_order_location')
-    order_lead_days = get_spark_submit_operator('order_lead_days')
-    product_portfolio_matrix = get_spark_submit_operator('product_portfolio_matrix')
-
-    # py_files >> delivered_order >> order_transaction
-
-
-    py_files >> delivered_order >> [order_timeline, order_transaction, order_customer]
-
-    order_timeline >> order_lead_days
-    order_transaction >> product_metadata >> seller
-    order_customer >> customer
-
-    [seller, customer] >> geolocation
-
-    [product_metadata, order_transaction ] >> sales >> product_portfolio_matrix
-    geolocation >> delivered_order_location
+    # batch for gold
+    ORDER_EVENT >> FACT_ORDER_TIMELINE
+    [PRODUCT_METADATA, CUSTOMER_ORDER] >> ORDER_DETAIL
+    [GEO_COORD, OLIST_USER]>> DIM_USER_LOCATION
+    [REVIEW_METADATA, ORDER_DETAIL]>> FACT_REVIEW_STATS
+    FACT_ORDER_TIMELINE >> FACT_ORDER_LEAD_DAYS
+    [ORDER_DETAIL, FACT_ORDER_TIMELINE] >> FACT_MONTHLY_SALES_BY_PRODUCT
+    FACT_MONTHLY_SALES_BY_PRODUCT >> MONTHLY_CATEGORY_PORTFOLIO_MATRIX
