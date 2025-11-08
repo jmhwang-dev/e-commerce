@@ -316,23 +316,16 @@ class FactReviewStatsBatch(BaseBatch):
         review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)
         self.review_metadata_df = self.spark_session.read.table(review_metadata_avsc_reader.dst_table_identifier)
 
-        customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
-        self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
-
-        product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
-        self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
+        order_detail_avsc_reader = AvscReader(GoldAvroSchema.ORDER_DETAIL)
+        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
 
     def transform(self):
-        product_cateogory_df = self.product_metadata_df.select('product_id', 'category').dropDuplicates()
-        order_product_df = self.customer_order_df.select('order_id', 'product_id').dropDuplicates()
         product_review = self.review_metadata_df \
-            .join(order_product_df, on='order_id', how='inner') \
-            .join(product_cateogory_df, on='product_id', how='inner')
+            .join(self.order_detail_df.select('order_id', 'product_id', 'category'), on='order_id', how='inner') \
 
         self.output_df = product_review.withColumn('until_answer_lead_days',F.date_diff('review_answer_timestamp', 'review_creation_date'))
         
-    def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
-        # write_iceberg(self.spark_session, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
+    def load(self):
         self.output_df.createOrReplaceTempView("updates")
         self.spark_session.sql(f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} target
@@ -341,4 +334,4 @@ class FactReviewStatsBatch(BaseBatch):
             WHEN NOT MATCHED THEN
                 INSERT *
         """)
-        self.get_current_dst_table(self.output_df.sparkSession, batch_id, False)
+        self.get_current_dst_table(self.output_df.sparkSession, debug=self.is_debug)

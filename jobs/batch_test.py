@@ -21,18 +21,39 @@ if __name__ == "__main__":
         # silver.GeoCoordBatch(spark_session),
         # silver.OlistUserBatch(spark_session),
         # silver.ReviewMetadataBatch(spark_session),
+        # silver.OrderEventBatch(spark_session),
+        # silver.CustomerOrderBatch(spark_session),
+        # silver.ProductMetadataBatch(spark_session),
+
+        # gold.DimUserLocationBatch(spark_session),
+        # gold.FactOrderTimelineBatch(spark_session),
+        # gold.OrderDetailBatch(spark_session),
+        # gold.FactReviewStatsBatch(spark_session),
+        # gold.FactOrderLeadDaysBatch(spark_session),
+        # gold.FactProductPeriodSalesBatch(spark_session),
+        # gold.FactProductPeriodPortfolioBatch(spark_session)
+    ]
+
+    FactReviewStats_pipeline = [
+        silver.ReviewMetadataBatch(spark_session),
+
+        gold.OrderDetailBatch(spark_session),
+        gold.FactReviewStatsBatch(spark_session),
+    ]
+
+    FactProductPeriodSalesBatch_pipeline = [
         silver.OrderEventBatch(spark_session),
         silver.CustomerOrderBatch(spark_session),
         silver.ProductMetadataBatch(spark_session),
 
-        # gold.DimUserLocationBatch(spark_session),
         gold.FactOrderTimelineBatch(spark_session),
         gold.OrderDetailBatch(spark_session),
-        # gold.FactReviewStatsBatch(spark_session),
-        # gold.FactOrderLeadDaysBatch(spark_session),
         gold.FactProductPeriodSalesBatch(spark_session),
-        # gold.FactProductPeriodPortfolioBatch(spark_session)
     ]
+
+    job_list = FactReviewStats_pipeline
+
+
 
     schedule_interval = 5
     try:

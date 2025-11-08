@@ -14,7 +14,6 @@ from service.utils.schema.reader import AvscReader
 class SilverBatch(BaseBatch):
     watermark_avsc_reader: AvscReader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_schema: Optional[StructType] = None
-    is_debug: bool = False
 
     def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None,):
         super().__init__(app_name, dst_avsc_filename, spark_session)
