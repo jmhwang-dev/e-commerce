@@ -22,14 +22,12 @@ flowchart TD
         geo_coord["geo_coord"]
         review_metadata["review_metadata"]
   end
- subgraph Gold_layer_stream["Gold_layer_stream"]
+ subgraph Gold_layer["Gold_layer"]
         fact_order_timeline["fact_order_timeline"]
         order_detail["order_detail"]
         dim_user_location["dim_user_location"]
-  end
- subgraph Gold_layer_batch["Gold_layer_batch"]
-        product_period_sales_metrics["product_period_sales_metrics"]
-        product_period_portfolio_matrix["product_period_portfolio_matrix"]
+        fact_monthly_sales_by_product["fact_monthly_sales_by_product"]
+        montly_category_portfolio_matrix["montly_category_portfolio_matrix"]
         fact_review_stats["fact_review_stats"]
         fact_order_lead_days["fact_order_lead_days"]
   end
@@ -45,11 +43,12 @@ flowchart TD
     payment --> customer_order
     product_metadata --> order_detail
     customer_order --> order_detail
-    fact_order_timeline --> fact_order_lead_days & product_period_sales_metrics
+    fact_order_timeline --> fact_order_lead_days & fact_monthly_sales_by_product
     olist_user --> dim_user_location
     geo_coord --> dim_user_location
     seller --> olist_user
     customer --> olist_user
     geolocation -- valid coordinate --> geo_coord
-    product_period_sales_metrics --> product_period_portfolio_matrix
-    order_detail --> product_period_sales_metrics & fact_review_stats
+    fact_monthly_sales_by_product --> montly_category_portfolio_matrix
+    order_detail --> fact_monthly_sales_by_product & fact_review_stats
+    style montly_category_portfolio_matrix fill:transparent
