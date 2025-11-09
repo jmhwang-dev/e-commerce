@@ -62,7 +62,7 @@ class PandasProducer(BaseProducer):
                 # if producer_record['value']['status'] != 'delivered_customer':
                 #     continue
                 # print(f"Published to {cls.dst_topic} | {cls.key_column}: {producer_record['key']} | status: {producer_record['value']['status']}")
-                print(f"Published to {cls.dst_topic:<26} {cls.key_column:<15} {producer_record['key']:<35}")
+                print(f"ingest_time: {producer_record['value']['ingest_time']} | published to {cls.dst_topic:<25} | {cls.key_column:<14} | {producer_record['key']:<35}")
 
             except SerializationError:
                 print(f'[{cls.producer_class_name}]: schema 검증 실패')

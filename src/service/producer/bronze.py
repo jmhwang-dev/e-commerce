@@ -89,6 +89,9 @@ class ReviewBronzeProducer(BronzeProducer):
 
     @classmethod
     def select(cls, event_timestamp: pd.Timestamp) -> Optional[pd.DataFrame]:
+        """
+        `review_creation_date`에 시간이 모두 00:00:00 이므로, 날짜를 기준으로 메시지 발행
+        """
         df = cls.get_df()
         event_date = event_timestamp.date()
 
