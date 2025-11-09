@@ -85,21 +85,22 @@ class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
 class ReviewBronzeProducer(BronzeProducer):
     dst_topic = BronzeAvroSchema.REVIEW
     key_column = 'review_id'
-    end_timestamp: Optional[pd.Timestamp] = None
+    start_date: Optional[pd.Timestamp] = None
 
     @classmethod
-    def select(cls, log: Union[pd.Series, pd.DataFrame], new_timestamp) -> Optional[pd.DataFrame]:
-        if log.empty:
-            return None
-        
+    def select(cls, event_timestamp: pd.Timestamp) -> Optional[pd.DataFrame]:
         df = cls.get_df()
-        if cls.end_timestamp is None:
-            review_in_scope = df[df['review_creation_date'] < new_timestamp]
-        else:
-            condition = (cls.end_timestamp <= df['review_creation_date']) & ( df['review_creation_date'] < new_timestamp)
-            review_in_scope = df[condition]
+        event_date = event_timestamp.date()
 
-        if not review_in_scope.empty:
-            cls.end_timestamp = new_timestamp
-            
-        return review_in_scope
+        if cls.start_date is None:
+            cls.start_date = event_date
+            return df[df['review_creation_date'].dt.date == cls.start_date]
+
+        if cls.start_date == event_date:
+            return
+        
+        condition = (cls.start_date < df['review_creation_date'].dt.date) & ( df['review_creation_date'].dt.date <= event_date)
+        matched_df = df[condition]
+        cls.start_date = event_date
+
+        return matched_df

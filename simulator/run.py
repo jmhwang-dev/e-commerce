@@ -67,7 +67,7 @@ if __name__=="__main__":
             mock_estimated_date, _ = PandasProducer.add_mock_ingest_time(estimated_date, current_ingest_time)
             EstimatedDeliberyDateBronzeProducer.publish(mock_estimated_date)
 
-        review_log = ReviewBronzeProducer.select(order_status_series, current_event_timestamp)
+        review_log = ReviewBronzeProducer.select(current_event_timestamp)
         mock_review_log = PandasProducer.calc_mock_ingest_time(review_log)
         ReviewBronzeProducer.publish(mock_review_log)
 
