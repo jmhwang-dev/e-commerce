@@ -11,51 +11,61 @@ from service.utils.schema.avsc import SilverAvroSchema
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=True)
     
-    init_catalog(spark_session, 'silver', is_drop=False)
-    init_catalog(spark_session, 'gold', is_drop=False)
+    init_catalog(spark_session, 'silver', is_drop=True)
+    init_catalog(spark_session, 'gold', is_drop=True)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
     base.BaseBatch.initialize_dst_table(spark_session, watermark_scheam, watermark_avsc_reader.dst_table_identifier)
 
-    all_job_instance_list: List[base.BaseBatch] = [
-        silver.GeoCoordBatch(spark_session),
-        silver.OlistUserBatch(spark_session),
-        silver.ReviewMetadataBatch(spark_session),
-        silver.OrderEventBatch(spark_session),
-        silver.CustomerOrderBatch(spark_session),
-        silver.ProductMetadataBatch(spark_session),
+    # all_job_instance_list: List[base.BaseBatch] = [
+    #     silver.GeoCoordBatch(spark_session),
+    #     silver.OlistUserBatch(spark_session),
+    #     silver.ReviewMetadataBatch(spark_session),
+    #     silver.OrderEventBatch(spark_session),
+    #     silver.CustomerOrderBatch(spark_session),
+    #     silver.ProductMetadataBatch(spark_session),
 
-        gold.DimUserLocationBatch(spark_session),
-        gold.FactOrderTimelineBatch(spark_session),
-        gold.OrderDetailBatch(spark_session),
-        gold.FactReviewStatsBatch(spark_session),
-        gold.FactOrderLeadDaysBatch(spark_session),
-        gold.FactMonthlySalesByProductBatch(spark_session),
-        gold.MonthlyCategoryPortfolioMatrix(spark_session)
-    ]
+    #     gold.DimUserLocationBatch(spark_session),
+    #     gold.FactOrderLeadDaysBatch(spark_session),
+    #     gold.OrderDetailBatch(spark_session),
+    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
+    #     gold.FactOrderLeadDaysBatch(spark_session),
+    #     gold.FactMonthlySalesByProductBatch(spark_session),
+    #     gold.MonthlyCategoryPortfolioMatrix(spark_session)
+    # ]
 
-    FactReviewStats_pipeline = [
-        silver.ReviewMetadataBatch(spark_session),
+    # FactReviewStats_pipeline = [
+    #     silver.ReviewMetadataBatch(spark_session),
 
-        gold.OrderDetailBatch(spark_session),
-        gold.FactReviewStatsBatch(spark_session),
-    ]
+    #     gold.OrderDetailBatch(spark_session),
+    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
+    # ]
 
     FactMonthlySalesByProductBatch_pipeline = [
         silver.OrderEventBatch(spark_session),
         silver.CustomerOrderBatch(spark_session),
         silver.ProductMetadataBatch(spark_session),
 
-        gold.FactOrderTimelineBatch(spark_session),
+        gold.FactOrderLeadDaysBatch(spark_session),
         gold.OrderDetailBatch(spark_session),
         gold.FactMonthlySalesByProductBatch(spark_session),
     ]
 
-    MonthlyCategoryPortfolioMatrix_pipeline = \
-        FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
+    # MonthlyCategoryPortfolioMatrix_pipeline = \
+    #     FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
+    
+    # FactOrderLeadDays_pipeline = [
+    #     silver.OrderEventBatch(spark_session),
+    #     gold.FactOrderLeadDaysBatch(spark_session),
+    # ]
 
-    target_job_instance_list: List[base.BaseBatch] = MonthlyCategoryPortfolioMatrix_pipeline
+    # FactReviewAnserLeadDays_pipeline = [
+    #     silver.ReviewMetadataBatch(spark_session),
+    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
+    # ]
+
+    target_job_instance_list: List[base.BaseBatch] = FactMonthlySalesByProductBatch_pipeline
 
     try:
         schedule_interval = 30

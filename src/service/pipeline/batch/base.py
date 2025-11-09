@@ -87,10 +87,8 @@ class BaseBatch(ABC):
             SilverAvroSchema.WATERMARK: None,
             GoldAvroSchema.DIM_USER_LOCATION: None,
             GoldAvroSchema.FACT_ORDER_LEAD_DAYS: None,
-            GoldAvroSchema.FACT_ORDER_TIMELINE: None,
-            GoldAvroSchema.FACT_REVIEW_STATS: None,
+            GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS: None,
             GoldAvroSchema.ORDER_DETAIL: None,
-            GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX: None,
             GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: None,
         }
         

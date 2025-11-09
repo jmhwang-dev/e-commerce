@@ -46,11 +46,9 @@ class SilverAvroSchema(BaseAvroSchema):
 class GoldAvroSchema(BaseAvroSchema):
     # schema for batch and stream
     DIM_USER_LOCATION = "dim_user_location" 
-    FACT_ORDER_TIMELINE = "fact_order_timeline"
+    FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
     ORDER_DETAIL = "order_detail"
+    FACT_REVIEW_ANSWER_LEAD_DAYS = "fact_review_answer_lead_days"
 
     # batch
     FACT_MONTHLY_SALES_BY_PRODUCT = "fact_monthly_sales_by_product"
-    MONTHLY_CATEGORY_PORTFOLIO_MATRIX = "monthly_category_portfolio_matrix"
-    FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
-    FACT_REVIEW_STATS = "fact_review_stats"

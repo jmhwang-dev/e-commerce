@@ -26,11 +26,9 @@ if __name__ == "__main__":
 
         GoldAvroSchema.DIM_USER_LOCATION: gold.DimUserLocationBatch,
         GoldAvroSchema.ORDER_DETAIL: gold.OrderDetailBatch,
-        GoldAvroSchema.FACT_ORDER_TIMELINE: gold.FactOrderTimelineBatch,
         GoldAvroSchema.FACT_ORDER_LEAD_DAYS: gold.FactOrderLeadDaysBatch,
         GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: gold.FactMonthlySalesByProductBatch,
-        GoldAvroSchema.FACT_REVIEW_STATS: gold.FactReviewStatsBatch,
-        GoldAvroSchema.MONTHLY_CATEGORY_PORTFOLIO_MATRIX: gold.FactMonthlySalesByProductBatch,
+        GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS: gold.FactReviewAnswerLeadDaysBatch,
     }
 
     spark_session = get_spark_session("Batch", dev=True)

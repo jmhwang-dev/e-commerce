@@ -4,11 +4,19 @@
   "namespace": "gold",
   "fields": [
     {
+      "name": "category",
+      "type": "string"
+    },
+    {
       "name": "product_id",
       "type": "string"
     },
     {
       "name": "sales_period",
+      "type": "string"
+    },
+    {
+      "name": "group",
       "type": "string"
     },
     {
@@ -22,10 +30,6 @@
     {
       "name": "mean_sales",
       "type": "double"
-    },
-    {
-      "name": "category",
-      "type": "string"
     }
   ]
 }

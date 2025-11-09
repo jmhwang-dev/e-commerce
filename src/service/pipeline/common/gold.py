@@ -11,12 +11,16 @@ class CommonGoldTask(ABC):
     def transform(self, ):
         pass
 
-class FactOrderTimelineBase(CommonGoldTask):
+class FactOrderLeadDaysBase(CommonGoldTask):
+    """
+    `shipping_delay > 0` means late shipping
+    `delivery_customer_delay > 0` means late delivery to customer
+    """
     
     @classmethod
     def transform(cls, order_event_df: DataFrame):
 
-        return order_event_df \
+        order_timeline_df = order_event_df \
             .groupBy('order_id') \
             .agg(
                 F.max(F.when(F.col('data_type') == 'purchase', F.col('timestamp'))).alias('purchase'),
@@ -26,3 +30,13 @@ class FactOrderTimelineBase(CommonGoldTask):
                 F.max(F.when(F.col('data_type') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
                 F.max(F.when(F.col('data_type') == 'estimated_delivery', F.col('timestamp'))).alias('estimated_delivery'),
             )
+
+        return order_timeline_df.withColumns(
+            {
+                "until_approve": F.date_diff("approve", "purchase"),
+                "until_delivered_carrier": F.date_diff("delivered_carrier", "approve"),
+                "until_delivered_customer": F.date_diff("delivered_customer", "delivered_carrier"),
+                "shipping_delay": F.date_diff("delivered_carrier", "shipping_limit"),
+                "delivery_customer_delay": F.date_diff("delivered_customer", "estimated_delivery")
+            }
+        )
