@@ -7,7 +7,7 @@ from pyspark.sql.types import IntegerType
 from .base import BaseStream
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 from service.pipeline.common.gold import *
-from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderTimelineBatch, OrderDetailBatch
+from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderLeadDaysBatch, OrderDetailBatch
 
 from service.utils.spark import get_kafka_stream_df, start_console_stream
 from service.utils.schema.reader import AvscReader
@@ -83,12 +83,12 @@ class DimUserLocationStream(GoldStream):
             .option("checkpointLocation", self.checkpoint_path) \
             .start()
 
-class FactOrderTimelineStream(GoldStream):
+class FactOrderLeadDaysStream(GoldStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
 
         self.query_name = self.__class__.__name__
-        self.dst_name = GoldAvroSchema.FACT_ORDER_TIMELINE
+        self.dst_name = GoldAvroSchema.FACT_ORDER_LEAD_DAYS
         self.dst_avsc_reader = AvscReader(self.dst_name)
     
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
@@ -104,12 +104,12 @@ class FactOrderTimelineStream(GoldStream):
 
     def transform(self,):
         self.order_event_stream = self.order_event_stream.withWatermark('ingest_time', '30 days')
-        self.output_df = FactOrderTimelineBase.transform(self.order_event_stream)
+        self.output_df = FactOrderLeadDaysBase.transform(self.order_event_stream)
 
         # start_console_stream(self.output_df.filter(F.col('order_id') == '1add1aa4c6e709fd74a4eb691a9fc6bc'), output_mode='complete')
         
     def load(self, micro_batch:DataFrame, batch_id: int):
-        FactOrderTimelineBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        FactOrderLeadDaysBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
 
     def get_query(self):
         self.extract()
