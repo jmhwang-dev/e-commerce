@@ -27,9 +27,8 @@ flowchart TD
         order_detail["order_detail"]
         dim_user_location["dim_user_location"]
         fact_monthly_sales_by_product["fact_monthly_sales_by_product"]
-        monthly_category_portfolio_matrix["monthly_category_portfolio_matrix"]
         fact_review_answer_lead_days["fact_review_answer_lead_days"]
-        fact_order_lead_days["fact_order_lead_days"]
+        delivery_status["delivery_status"]
   end
     order_status --> order_event
     order_item -- drop shipping_limit_date, seller_id --> customer_order
@@ -38,17 +37,16 @@ flowchart TD
     product -- select product_id, category --> product_metadata
     review -- drop review_comment_title, review_comment_message --> review_metadata
     review_metadata --> fact_review_answer_lead_days
-    order_event --> fact_order_lead_days
+    order_event --> fact_order_lead_days & delivery_status
     order_item -- select product_id, seller_id --> product_metadata
     payment --> customer_order
     product_metadata --> order_detail
     customer_order --> order_detail
-    fact_order_lead_days --> fact_order_lead_days & fact_monthly_sales_by_product
+    fact_order_lead_days --> fact_monthly_sales_by_product
     olist_user --> dim_user_location
     geo_coord --> dim_user_location
     seller --> olist_user
     customer --> olist_user
     geolocation -- valid coordinate --> geo_coord
-    fact_monthly_sales_by_product --> monthly_category_portfolio_matrix
-    order_detail --> fact_monthly_sales_by_product & fact_review_answer_lead_days
-    style monthly_category_portfolio_matrix fill:transparent
+    order_detail --> fact_monthly_sales_by_product & delivery_status
+    dim_user_location --> delivery_status
