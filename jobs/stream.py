@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # TODO: inference
     # review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
     silver_job = [GeoCoordStream, OrderEventStream, CustomerOrderStream, ReviewMetadataStream, OlistUserStream, ProductMetadataStream]
-    gold_job = [DimUserLocationStream, FactOrderLeadDaysStream, OrderDetailStream]
+    gold_job = [DimUserLocationStream, DeliverStatus, OrderDetailStream]
     
     job_class_list:List[BaseStream] = silver_job + gold_job
     run_stream(job_class_list)

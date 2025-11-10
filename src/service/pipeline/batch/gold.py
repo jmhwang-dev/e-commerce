@@ -5,7 +5,6 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import IntegerType
 
 from .base import BaseBatch
-from service.pipeline.common.gold import *
 from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
@@ -55,7 +54,25 @@ class FactOrderLeadDaysBatch(BaseBatch):
         self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
 
     def transform(self,):
-        self.output_df = FactOrderLeadDaysBase.transform(self.order_event_df)
+        # self.output_df = FactOrderLeadDaysBase.transform(self.order_event_df)
+        order_timeline_df = self.order_event_df \
+            .groupBy('order_id') \
+            .agg(
+                F.max(F.when(F.col('data_type') == 'purchase', F.col('timestamp'))).alias('purchase'),
+                F.max(F.when(F.col('data_type') == 'approved', F.col('timestamp'))).alias('approve'),
+                F.max(F.when(F.col('data_type') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier'),
+                F.max(F.when(F.col('data_type') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer'),
+                F.max(F.when(F.col('data_type') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
+                F.max(F.when(F.col('data_type') == 'estimated_delivery', F.col('timestamp'))).alias('estimated_delivery'),
+            )
+
+        self.output_df = order_timeline_df.withColumns({
+            "until_approve": F.date_diff("approve", "purchase"),
+            "until_delivered_carrier": F.date_diff("delivered_carrier", "approve"),
+            "until_delivered_customer": F.date_diff("delivered_customer", "delivered_carrier"),
+            "shipping_delay": F.date_diff("delivered_carrier", "shipping_limit"),
+            "delivery_customer_delay": F.date_diff("delivered_customer", "estimated_delivery")
+        })
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:

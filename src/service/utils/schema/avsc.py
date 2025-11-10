@@ -52,3 +52,6 @@ class GoldAvroSchema(BaseAvroSchema):
 
     # batch
     FACT_MONTHLY_SALES_BY_PRODUCT = "fact_monthly_sales_by_product"
+
+    # strema
+    DELIVERY_STATUS = "delivery_status"
