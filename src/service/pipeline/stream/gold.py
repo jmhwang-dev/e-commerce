@@ -53,6 +53,11 @@ class DeliverStatus(GoldStream):
         )
 
         # TODO: join gold.order_detail, and gold.dim_user_location
+        # order_detail_avsc_reader = AvscReader(GoldAvroSchema.ORDER_DETAIL)
+        # self.order_detail = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+
+        # dim_user_location_avsc_reader = AvscReader(GoldAvroSchema.DIM_USER_LOCATION)
+        # self.dim_user_location = self.spark_session.read.table(dim_user_location_avsc_reader.dst_table_identifier)
 
     def transform(self):
         
@@ -120,7 +125,6 @@ class DeliverStatus(GoldStream):
                 else:
                     delay_days_state = (deliv_date_state - estim_date_state).days
 
-            
             # 상태 저장
             state.update((
                 estim_date_state,
@@ -154,10 +158,12 @@ class DeliverStatus(GoldStream):
                 outputMode="update",
                 timeoutConf=GroupStateTimeout.ProcessingTimeTimeout
             )
+        
+        # self.output_df = self.output_df \
+        #     .join(self.order_detail, on='order_id', how='left') \
+        #     .join(self.dim_user_location, on='user_id', how='left')
 
     def load(self, micro_batch: DataFrame, batch_id):
-        print('start')
-        
         micro_batch.createOrReplaceTempView("updates")
         micro_batch.sparkSession.sql(
             f"""
@@ -175,7 +181,6 @@ class DeliverStatus(GoldStream):
         
         # self.get_current_dst_table(output_df.sparkSession, batch_id, False)
         
-            
     def get_query(self):
         self.extract()
         self.transform()
