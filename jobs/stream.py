@@ -1,4 +1,5 @@
 from typing import List
+from pyspark.sql import SparkSession
 from pyspark.sql.streaming.query import StreamingQuery
 
 from service.utils.logger import *
@@ -11,7 +12,7 @@ from config.kafka import BOOTSTRAP_SERVERS_INTERNAL
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
 
-def run_stream(job_class_list):
+def run_stream(spark_session: SparkSession, job_class_list: List[base.BaseStream]):
     QUERY_LIST: List[StreamingQuery] = []
 
     is_dev = True
@@ -36,27 +37,26 @@ if __name__ == "__main__":
     # - Add `ReviewMetadataStream`` when class for translation is done
     # ex)review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
     
-    OrderDetailStream_job = [
-        silver.ProductMetadataStream,
-        silver.CustomerOrderStream,
-        gold.OrderDetailStream
-    ]
+    # OrderDetailStream_job = [
+    #     silver.ProductMetadataStream,
+    #     silver.CustomerOrderStream,
+    #     gold.OrderDetailStream
+    # ]
     
-    DimUserLocationStream_job = [
-        silver.GeoCoordStream,
-        silver.OlistUserStream,
-        gold.DimUserLocationStream
-    ]
+    # DimUserLocationStream_job = [
+    #     silver.GeoCoordStream,
+    #     silver.OlistUserStream,
+    #     gold.DimUserLocationStream
+    # ]
 
-    DeliverStatus_job = OrderDetailStream_job + DimUserLocationStream_job + \
-        [
-            silver.OrderEventStream,
-            gold.DeliverStatus
-        ]
+    DeliveryStatus_job = [
+        silver.OrderEventStream,
+        gold.DeliverStatus
+    ]
 
     # assign above job
     target_job = []
-    target_job = DeliverStatus_job
+    target_job = DeliveryStatus_job
     
     job_class_list:List[base.BaseStream] = target_job
-    run_stream(job_class_list)
+    run_stream(spark_session, job_class_list)

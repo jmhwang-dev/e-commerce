@@ -18,11 +18,16 @@ from config.kafka import *
 from service.producer.silver import SparkProducer
 from service.utils.logger import write_log, Logger
 
-def stop_streams(spark_session: SparkSession, query_list: List[StreamingQuery]):
+def stop_streams(query_list: List[StreamingQuery], logger: Logger) -> None:
     for query in query_list:
         if query.isActive:
-            query.stop()
-    spark_session.stop()
+            try:
+                query.stop()
+                logger.info(f"Successfully stopped query: {query.name} (ID: {query.id})")
+            except Exception as e:
+                logger.error(f"Failed to stop query {query.name} (ID: {query.id}): {e}", exc_info=True)
+        else:
+            logger.debug(f"Query {query.name} (ID: {query.id}) is already inactive. Status: {query.status}")
 
 def get_serialized_df(serializer_udfs: dict[str, ], transformed_df: DataFrame, producer_class: SparkProducer):
     serializer_udf = serializer_udfs.get(producer_class.dst_topic)
@@ -111,7 +116,7 @@ def get_spark_session(app_name: str=None, dev=False) -> SparkSession:
 def start_console_stream(df: DataFrame, output_mode: str='append', checkpoint_dir: str = '') -> None:
     # .queryName(query_name)
     options = {
-        "truncate": "false",
+        "truncate": "True",
         "numRows": "100",
         "checkpointLocation": f"s3a://tmp/{uuid.uuid4() if len(checkpoint_dir) == 0 else checkpoint_dir}",
         "trigger": {"processingTime": "5 second"}
@@ -165,13 +170,21 @@ def run_stream_queries(spark_session: SparkSession, query_list: List[StreamingQu
     
     while any(q.isActive for q in query_list):
         try:
-            # awaitAnyTermination()은 내부적으로 timeout 있음 (기본 60초)
-            terminated = spark_session.streams.awaitAnyTermination()
-            
+            # 모든 쿼리의 종료를 병렬로 감지 (타임아웃 적용)
+            terminated = spark_session.streams.awaitAnyTermination()  # 밀리초 단위
             if not terminated:
-                # 타임아웃 발생 시 주기적 헬스체크
-                logger.debug("No query terminated in this cycle, continuing...")
+                logger.debug("No query terminated in this cycle, checking health...")
+                for query in query_list:
+                    if query.isActive:
+                        logger.debug(f"Query {query.name} (ID: {query.id}) is active. Last progress: {query.lastProgress}")
+                    else:
+                        logger.info(f"Query {query.name} (ID: {query.id}) terminated. Status: {query.status}")
+                        if query.exception():
+                            logger.error(f"Query {query.name} failed with exception: {query.exception()}")
                 continue
+            
+            # 비활성 쿼리 정리
+            _cleanup_inactive_queries(query_list, logger)
                 
         except StreamingQueryException as e:
             logger.error(f"StreamingQueryException: {e}", exc_info=True)
@@ -183,7 +196,7 @@ def run_stream_queries(spark_session: SparkSession, query_list: List[StreamingQu
             
         except KeyboardInterrupt:
             logger.info("Shutdown requested by user...")
-            stop_streams(spark_session, query_list)
+            stop_streams(query_list, logger)
             return
             
         except Exception as e:
