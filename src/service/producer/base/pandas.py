@@ -87,7 +87,7 @@ class PandasProducer(BaseProducer):
         _current_time = current_time
         log_added_ingest_time = log.copy()
         if isinstance(log, pd.Series):
-            random_timedelta = pd.Timedelta(f"{np.random.rand() * 50}ms")
+            random_timedelta = pd.Timedelta(milliseconds=np.random.uniform(10, 200))
             mock_ingest_time = _current_time + random_timedelta
             log_added_ingest_time['ingest_time'] = mock_ingest_time
 
