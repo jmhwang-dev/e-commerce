@@ -55,7 +55,9 @@ class OrderEventBase(CommonSilverTask):
             .withColumn('data_type', F.lit('shipping_limit')) \
             .dropDuplicates()
         
-        renamed_order_status_df = order_status_df.withColumnRenamed('status', 'data_type')
+        renamed_order_status_df = order_status_df \
+            .replace({"approved": "approve"}, subset=["status"]) \
+            .withColumnRenamed('status', 'data_type')
 
         return renamed_order_status_df.unionByName(renamed_est_delivery_df).unionByName(renamed_shippimt_limit_df)
     

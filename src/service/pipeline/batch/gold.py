@@ -59,7 +59,7 @@ class FactOrderLeadDaysBatch(BaseBatch):
             .groupBy('order_id') \
             .agg(
                 F.max(F.when(F.col('data_type') == 'purchase', F.col('timestamp'))).alias('purchase'),
-                F.max(F.when(F.col('data_type') == 'approved', F.col('timestamp'))).alias('approve'),
+                F.max(F.when(F.col('data_type') == 'approve', F.col('timestamp'))).alias('approve'),
                 F.max(F.when(F.col('data_type') == 'delivered_carrier', F.col('timestamp'))).alias('delivered_carrier'),
                 F.max(F.when(F.col('data_type') == 'delivered_customer', F.col('timestamp'))).alias('delivered_customer'),
                 F.max(F.when(F.col('data_type') == 'shipping_limit', F.col('timestamp'))).alias('shipping_limit'),
@@ -67,11 +67,11 @@ class FactOrderLeadDaysBatch(BaseBatch):
             )
 
         self.output_df = order_timeline_df.withColumns({
-            "until_approve": F.date_diff("approve", "purchase"),
-            "until_delivered_carrier": F.date_diff("delivered_carrier", "approve"),
-            "until_delivered_customer": F.date_diff("delivered_customer", "delivered_carrier"),
-            "shipping_delay": F.date_diff("delivered_carrier", "shipping_limit"),
-            "delivery_customer_delay": F.date_diff("delivered_customer", "estimated_delivery")
+            "purchase_to_approval_days": F.date_diff("approve", "purchase"),
+            "approval_to_carrier_days": F.date_diff("delivered_carrier", "approve"),
+            "carrier_to_customer_days": F.date_diff("delivered_customer", "delivered_carrier"),
+            "carrier_delivery_delay_days": F.date_diff("delivered_carrier", "shipping_limit"),
+            "customer_delivery_delay_days": F.date_diff("delivered_customer", "estimated_delivery")
         })
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
@@ -94,11 +94,11 @@ class FactOrderLeadDaysBatch(BaseBatch):
                     t.delivered_customer = COALESCE(s.delivered_customer, t.delivered_customer),
                     t.shipping_limit = COALESCE(s.shipping_limit, t.shipping_limit),
                     t.estimated_delivery = COALESCE(s.estimated_delivery, t.estimated_delivery),
-                    t.until_approve = COALESCE(s.until_approve, t.until_approve),
-                    t.until_delivered_carrier = COALESCE(s.until_delivered_carrier, t.until_delivered_carrier),
-                    t.until_delivered_customer = COALESCE(s.until_delivered_customer, t.until_delivered_customer),
-                    t.shipping_delay = COALESCE(s.shipping_delay, t.shipping_delay),
-                    t.delivery_customer_delay = COALESCE(s.delivery_customer_delay, t.delivery_customer_delay)
+                    t.purchase_to_approval_days = COALESCE(s.purchase_to_approval_days, t.purchase_to_approval_days),
+                    t.approval_to_carrier_days = COALESCE(s.approval_to_carrier_days, t.approval_to_carrier_days),
+                    t.carrier_to_customer_days = COALESCE(s.carrier_to_customer_days, t.carrier_to_customer_days),
+                    t.carrier_delivery_delay_days = COALESCE(s.carrier_delivery_delay_days, t.carrier_delivery_delay_days),
+                    t.customer_delivery_delay_days = COALESCE(s.customer_delivery_delay_days, t.customer_delivery_delay_days)
             WHEN NOT MATCHED THEN
                 INSERT *
             """)

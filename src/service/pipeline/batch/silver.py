@@ -113,7 +113,6 @@ class GeoCoordBatch(SilverBatch):
         
         self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
-
 class OlistUserBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(self.__class__.__name__, SilverAvroSchema.OLIST_USER, spark_session)
