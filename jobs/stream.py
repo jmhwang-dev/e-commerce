@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     DeliveryStatus_job = [
         silver.OrderEventStream,
-        gold.DeliverStatus
+        gold.FactOrderLeadDaysStream
     ]
 
     # assign above job
