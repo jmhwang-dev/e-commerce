@@ -14,9 +14,11 @@ class DimUserLocationBatch(BaseBatch):
 
     def extract(self):
         geo_coord_avsc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
+        self.check_table(self.spark_session, geo_coord_avsc_reader.dst_table_identifier)
         self.geo_coord_df = self.spark_session.read.table(geo_coord_avsc_reader.dst_table_identifier)
 
         olist_user_avsc_reader = AvscReader(SilverAvroSchema.OLIST_USER)
+        self.check_table(self.spark_session, olist_user_avsc_reader.dst_table_identifier)
         self.olist_user = self.spark_session.read.table(olist_user_avsc_reader.dst_table_identifier)
 
     def transform(self,):
@@ -51,6 +53,7 @@ class FactOrderLeadDaysBatch(BaseBatch):
 
     def extract(self):
         order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
+        self.check_table(self.spark_session, order_event_avsc_reader.dst_table_identifier)
         self.order_event_df = self.spark_session.read.table(order_event_avsc_reader.dst_table_identifier)
 
     def transform(self,):
@@ -110,9 +113,11 @@ class OrderDetailBatch(BaseBatch):
 
     def extract(self):
         customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
+        self.check_table(self.spark_session, customer_order_avsc_reader.dst_table_identifier)
         self.customer_order_df = self.spark_session.read.table(customer_order_avsc_reader.dst_table_identifier)
 
         product_metadata_avsc_reader = AvscReader(SilverAvroSchema.PRODUCT_METADATA)
+        self.check_table(self.spark_session, product_metadata_avsc_reader.dst_table_identifier)
         self.product_metadata_df = self.spark_session.read.table(product_metadata_avsc_reader.dst_table_identifier)
 
     def transform(self,):
@@ -169,9 +174,11 @@ class FactMonthlySalesByProductBatch(BaseBatch):
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_LEAD_DAYS)
+        self.check_table(self.spark_session, fact_order_timeline_avsc_reader.dst_table_identifier)
         self.fact_order_lead_days = self.spark_session.read.table(fact_order_timeline_avsc_reader.dst_table_identifier)
 
         order_detail_avsc_reader = AvscReader(GoldAvroSchema.ORDER_DETAIL)
+        self.check_table(self.spark_session, order_detail_avsc_reader.dst_table_identifier)
         self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
 
     def transform(self):
@@ -244,6 +251,7 @@ class FactReviewAnswerLeadDaysBatch(BaseBatch):
 
     def extract(self):
         review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)
+        self.check_table(self.spark_session, review_metadata_avsc_reader.dst_table_identifier)
         self.review_metadata_df = self.spark_session.read.table(review_metadata_avsc_reader.dst_table_identifier)
 
     def transform(self):
