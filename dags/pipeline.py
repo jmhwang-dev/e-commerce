@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from airflow import DAG
 from airflow.sdk import task
@@ -39,8 +40,8 @@ def zip_src():
 with DAG(
     dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
-    schedule=None,  # Set to a schedule like '@daily' or None for manual runs
-    catchup=True,
+    schedule=timedelta(seconds=60),  # Set to a schedule like '@daily' or None for manual runs
+    catchup=False,
     tags=['spark', 'pipeline']
 ) as dag:
     
@@ -59,19 +60,28 @@ with DAG(
     FACT_MONTHLY_SALES_BY_PRODUCT = get_spark_submit_operator(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
     FACT_REVIEW_ANSWER_LEAD_DAYS = get_spark_submit_operator(GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS)
     
-    # batch for silver
-    PY_FILES >> [
-        GEO_COORD,
-        OLIST_USER,
-        REVIEW_METADATA,
-        PRODUCT_METADATA,
-        CUSTOMER_ORDER,
-        ORDER_EVENT,
-    ]
+    # # if resource is enough...
+    # # batch for silver
+    # PY_FILES >> [
+    #     GEO_COORD,
+    #     OLIST_USER,
+    #     REVIEW_METADATA,
+    #     PRODUCT_METADATA,
+    #     CUSTOMER_ORDER,
+    #     ORDER_EVENT,
+    # ]
 
-    # batch for gold
-    ORDER_EVENT >> FACT_ORDER_LEAD_DAYS
-    [PRODUCT_METADATA, CUSTOMER_ORDER] >> ORDER_DETAIL
-    [GEO_COORD, OLIST_USER]>> DIM_USER_LOCATION
-    REVIEW_METADATA >> FACT_REVIEW_ANSWER_LEAD_DAYS
-    [ORDER_DETAIL, FACT_ORDER_LEAD_DAYS] >> FACT_MONTHLY_SALES_BY_PRODUCT
+    # # batch for gold
+    # ORDER_EVENT >> FACT_ORDER_LEAD_DAYS
+    # [PRODUCT_METADATA, CUSTOMER_ORDER] >> ORDER_DETAIL
+    # [GEO_COORD, OLIST_USER]>> DIM_USER_LOCATION
+    # REVIEW_METADATA >> FACT_REVIEW_ANSWER_LEAD_DAYS
+    # [ORDER_DETAIL, FACT_ORDER_LEAD_DAYS] >> FACT_MONTHLY_SALES_BY_PRODUCT
+
+
+    # if resource is not enough...
+    PY_FILES >> \
+        PRODUCT_METADATA >> CUSTOMER_ORDER >> ORDER_DETAIL >> \
+        ORDER_EVENT >> FACT_ORDER_LEAD_DAYS >> FACT_MONTHLY_SALES_BY_PRODUCT >> \
+        REVIEW_METADATA >> FACT_REVIEW_ANSWER_LEAD_DAYS >> \
+        GEO_COORD >> OLIST_USER >> DIM_USER_LOCATION
