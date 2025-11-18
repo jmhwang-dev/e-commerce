@@ -260,9 +260,10 @@ class CustomerOrderBatch(SilverBatch):
         self.payment_df = self.spark_session.read.table(payment_avsc_reader.dst_table_identifier)
         
     def transform(self):
-        order_item_price = self.order_item_df.select('order_id', 'order_item_id', 'product_id', 'price').dropna()
+        # `seller_id`` 포함 이유: 동일 `product_id`를 다수의 `seller_id`가 판매할 수 있음
+        order_item_price = self.order_item_df.select('order_id', 'order_item_id', 'product_id', 'price', 'seller_id').dropna()
         aggregated_df = order_item_price \
-            .groupBy("order_id", "product_id", "price") \
+            .groupBy("order_id", "product_id", "price", 'seller_id') \
             .agg(F.count("order_item_id").alias("quantity")) \
             .withColumnRenamed("price", "unit_price") \
 
@@ -288,7 +289,7 @@ class CustomerOrderBatch(SilverBatch):
         self.output_df.sparkSession.sql(f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
-            ON t.order_id = s.order_id AND t.product_id = s.product_id AND t.customer_id = s.customer_id
+            ON t.order_id = s.order_id AND t.product_id = s.product_id AND t.customer_id = s.customer_id AND t.seller_id = s.seller_id
             WHEN NOT MATCHED THEN INSERT *
         """)
 

@@ -5,15 +5,15 @@ from typing import List
 from service.utils.iceberg import init_catalog
 from service.utils.spark import get_spark_session
 from service.utils.helper import get_batch_pipeline
-from service.pipeline.batch import base, silver, gold
+from service.pipeline.batch import base
 from service.utils.schema.reader import AvscReader
-from service.utils.schema.avsc import SilverAvroSchema
+from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=True)
     
-    init_catalog(spark_session, 'silver', is_drop=False)
-    init_catalog(spark_session, 'gold', is_drop=False)
+    init_catalog(spark_session, 'silver', is_drop=True)
+    init_catalog(spark_session, 'gold', is_drop=True)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
@@ -22,7 +22,9 @@ if __name__ == "__main__":
 
     spark_session.stop()
     
-    app_class_list: List[base.BaseBatch] = get_batch_pipeline('all')
+    app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.ORDER_DETAIL)
+    # print(app_class_list)
+    # exit()
 
     for app_class in app_class_list:
         app: base.BaseBatch = app_class()

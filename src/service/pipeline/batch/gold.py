@@ -124,7 +124,7 @@ class OrderDetailBatch(BaseBatch):
 
         joined_df = self.customer_order_df.alias('co').join(
             self.product_metadata_df.alias('pm'),
-            on='product_id',
+            on=['product_id', 'seller_id'],
             how='inner')
         
         common_columns = ["order_id", "product_id", "category", "quantity", "unit_price"]
@@ -157,8 +157,8 @@ class OrderDetailBatch(BaseBatch):
                     t.category = s.category
 
             WHEN NOT MATCHED THEN
-                INSERT (order_id, user_id, product_id, category, quantity, unit_price)
-                VALUES (s.order_id, s.user_id, s.product_id, s.category, s.quantity, s.unit_price)
+                INSERT (order_id, product_id, category, quantity, unit_price, user_id)
+                VALUES (s.order_id, s.product_id, s.category, s.quantity, s.unit_price, s.user_id)
             """)
         
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
