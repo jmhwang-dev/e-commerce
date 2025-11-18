@@ -12,16 +12,26 @@ from service.utils.schema.avsc import *
 SRC_PATH = '/opt/airflow/src'
 ARFTIFACT_DIR_PATH = '/opt/airflow/artifact'
 ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
-SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_defaultz")
+SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_default")
+
+def init_catalog(is_drop: bool) -> SparkSubmitOperator:
+    return SparkSubmitOperator(
+        task_id='init_catalog',
+        application=f'/opt/airflow/jobs/batch/init.py',  # The path to your Spark application file
+        conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
+        py_files=ZIP_DST_PATH,
+        deploy_mode='client',
+        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        application_args=['--is_drop', str(is_drop)] # Optional arguments for your Spark job
+    )
 
 def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
     return SparkSubmitOperator(
         task_id=app_name,
-        application=f'/opt/airflow/jobs/run_dag.py',  # The path to your Spark application file
+        application=f'/opt/airflow/jobs/batch/task.py',  # The path to your Spark application file
         conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
-        name='spark_job_run',
         properties_file='/opt/airflow/config/spark-iceberg.conf',
         application_args=['--app_name', app_name] # Optional arguments for your Spark job
     )
@@ -40,12 +50,13 @@ def zip_src():
 with DAG(
     dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
-    schedule=timedelta(seconds=60),  # Set to a schedule like '@daily' or None for manual runs
+    # schedule=timedelta(seconds=60),  # Set to a schedule like '@daily' or None for manual runs
     catchup=False,
     tags=['spark', 'pipeline']
 ) as dag:
     
     PY_FILES = zip_src()
+    INIT_CATALOG = init_catalog(False)
 
     GEO_COORD = get_spark_submit_operator(SilverAvroSchema.GEO_COORD)
     OLIST_USER = get_spark_submit_operator(SilverAvroSchema.OLIST_USER)
@@ -62,7 +73,7 @@ with DAG(
     
     # # if resource is enough...
     # # batch for silver
-    # PY_FILES >> [
+    # PY_FILES >> INIT_CATALOG >> [
     #     GEO_COORD,
     #     OLIST_USER,
     #     REVIEW_METADATA,
@@ -80,7 +91,7 @@ with DAG(
 
 
     # if resource is not enough...
-    PY_FILES >> \
+    PY_FILES >> INIT_CATALOG >> \
         PRODUCT_METADATA >> CUSTOMER_ORDER >> ORDER_DETAIL >> \
         ORDER_EVENT >> FACT_ORDER_LEAD_DAYS >> FACT_MONTHLY_SALES_BY_PRODUCT >> \
         REVIEW_METADATA >> FACT_REVIEW_ANSWER_LEAD_DAYS >> \

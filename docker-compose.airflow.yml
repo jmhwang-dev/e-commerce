@@ -79,7 +79,7 @@ x-airflow-common:
   volumes:
     - ./src:/opt/airflow/src
     - ./src/service/utils/schema/avsc.py:/opt/airflow/jobs/src/service/utils/schema/avsc.py
-    - ./jobs/run_dag.py:/opt/airflow/jobs/run_dag.py
+    - ./jobs/batch:/opt/airflow/jobs/batch
     - ${AIRFLOW_PROJ_DIR:-./dags}:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs/airflow:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/configs/airflow:/opt/airflow/config
