@@ -1,8 +1,11 @@
 from typing import Optional
+# from service.pipeline.batch import base, silver, gold
 from service.producer.bronze import *
-from service.pipeline.batch import base, silver, gold
-from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
+# from service.pipeline import *
+from service.pipeline import batch
+from service.pipeline import stream
 
+from service.utils.schema.avsc import GoldAvroSchema
 
 def get_producer(topic_name):
     if topic_name == OrderStatusBronzeProducer.dst_topic:
@@ -31,53 +34,8 @@ def get_producer(topic_name):
     
     elif topic_name == ReviewBronzeProducer.dst_topic:
         return ReviewBronzeProducer
-
-def get_avro_key_column(topic_name):
-    if topic_name == OrderStatusBronzeProducer.dst_topic:
-        return OrderStatusBronzeProducer.key_column
-
-    elif topic_name == ProductBronzeProducer.dst_topic:
-        return ProductBronzeProducer.key_column
     
-    elif topic_name == CustomerBronzeProducer.dst_topic:
-        return CustomerBronzeProducer.key_column
-    
-    elif topic_name == SellerBronzeProducer.dst_topic:
-        return SellerBronzeProducer.key_column
-    
-    elif topic_name == GeolocationBronzeProducer.dst_topic:
-        return GeolocationBronzeProducer.key_column
-    
-    elif topic_name == EstimatedDeliberyDateBronzeProducer.dst_topic:
-        return EstimatedDeliberyDateBronzeProducer.key_column
-    
-    elif topic_name == OrderItemBronzeProducer.dst_topic:
-        return OrderItemBronzeProducer.key_column
-    
-    elif topic_name == PaymentBronzeProducer.dst_topic:
-        return PaymentBronzeProducer.key_column
-    
-    elif topic_name == ReviewBronzeProducer.dst_topic:
-        return ReviewBronzeProducer.key_column
-    
-    elif topic_name == ReviewBronzeProducer.dst_topic:
-        return ReviewBronzeProducer.key_column
-    
-    # silver
-    # TODO: resolve hard coding
-    elif topic_name == 'geo_coord':
-        return 'zip_code'
-    
-    elif topic_name in ['order_event', 'customer_order']:
-        return 'order_id'
-    
-    elif topic_name == 'olist_user':
-        return 'user_id'
-    
-    elif topic_name == 'product_metadata':
-        return 'product_id'
-    
-def get_batch_pipeline(target_pipeline: str) -> List[Optional[base.BaseBatch]]:
+def get_batch_pipeline(target_pipeline: str) -> List[Optional[batch.base.BaseBatch]]:
     """
     Get the list of batch job classes for the specified pipeline.
 
@@ -94,20 +52,20 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[base.BaseBatch]]:
     """
     
     silver_jobs = [
-        silver.GeoCoordBatch,
-        silver.OlistUserBatch,
-        silver.ReviewMetadataBatch,
-        silver.ProductMetadataBatch,
-        silver.CustomerOrderBatch,
-        silver.OrderEventBatch,
+        batch.silver.GeoCoordBatch,
+        batch.silver.OlistUserBatch,
+        batch.silver.ReviewMetadataBatch,
+        batch.silver.ProductMetadataBatch,
+        batch.silver.CustomerOrderBatch,
+        batch.silver.OrderEventBatch,
     ]
 
     gold_jobs = [
-        gold.DimUserLocationBatch,
-        gold.OrderDetailBatch,
-        gold.FactOrderLeadDaysBatch,
-        gold.FactMonthlySalesByProductBatch,
-        gold.FactReviewAnswerLeadDaysBatch,
+        batch.gold.DimUserLocationBatch,
+        batch.gold.OrderDetailBatch,
+        batch.gold.FactOrderLeadDaysBatch,
+        batch.gold.FactMonthlySalesByProductBatch,
+        batch.gold.FactReviewAnswerLeadDaysBatch,
     ]
 
     # 전체 pipeline 구성
@@ -115,34 +73,97 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[base.BaseBatch]]:
         'all': silver_jobs + gold_jobs,
 
         GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS: [
-            silver.ReviewMetadataBatch,
-            gold.FactReviewAnswerLeadDaysBatch
+            batch.silver.ReviewMetadataBatch,
+            batch.gold.FactReviewAnswerLeadDaysBatch
         ],
 
         GoldAvroSchema.FACT_ORDER_LEAD_DAYS: [
-            silver.OrderEventBatch,
-            gold.FactOrderLeadDaysBatch
+            batch.silver.OrderEventBatch,
+            batch.gold.FactOrderLeadDaysBatch
         ],
 
         GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: [
-            silver.OrderEventBatch,
-            silver.CustomerOrderBatch,
-            silver.ProductMetadataBatch,
-            gold.FactOrderLeadDaysBatch,
-            gold.OrderDetailBatch,
-            gold.FactMonthlySalesByProductBatch
+            batch.silver.OrderEventBatch,
+            batch.silver.CustomerOrderBatch,
+            batch.silver.ProductMetadataBatch,
+            batch.gold.FactOrderLeadDaysBatch,
+            batch.gold.OrderDetailBatch,
+            batch.gold.FactMonthlySalesByProductBatch
         ],
 
         GoldAvroSchema.ORDER_DETAIL: [
-            silver.ProductMetadataBatch,
-            silver.CustomerOrderBatch,
-            gold.OrderDetailBatch
+            batch.silver.ProductMetadataBatch,
+            batch.silver.CustomerOrderBatch,
+            batch.gold.OrderDetailBatch
         ],
 
         GoldAvroSchema.DIM_USER_LOCATION: [
-            silver.GeoCoordBatch,
-            silver.OlistUserBatch,
-            gold.DimUserLocationBatch
+            batch.silver.GeoCoordBatch,
+            batch.silver.OlistUserBatch,
+            batch.gold.DimUserLocationBatch
+        ],
+    }
+
+    return app_dict.get(target_pipeline, [])
+
+def get_stream_pipeline(target_pipeline: str) -> List[Optional[stream.base.BaseStream]]:
+    """
+    Get the list of batch job classes for the specified pipeline.
+
+    Parameters
+    ----------
+    target_pipeline : str
+        - `*AvroSchema` name (ex: SilverAvroSchema.CUSTOMER_ORDER)
+        - Use 'all' for the full pipeline.
+
+    Returns
+    -------
+    list
+        `[]` or list for batch job classes to run for the given pipeline
+    """
+    
+    silver_jobs = [
+        stream.silver.GeoCoordStream,
+        stream.silver.OlistUserStream,
+        stream.silver.ReviewMetadataStream,
+        stream.silver.ProductMetadataStream,
+        stream.silver.CustomerOrderStream,
+        stream.silver.OrderEventStream,
+    ]
+
+    gold_jobs = [
+        stream.gold.DimUserLocationStream,
+        stream.gold.OrderDetailStream,
+        stream.gold.FactOrderLeadDaysStream,
+    ]
+
+    # TODO
+    # - Inference to translate (Portuguess to English)
+    # - Add `ReviewMetadataStream`` when class for translation is done
+    # ex)review_comment = review_stream_df.select('review_id', 'review_comment_title', 'review_comment_message').dropna()
+    # ReviewMetadataStream_job = [
+    #     silver.ReviewMetadataStream,
+    #     gold.
+
+    # 전체 pipeline 구성
+    app_dict = {
+        'all': silver_jobs + gold_jobs,
+
+        GoldAvroSchema.FACT_ORDER_LEAD_DAYS: [
+            stream.silver.OrderEventStream,
+            stream.gold.FactOrderLeadDaysStream,
+        ],
+
+        GoldAvroSchema.ORDER_DETAIL: [
+            stream.silver.ProductMetadataStream,
+            stream.silver.CustomerOrderStream,
+            stream.gold.OrderDetailStream,
+        ],
+
+        GoldAvroSchema.DIM_USER_LOCATION: [
+            stream.silver.GeoCoordStream,
+            stream.silver.OlistUserStream,
+            stream.gold.DimUserLocationStream,
         ],
     }
 

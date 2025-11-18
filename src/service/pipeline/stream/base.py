@@ -8,8 +8,8 @@ from pyspark.sql.avro.functions import to_avro
 from service.utils.iceberg import *
 from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_deserialized_avro_stream_df
+from service.producer.bronze import *
 
-from service.utils.helper import get_avro_key_column
 from config.kafka import BOOTSTRAP_SERVERS_INTERNAL
 
 
@@ -71,5 +71,51 @@ class BaseStream(ABC):
     @staticmethod
     def get_topic_df(micro_batch:DataFrame, dst_avsc_reader: AvscReader) -> DataFrame:
         ser_df = micro_batch.filter(F.col("topic") == dst_avsc_reader.table_name)
-        key_column = get_avro_key_column(dst_avsc_reader.table_name)
+        key_column = BaseStream.get_avro_key_column(dst_avsc_reader.table_name)
         return get_deserialized_avro_stream_df(ser_df, key_column, dst_avsc_reader.schema_str)
+    
+    @staticmethod
+    def get_avro_key_column(topic_name):
+        if topic_name == OrderStatusBronzeProducer.dst_topic:
+            return OrderStatusBronzeProducer.key_column
+
+        elif topic_name == ProductBronzeProducer.dst_topic:
+            return ProductBronzeProducer.key_column
+        
+        elif topic_name == CustomerBronzeProducer.dst_topic:
+            return CustomerBronzeProducer.key_column
+        
+        elif topic_name == SellerBronzeProducer.dst_topic:
+            return SellerBronzeProducer.key_column
+        
+        elif topic_name == GeolocationBronzeProducer.dst_topic:
+            return GeolocationBronzeProducer.key_column
+        
+        elif topic_name == EstimatedDeliberyDateBronzeProducer.dst_topic:
+            return EstimatedDeliberyDateBronzeProducer.key_column
+        
+        elif topic_name == OrderItemBronzeProducer.dst_topic:
+            return OrderItemBronzeProducer.key_column
+        
+        elif topic_name == PaymentBronzeProducer.dst_topic:
+            return PaymentBronzeProducer.key_column
+        
+        elif topic_name == ReviewBronzeProducer.dst_topic:
+            return ReviewBronzeProducer.key_column
+        
+        elif topic_name == ReviewBronzeProducer.dst_topic:
+            return ReviewBronzeProducer.key_column
+        
+        # silver
+        # TODO: resolve hard coding
+        elif topic_name == 'geo_coord':
+            return 'zip_code'
+        
+        elif topic_name in ['order_event', 'customer_order']:
+            return 'order_id'
+        
+        elif topic_name == 'olist_user':
+            return 'user_id'
+        
+        elif topic_name == 'product_metadata':
+            return 'product_id'
