@@ -18,4 +18,3 @@ if __name__ == "__main__":
 
     # load_cdc_stream(spark_session, CDC_OPTIONS, logger)
     load_cdc_batch(spark_session, CDC_OPTIONS)
-    

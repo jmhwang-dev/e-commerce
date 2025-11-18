@@ -150,6 +150,12 @@ class OrderDetailBatch(BaseBatch):
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
             ON t.order_id = s.order_id and t.product_id = s.product_id and t.user_id = s.user_id
+            
+            WHEN MATCHED and t.quantity != s.quantity or t.category != s.category THEN
+                UPDATE SET
+                    t.quantity = s.quantity,
+                    t.category = s.category
+
             WHEN NOT MATCHED THEN
                 INSERT (order_id, user_id, product_id, category, quantity, unit_price)
                 VALUES (s.order_id, s.user_id, s.product_id, s.category, s.quantity, s.unit_price)
