@@ -1,0 +1,25 @@
+services:
+  spark-worker:
+    image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+    container_name: spark-worker-pi5
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - SPARK_WORKER_CORES=4
+      - SPARK_WORKER_MEMORY=6g
+      - SPARK_NO_DAEMONIZE=true
+    volumes:
+      - ./configs/spark:/opt/spark/conf:ro
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://192.168.45.191:7077
+
+  # Dynamic Allocation 쓸 때 필수! (한 번만 띄우면 됨)
+  spark-shuffle-service:
+    image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+    container_name: spark-shuffle-pi5
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - /home/jmhwang/ecommerce/configs/spark:/opt/spark/conf:ro
+    command: /opt/spark/sbin/start-shuffle-service.sh
