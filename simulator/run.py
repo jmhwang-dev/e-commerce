@@ -14,7 +14,7 @@ if __name__=="__main__":
     stream_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames()
     
     delete_topics(admin_client, stream_avsc_filenames)
-    create_topics(admin_client, stream_avsc_filenames)
+    create_topics(admin_client, stream_avsc_filenames, 2, 1)
 
     base_interval = 0  # seconds
     order_status_df = OrderStatusBronzeProducer.get_df()

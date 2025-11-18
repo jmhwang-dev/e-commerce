@@ -107,12 +107,12 @@ def delete_topics(admin_client: AdminClient, topic_names_to_delete: Iterable[str
                 # 그 외 다른 카프카 에러
                 print(f"Error deleting topic {topic}: {e}")
 
-def create_topics(admin_client: AdminClient, topics_names_to_create: Iterable[str]):
+def create_topics(admin_client: AdminClient, topics_names_to_create: Iterable[str], num_partitions:int = 1, replication_factor:int = 2):
     """
     Asynchronously creates topics. The call returns a dict of futures.
     We wait for each future to finish to check for errors.
     """
-    new_topics = [NewTopic(topic, num_partitions=1, replication_factor=2) for topic in topics_names_to_create]
+    new_topics = [NewTopic(topic, num_partitions=num_partitions, replication_factor=replication_factor) for topic in topics_names_to_create]
     
     # create_topics는 토픽 이름과 Future 객체를 담은 딕셔너리를 반환합니다.
     fs = admin_client.create_topics(new_topics)
