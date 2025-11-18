@@ -102,6 +102,18 @@ services:
         sleep 10;
         spark-sql -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
       "
+
+  # Dynamic Allocation 쓸 때 필수
+  spark-shuffle-service:
+    <<: *spark-common
+    container_name: spark-shuffle
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./configs/spark:/opt/spark/conf:ro
+    entrypoint: []
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.ExternalShuffleService
+
   dbt:
     container_name: dbt
     image: ghcr.io/dbt-labs/dbt-spark:1.9.0
