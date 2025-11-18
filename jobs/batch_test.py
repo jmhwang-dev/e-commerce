@@ -1,80 +1,32 @@
 import time
 
+
 from typing import List
 from service.utils.iceberg import init_catalog
 from service.utils.spark import get_spark_session
+from service.utils.helper import get_batch_pipeline
 from service.pipeline.batch import base, silver, gold
 from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema
 
-
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=True)
     
-    init_catalog(spark_session, 'silver', is_drop=True)
-    init_catalog(spark_session, 'gold', is_drop=True)
+    init_catalog(spark_session, 'silver', is_drop=False)
+    init_catalog(spark_session, 'gold', is_drop=False)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
     base.BaseBatch.initialize_dst_table(spark_session, watermark_scheam, watermark_avsc_reader.dst_table_identifier)
+    SilverAvroSchema.CUSTOMER_ORDER
 
-    # all_job_instance_list: List[base.BaseBatch] = [
-    #     silver.GeoCoordBatch(spark_session),
-    #     silver.OlistUserBatch(spark_session),
-    #     silver.ReviewMetadataBatch(spark_session),
-    #     silver.OrderEventBatch(spark_session),
-    #     silver.CustomerOrderBatch(spark_session),
-    #     silver.ProductMetadataBatch(spark_session),
-
-    #     gold.DimUserLocationBatch(spark_session),
-    #     gold.FactOrderLeadDaysBatch(spark_session),
-    #     gold.OrderDetailBatch(spark_session),
-    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
-    #     gold.FactOrderLeadDaysBatch(spark_session),
-    #     gold.FactMonthlySalesByProductBatch(spark_session),
-    #     gold.MonthlyCategoryPortfolioMatrix(spark_session)
-    # ]
-
-    # FactReviewStats_pipeline = [
-    #     silver.ReviewMetadataBatch(spark_session),
-
-    #     gold.OrderDetailBatch(spark_session),
-    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
-    # ]
-
-    FactMonthlySalesByProductBatch_pipeline = [
-        silver.OrderEventBatch(spark_session),
-        silver.CustomerOrderBatch(spark_session),
-        silver.ProductMetadataBatch(spark_session),
-
-        gold.FactOrderLeadDaysBatch(spark_session),
-        gold.OrderDetailBatch(spark_session),
-        gold.FactMonthlySalesByProductBatch(spark_session),
-    ]
-
-    # MonthlyCategoryPortfolioMatrix_pipeline = \
-    #     FactMonthlySalesByProductBatch_pipeline + [gold.MonthlyCategoryPortfolioMatrix(spark_session)]
+    spark_session.stop()
     
-    # FactOrderLeadDays_pipeline = [
-    #     silver.OrderEventBatch(spark_session),
-    #     gold.FactOrderLeadDaysBatch(spark_session),
-    # ]
+    app_class_list: List[base.BaseBatch] = get_batch_pipeline('all')
 
-    # FactReviewAnserLeadDays_pipeline = [
-    #     silver.ReviewMetadataBatch(spark_session),
-    #     gold.FactReviewAnswerLeadDaysBatch(spark_session),
-    # ]
-
-    target_job_instance_list: List[base.BaseBatch] = FactMonthlySalesByProductBatch_pipeline
-
-    try:
-        schedule_interval = 30
-        while True:
-            for job_instance in target_job_instance_list:
-                job_instance.extract()
-                job_instance.transform()
-                job_instance.load()
-            time.sleep(schedule_interval)
-            print('='*80)
-    except KeyboardInterrupt:
-        spark_session.stop()
+    for app_class in app_class_list:
+        app: base.BaseBatch = app_class()
+        app.extract()
+        app.transform()
+        app.load()
+        app.spark_session.stop()

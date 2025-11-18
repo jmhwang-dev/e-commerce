@@ -1,4 +1,8 @@
+from typing import Optional
 from service.producer.bronze import *
+from service.pipeline.batch import base, silver, gold
+from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
+
 
 def get_producer(topic_name):
     if topic_name == OrderStatusBronzeProducer.dst_topic:
@@ -72,3 +76,74 @@ def get_avro_key_column(topic_name):
     
     elif topic_name == 'product_metadata':
         return 'product_id'
+    
+def get_batch_pipeline(target_pipeline: str) -> List[Optional[base.BaseBatch]]:
+    """
+    Get the list of batch job classes for the specified pipeline.
+
+    Parameters
+    ----------
+    target_pipeline : str
+        - `*AvroSchema` name (ex: SilverAvroSchema.CUSTOMER_ORDER)
+        - Use 'all' for the full pipeline.
+
+    Returns
+    -------
+    list
+        `[]` or list for batch job classes to run for the given pipeline
+    """
+    
+    silver_jobs = [
+        silver.GeoCoordBatch,
+        silver.OlistUserBatch,
+        silver.ReviewMetadataBatch,
+        silver.ProductMetadataBatch,
+        silver.CustomerOrderBatch,
+        silver.OrderEventBatch,
+    ]
+
+    gold_jobs = [
+        gold.DimUserLocationBatch,
+        gold.OrderDetailBatch,
+        gold.FactOrderLeadDaysBatch,
+        gold.FactMonthlySalesByProductBatch,
+        gold.FactReviewAnswerLeadDaysBatch,
+    ]
+
+    # 전체 pipeline 구성
+    app_dict = {
+        'all': silver_jobs + gold_jobs,
+
+        GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS: [
+            silver.ReviewMetadataBatch,
+            gold.FactReviewAnswerLeadDaysBatch
+        ],
+
+        GoldAvroSchema.FACT_ORDER_LEAD_DAYS: [
+            silver.OrderEventBatch,
+            gold.FactOrderLeadDaysBatch
+        ],
+
+        GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: [
+            silver.OrderEventBatch,
+            silver.CustomerOrderBatch,
+            silver.ProductMetadataBatch,
+            gold.FactOrderLeadDaysBatch,
+            gold.OrderDetailBatch,
+            gold.FactMonthlySalesByProductBatch
+        ],
+
+        GoldAvroSchema.ORDER_DETAIL: [
+            silver.ProductMetadataBatch,
+            silver.CustomerOrderBatch,
+            gold.OrderDetailBatch
+        ],
+
+        GoldAvroSchema.DIM_USER_LOCATION: [
+            silver.GeoCoordBatch,
+            silver.OlistUserBatch,
+            gold.DimUserLocationBatch
+        ],
+    }
+
+    return app_dict.get(target_pipeline, [])
