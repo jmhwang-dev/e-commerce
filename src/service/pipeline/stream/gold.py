@@ -268,6 +268,7 @@ class OrderDetailStream(GoldStream):
             self.product_metadata_stream.alias('pm'),
             on=F.expr("""
                 co.product_id = pm.product_id AND
+                co.seller_id = pm.seller_id AND
                 co.ingest_time >= pm.ingest_time - INTERVAL 30 DAYS AND
                 co.ingest_time <= pm.ingest_time + INTERVAL 30 DAYS
             """),

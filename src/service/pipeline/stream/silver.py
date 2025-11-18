@@ -193,19 +193,18 @@ class CustomerOrderStream(SilverStream):
 
         대안 3: mapGroupsWithState 또는 flatMapGroupsWithState로 커스텀 상태 관리
         """
-        # TODO: check logic one more
-
+        # `seller_id`` 포함 이유: 동일 `product_id`를 다수의 `seller_id`가 판매할 수 있음
         # order_item_price: 워터마크 유지
         order_item_price = self.order_item_stream \
             .withWatermark('ingest_time', '3 days') \
-            .select('order_id', 'order_item_id', 'product_id', 'price', 'ingest_time') \
+            .select('order_id', 'order_item_id', 'product_id', 'price', 'seller_id', 'ingest_time') \
             .dropna()
 
         # windowed aggregation
         aggregated_df = order_item_price \
             .groupBy(
                 F.window("ingest_time", "5 minutes"),
-                "order_id", "product_id", "price"
+                "order_id", "product_id", "price", 'seller_id'
             ).agg(
                 F.count("order_item_id").alias("quantity"),
                 F.max("ingest_time").alias('agg_ingest_time')
@@ -231,11 +230,12 @@ class CustomerOrderStream(SilverStream):
             F.col('oc.customer_id').alias('customer_id'),
             F.col('agg.product_id').alias('product_id'),
             F.col('agg.unit_price').alias('unit_price'),
+            F.col('agg.seller_id').alias('seller_id'),
             F.col('agg.quantity').alias('quantity'),
             F.greatest('agg.agg_ingest_time', 'oc.ingest_time').alias('ingest_time')
         ).dropna()
 
-        self.set_byte_stream('order_id', ["customer_id", "product_id", "unit_price", "quantity", "ingest_time"])
+        self.set_byte_stream('order_id', ["customer_id", "product_id", "seller_id", "unit_price", "quantity", "ingest_time"])
 
 class ReviewMetadataStream(SilverStream):
     def __init__(self, is_dev:bool, process_time, query_version: str, spark_session: Optional[SparkSession] = None):
