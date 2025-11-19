@@ -7,7 +7,7 @@ from confluent_kafka.schema_registry.error import SchemaRegistryError
 from pyspark.sql.streaming.query import StreamingQuery
 
 from service.utils.schema.reader import AvscReader
-from service.utils.spark import get_kafka_stream_df, stop_streams, run_stream_queries
+from service.utils.spark import get_kafka_stream_df, stop_streams, run_stream_queries, start_console_stream
 from service.producer.bronze import BronzeAvroSchema
 from service.pipeline.stream.base import BaseStream
 
@@ -73,9 +73,10 @@ def load_cdc_stream(spark_session: SparkSession, option_dict: dict[str, str], lo
 
 def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
     print(f"Processing Batch ID: {batch_id}")
+
     for topic_name in BronzeAvroSchema.get_all_filenames():
         try:            
-            dst_avsc_reader = AvscReader(topic_name)
+            dst_avsc_reader = AvscReader(topic_name, False)
             topic_df = micro_batch_df.filter(F.col("topic") == topic_name)
             deserialized_df = BaseStream.get_topic_df(topic_df, dst_avsc_reader)
 
@@ -110,7 +111,7 @@ def load_cdc_batch(spark_session: SparkSession, option_dict: dict[str, str]) -> 
         .foreachBatch(load_medallion_layer) \
         .queryName("load_cdc") \
         .option("checkpointLocation", f"s3a://warehousedev/{option_dict['app_name']}/{option_dict['dst_env']}/bronze/batch/checkpoint/{option_dict['query_version']}") \
-        .trigger(processingTime="90 seconds") \
+        .trigger(processingTime="20 seconds") \
         .start()
         
     query.awaitTermination()

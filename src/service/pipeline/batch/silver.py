@@ -12,7 +12,7 @@ from service.utils.iceberg import write_iceberg, get_last_processed_snapshot_id,
 from service.utils.schema.reader import AvscReader
 
 class SilverBatch(BaseBatch):
-    watermark_avsc_reader: AvscReader = AvscReader(SilverAvroSchema.WATERMARK)
+    watermark_avsc_reader: AvscReader = AvscReader(SilverAvroSchema.WATERMARK, False)
     watermark_schema: Optional[StructType] = None
 
     def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None,):

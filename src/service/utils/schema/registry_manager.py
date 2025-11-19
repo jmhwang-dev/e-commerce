@@ -35,7 +35,7 @@ class SchemaRegistryManager:
     def _get_client(cls, use_internal=True) -> SchemaRegistryClient:
         """SchemaRegistryClient 인스턴스를 지연 초기화하여 반환합니다 (싱글턴 패턴)."""
         if not use_internal:
-            cls.SCHEMA_REGISTRY_URL = os.environ.get("SCHEMA_REGISTRY_EXTERNAL_URL", "http://localhost:8082")
+            cls.SCHEMA_REGISTRY_URL = os.environ.get("SCHEMA_REGISTRY_EXTERNAL_URL", "http://192.168.45.191:8082")
 
         if cls._client is None:
             cls._client = SchemaRegistryClient({"url": cls.SCHEMA_REGISTRY_URL})

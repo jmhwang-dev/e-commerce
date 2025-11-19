@@ -129,7 +129,7 @@ def start_console_stream(df: DataFrame, output_mode: str='append', checkpoint_di
         .start() \
         .awaitTermination()
 
-def get_kafka_stream_df(spark_session: SparkSession, topic_names: Union[Iterable[str], str], max_offset_per_trigger: int=50) -> DataFrame:
+def get_kafka_stream_df(spark_session: SparkSession, topic_names: Union[Iterable[str], str], max_offset_per_trigger: int=50, use_interal:bool = False) -> DataFrame:
     """
     - .option("maxOffsetsPerTrigger", "10000")
         : 배치당 처리할 Kafka 오프셋 최대 수. 처리량 제어.
@@ -143,9 +143,11 @@ def get_kafka_stream_df(spark_session: SparkSession, topic_names: Union[Iterable
         _topic_names = [topic_names]
     else:
         _topic_names = topic_names
-        
+
+    kafka_bootstrap_servers = BOOTSTRAP_SERVERS_EXTERNAL if not use_interal else BOOTSTRAP_SERVERS_INTERNAL
+    
     src_stream_df = spark_session.readStream.format("kafka") \
-        .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
+        .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
         .option("subscribe", ','.join(_topic_names)) \
         .option("startingOffsets", "earliest") \
         .option("failOnDataLoss", "false") \
