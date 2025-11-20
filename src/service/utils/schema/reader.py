@@ -3,10 +3,9 @@ from service.utils.schema.registry_manager import SchemaRegistryManager
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
 class AvscReader:
-    client = SchemaRegistryManager._get_client(use_internal=True)
-
-    def __init__(self, schema_name):
+    def __init__(self, schema_name, use_internal=True):
         self.schema_name = schema_name
+        self.client = SchemaRegistryManager._get_client(use_internal)
 
         # SchemaRegistryError could be raised if schema_name != topic_name
         self.schema_str = self.client.get_latest_version(schema_name).schema.schema_str
