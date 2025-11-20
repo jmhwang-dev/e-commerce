@@ -107,7 +107,7 @@ class FactOrderLeadDaysBatch(BaseBatch):
             """)
         self.get_current_dst_table(output_df.sparkSession, batch_id)
 
-class OrderDetailBatch(BaseBatch):
+class FactOrderDetailBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_DETAIL, spark_session)
 
@@ -122,21 +122,10 @@ class OrderDetailBatch(BaseBatch):
 
     def transform(self,):
 
-        joined_df = self.customer_order_df.alias('co').join(
+        self.output_df = self.customer_order_df.alias('co').join(
             self.product_metadata_df.alias('pm'),
             on=['product_id', 'seller_id'],
             how='inner')
-        
-        common_columns = ["order_id", "product_id", "category", "quantity", "unit_price"]
-        order_seller_df = joined_df \
-            .select(*(common_columns + ['seller_id'])) \
-            .withColumnRenamed('seller_id', 'user_id')
-
-        order_customer_df = joined_df \
-            .select(*(common_columns + ['customer_id'])) \
-            .withColumnRenamed('customer_id', 'user_id')
-        
-        self.output_df = order_seller_df.unionByName(order_customer_df)
         
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         if df is not None:
@@ -149,7 +138,7 @@ class OrderDetailBatch(BaseBatch):
             f"""
             MERGE INTO {self.dst_avsc_reader.dst_table_identifier} t
             USING updates s
-            ON t.order_id = s.order_id and t.product_id = s.product_id and t.user_id = s.user_id
+            ON t.order_id = s.order_id and t.product_id = s.product_id and t.seller_id = s.seller_id and t.unit_price = s.unit_price
             
             WHEN MATCHED and t.quantity != s.quantity or t.category != s.category THEN
                 UPDATE SET
@@ -157,8 +146,8 @@ class OrderDetailBatch(BaseBatch):
                     t.category = s.category
 
             WHEN NOT MATCHED THEN
-                INSERT (order_id, product_id, category, quantity, unit_price, user_id)
-                VALUES (s.order_id, s.product_id, s.category, s.quantity, s.unit_price, s.user_id)
+                INSERT (order_id, customer_id, seller_id, product_id, category, quantity, unit_price)
+                VALUES (s.order_id, s.customer_id, s.seller_id, s.product_id, s.category, s.quantity, s.unit_price)
             """)
         
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)

@@ -9,7 +9,7 @@ from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 from service.utils.spark import get_spark_session, run_stream_queries
 from service.utils.kafka import delete_topics, create_topics, get_confluent_kafka_admin_client
 from service.pipeline.stream import base
-from config.kafka import BOOTSTRAP_SERVERS_INTERNAL
+from config.kafka import BOOTSTRAP_SERVERS_EXTERNAL
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
 
@@ -27,7 +27,7 @@ def run_stream(spark_session: SparkSession, job_class_list: List[base.BaseStream
 
 if __name__ == "__main__":
     spark_session = get_spark_session("stream")
-    admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_INTERNAL)
+    admin_client = get_confluent_kafka_admin_client(BOOTSTRAP_SERVERS_EXTERNAL)
     silver_avsc_filenames = SilverAvroSchema.get_all_filenames()
     delete_topics(admin_client, silver_avsc_filenames)
     create_topics(admin_client, silver_avsc_filenames)

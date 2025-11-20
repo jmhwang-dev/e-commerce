@@ -10,7 +10,7 @@ from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
 if __name__ == "__main__":
-    spark_session = get_spark_session("Batch", dev=True)
+    spark_session = get_spark_session("Batch", dev=False)
     
     init_catalog(spark_session, 'silver', is_drop=True)
     init_catalog(spark_session, 'gold', is_drop=True)

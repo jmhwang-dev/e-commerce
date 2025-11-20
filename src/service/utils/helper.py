@@ -62,7 +62,7 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[batch.base.BaseBat
 
     gold_jobs = [
         batch.gold.DimUserLocationBatch,
-        batch.gold.OrderDetailBatch,
+        batch.gold.FactOrderDetailBatch,
         batch.gold.FactOrderLeadDaysBatch,
         batch.gold.FactMonthlySalesByProductBatch,
         batch.gold.FactReviewAnswerLeadDaysBatch,
@@ -87,14 +87,14 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[batch.base.BaseBat
             batch.silver.CustomerOrderBatch,
             batch.silver.ProductMetadataBatch,
             batch.gold.FactOrderLeadDaysBatch,
-            batch.gold.OrderDetailBatch,
+            batch.gold.FactOrderDetailBatch,
             batch.gold.FactMonthlySalesByProductBatch
         ],
 
         GoldAvroSchema.FACT_ORDER_DETAIL: [
             batch.silver.ProductMetadataBatch,
             batch.silver.CustomerOrderBatch,
-            batch.gold.OrderDetailBatch
+            batch.gold.FactOrderDetailBatch
         ],
 
         GoldAvroSchema.DIM_USER_LOCATION: [
@@ -133,7 +133,7 @@ def get_stream_pipeline(target_pipeline: str) -> List[Optional[stream.base.BaseS
 
     gold_jobs = [
         stream.gold.DimUserLocationStream,
-        stream.gold.OrderDetailStream,
+        stream.gold.FactOrderDetailStream,
         stream.gold.FactOrderLeadDaysStream,
     ]
 
@@ -157,7 +157,7 @@ def get_stream_pipeline(target_pipeline: str) -> List[Optional[stream.base.BaseS
         GoldAvroSchema.FACT_ORDER_DETAIL: [
             stream.silver.ProductMetadataStream,
             stream.silver.CustomerOrderStream,
-            stream.gold.OrderDetailStream,
+            stream.gold.FactOrderDetailStream,
         ],
 
         GoldAvroSchema.DIM_USER_LOCATION: [

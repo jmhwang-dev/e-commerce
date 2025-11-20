@@ -8,7 +8,7 @@ from pyspark.sql.streaming.state import GroupStateTimeout
 
 from .base import BaseStream
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
-from service.pipeline.batch.gold import DimUserLocationBatch, OrderDetailBatch, FactOrderLeadDaysBatch
+from service.pipeline.batch.gold import DimUserLocationBatch, FactOrderDetailBatch, FactOrderLeadDaysBatch
 from service.pipeline.batch.base import BaseBatch
 
 from service.utils.spark import get_kafka_stream_df, start_console_stream
@@ -235,7 +235,7 @@ class DimUserLocationStream(GoldStream):
             .option("checkpointLocation", self.checkpoint_path) \
             .start()
 
-class OrderDetailStream(GoldStream):
+class FactOrderDetailStream(GoldStream):
     def __init__(self, is_dev: bool, process_time: str, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
         self.query_name = self.__class__.__name__
@@ -264,7 +264,7 @@ class OrderDetailStream(GoldStream):
         self.product_metadata_stream = self.product_metadata_stream.withWatermark('ingest_time', '30 days')
         
         # join 후 바로 중복 컬럼 병합 (product_id는 co 쪽 선택, ingest_time은 greatest)
-        joined_df = self.customer_order_stream.alias('co').join(
+        self.output_df = self.customer_order_stream.alias('co').join(
             self.product_metadata_stream.alias('pm'),
             on=F.expr("""
                 co.product_id = pm.product_id AND
@@ -276,27 +276,16 @@ class OrderDetailStream(GoldStream):
         ).select(
             F.col('co.order_id').alias('order_id'),
             F.col('co.customer_id').alias('customer_id'),
+            F.col('pm.seller_id').alias('seller_id'),
             F.col('co.product_id').alias('product_id'),  # co.product_id 선택 (pm drop)
             F.col('pm.category').alias('category'),
             F.col('co.quantity').alias('quantity'),
             F.col('co.unit_price').alias('unit_price'),
-            F.col('pm.seller_id').alias('seller_id'),
             F.greatest(F.col('co.ingest_time'), F.col('pm.ingest_time')).alias('ingest_time')
-        ).dropna()
-            
-        common_columns = ["order_id", "product_id", "category", "quantity", "unit_price"]
-        order_seller_df = joined_df \
-            .select(*(common_columns + ['seller_id'])) \
-            .withColumnRenamed('seller_id', 'user_id')
-
-        order_customer_df = joined_df \
-            .select(*(common_columns + ['customer_id'])) \
-            .withColumnRenamed('customer_id', 'user_id')
-        
-        self.output_df = order_seller_df.unionByName(order_customer_df).dropDuplicates()
+        ).dropna().drop('ingest_time').dropDuplicates()
     
     def load(self, micro_batch:DataFrame, batch_id: int):
-        OrderDetailBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        FactOrderDetailBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
 
     def get_query(self):
         self.extract()
