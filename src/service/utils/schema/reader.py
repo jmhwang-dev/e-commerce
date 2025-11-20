@@ -3,7 +3,7 @@ from service.utils.schema.registry_manager import SchemaRegistryManager
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
 class AvscReader:
-    def __init__(self, schema_name, use_internal=True):
+    def __init__(self, schema_name, use_internal=False):
         self.schema_name = schema_name
         self.client = SchemaRegistryManager._get_client(use_internal)
 
