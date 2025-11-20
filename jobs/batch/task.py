@@ -24,7 +24,7 @@ if __name__ == "__main__":
         SilverAvroSchema.ORDER_EVENT: silver.OrderEventBatch,
 
         GoldAvroSchema.DIM_USER_LOCATION: gold.DimUserLocationBatch,
-        GoldAvroSchema.ORDER_DETAIL: gold.OrderDetailBatch,
+        GoldAvroSchema.FACT_ORDER_DETAIL: gold.OrderDetailBatch,
         GoldAvroSchema.FACT_ORDER_LEAD_DAYS: gold.FactOrderLeadDaysBatch,
         GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: gold.FactMonthlySalesByProductBatch,
         GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS: gold.FactReviewAnswerLeadDaysBatch,

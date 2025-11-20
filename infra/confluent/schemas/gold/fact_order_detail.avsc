@@ -1,7 +1,7 @@
 {
   "namespace": "gold",
   "type": "record",
-  "name": "order_detail",
+  "name": "fact_order_detail",
   "fields": [
     { "name": "order_id", "type": "string" },
     { "name": "product_id", "type": "string" },

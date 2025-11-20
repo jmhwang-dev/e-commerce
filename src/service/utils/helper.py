@@ -91,7 +91,7 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[batch.base.BaseBat
             batch.gold.FactMonthlySalesByProductBatch
         ],
 
-        GoldAvroSchema.ORDER_DETAIL: [
+        GoldAvroSchema.FACT_ORDER_DETAIL: [
             batch.silver.ProductMetadataBatch,
             batch.silver.CustomerOrderBatch,
             batch.gold.OrderDetailBatch
@@ -154,7 +154,7 @@ def get_stream_pipeline(target_pipeline: str) -> List[Optional[stream.base.BaseS
             stream.gold.FactOrderLeadDaysStream,
         ],
 
-        GoldAvroSchema.ORDER_DETAIL: [
+        GoldAvroSchema.FACT_ORDER_DETAIL: [
             stream.silver.ProductMetadataStream,
             stream.silver.CustomerOrderStream,
             stream.gold.OrderDetailStream,

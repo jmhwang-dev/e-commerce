@@ -239,7 +239,7 @@ class OrderDetailStream(GoldStream):
     def __init__(self, is_dev: bool, process_time: str, query_version: str, spark_session: Optional[SparkSession] = None):
         super().__init__(is_dev, process_time, spark_session)
         self.query_name = self.__class__.__name__
-        self.dst_name = GoldAvroSchema.ORDER_DETAIL
+        self.dst_name = GoldAvroSchema.FACT_ORDER_DETAIL
         self.dst_avsc_reader = AvscReader(self.dst_name)
         
         # s3a://bucket/app/{env}/{layer}/{table}/checkpoint/{version}
