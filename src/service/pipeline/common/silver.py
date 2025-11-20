@@ -58,7 +58,7 @@ class OrderEventBase(CommonSilverTask):
         renamed_order_status_df = order_status_df \
             .replace({"approved": "approve"}, subset=["status"]) \
             .withColumnRenamed('status', 'data_type')
-
+        
         return renamed_order_status_df.unionByName(renamed_est_delivery_df).unionByName(renamed_shippimt_limit_df)
     
 class ReviewMetadataBase(CommonSilverTask):

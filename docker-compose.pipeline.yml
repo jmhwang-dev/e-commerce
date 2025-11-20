@@ -45,28 +45,28 @@ services:
  
     command: tail -f /dev/null
 
-  # spark-worker:
-  #   <<: *spark-common
-  #   container_name: spark-worker
-  #   ports:
-  #     - "8084:8081"   # web ui
-  #     - "19083:9080"  # jmx exporter executor for subscriber bronze to publish silver
-  #     - "19084:9081"  # jmx exporter executor for subscriber bronze to load bronze
-  #     - "19085:9082"
+  spark-worker:
+    <<: *spark-common
+    container_name: spark-worker
+    ports:
+      - "8084:8081"   # web ui
+      - "19083:9080"  # jmx exporter executor for subscriber bronze to publish silver
+      - "19084:9081"  # jmx exporter executor for subscriber bronze to load bronze
+      - "19085:9082"
 
-  #   environment:
-  #     SPARK_WORKER_MEMORY: 16g  # upper limit of memory to use
-  #     SPARK_WORKER_CORES: 14    # upper limit of cores to use
-  #   volumes:
-  #     - ./configs/spark:/opt/spark/conf
-  #     - ./downloads/jmx_exporter:/mnt/jmx_exporter/
-  #     - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
+    environment:
+      SPARK_WORKER_MEMORY: 16g  # upper limit of memory to use
+      SPARK_WORKER_CORES: 14    # upper limit of cores to use
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
 
-  #   command: >
-  #     bash -c "
-  #       sleep 10 &&
-  #       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
-  #     "
+    command: >
+      bash -c "
+        sleep 10 &&
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+      "
 
   spark-master:
       <<: *spark-common
