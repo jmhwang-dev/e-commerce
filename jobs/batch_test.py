@@ -5,7 +5,7 @@ from typing import List
 from service.utils.iceberg import init_catalog
 from service.utils.spark import get_spark_session
 from service.utils.helper import get_batch_pipeline
-from service.pipeline.batch import base
+from service.pipeline.batch import base, silver
 from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
@@ -22,13 +22,18 @@ if __name__ == "__main__":
 
     spark_session.stop()
     
-    app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.FACT_ORDER_DETAIL)
-    # print(app_class_list)
-    # exit()
+    # app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
+    app_class_list: List[base.BaseBatch] = [silver.OrderEventBatch]
 
-    for app_class in app_class_list:
-        app: base.BaseBatch = app_class()
-        app.extract()
-        app.transform()
-        app.load()
-        app.spark_session.stop()
+    i = 0
+    iter_count = 3
+    mock_schedule_interval = 15  # seconds
+    while i < iter_count:
+        for app_class in app_class_list:
+            app: base.BaseBatch = app_class()
+            app.extract()
+            app.transform()
+            app.load()
+            app.spark_session.stop()
+        time.sleep(mock_schedule_interval)
+        i += 1

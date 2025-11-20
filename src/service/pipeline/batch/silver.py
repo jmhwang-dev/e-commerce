@@ -33,7 +33,7 @@ class SilverBatch(BaseBatch):
         self.src_table_identifier = src_avsc_reader.dst_table_identifier
         empty_df = self.spark_session.createDataFrame([], src_schema)
 
-        print(f"[ {self.app_name} | {self.src_table_identifier} ] Setting incremental dataframe...")
+        print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] Setting incremental dataframe...")
 
         last_id = get_last_processed_snapshot_id(self.spark_session, self.watermark_avsc_reader.dst_table_identifier, self.app_name, self.src_table_identifier)
         if not self.spark_session.catalog.tableExists(self.src_table_identifier): return None
@@ -45,7 +45,7 @@ class SilverBatch(BaseBatch):
             earliest = get_snapshot_details(snapshot_df, TimeBoundary.EARLIEST)
             if not earliest: return empty_df
             self.end_snapshot_id = earliest["snapshot_id"]
-            print(f"[ {self.app_name} | {self.src_table_identifier} ] Initial load on earliest snapshot: {self.end_snapshot_id}")
+            print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] Initial load on earliest snapshot: {self.end_snapshot_id}")
             return self.spark_session.read.format("iceberg").option("snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
         else:
             latest = get_snapshot_details(snapshot_df, TimeBoundary.LATEST)
@@ -55,10 +55,10 @@ class SilverBatch(BaseBatch):
             # Correctly compare using commit timestamps
             last_details = snapshot_df.filter(F.col("snapshot_id") == last_id).select("committed_at").first()
             if not last_details or latest["committed_at"] <= last_details["committed_at"]:
-                print(f"[ {self.app_name} | {self.src_table_identifier} ] No new data.")
+                print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] No new data.")
                 return empty_df
 
-            print(f"[ {self.app_name} | {self.src_table_identifier} ] Incremental load from {last_id} before {self.end_snapshot_id}")
+            print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] Incremental load from {last_id} before {self.end_snapshot_id}")
             return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
         
     def update_watermark(self, ):
@@ -181,6 +181,9 @@ class OrderEventBatch(SilverBatch):
 
         self.output_df = OrderEventBase.transform(estimated_df, shippimt_limit_df, order_status_df)
         self.output_df = self.output_df.dropDuplicates()
+
+        # print('*'*40)
+        # print(self.output_df.filter(F.col('data_type') == 'delivered_customer').count())
 
     def load(self):
         dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)

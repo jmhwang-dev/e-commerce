@@ -82,19 +82,21 @@ def get_batch_pipeline(target_pipeline: str) -> List[Optional[batch.base.BaseBat
             batch.gold.FactOrderLeadDaysBatch
         ],
 
-        GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: [
-            batch.silver.OrderEventBatch,
-            batch.silver.CustomerOrderBatch,
-            batch.silver.ProductMetadataBatch,
-            batch.gold.FactOrderLeadDaysBatch,
-            batch.gold.FactOrderDetailBatch,
-            batch.gold.FactMonthlySalesByProductBatch
-        ],
-
         GoldAvroSchema.FACT_ORDER_DETAIL: [
             batch.silver.ProductMetadataBatch,
             batch.silver.CustomerOrderBatch,
             batch.gold.FactOrderDetailBatch
+        ],
+
+        GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT: [
+            batch.silver.ProductMetadataBatch,
+            batch.silver.CustomerOrderBatch,
+            batch.gold.FactOrderDetailBatch,
+
+            batch.silver.OrderEventBatch,
+            batch.gold.FactOrderLeadDaysBatch,
+
+            batch.gold.FactMonthlySalesByProductBatch
         ],
 
         GoldAvroSchema.DIM_USER_LOCATION: [
