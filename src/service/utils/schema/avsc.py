@@ -47,7 +47,7 @@ class GoldAvroSchema(BaseAvroSchema):
     # schema for batch and stream
     DIM_USER_LOCATION = "dim_user_location" 
     FACT_ORDER_LEAD_DAYS = "fact_order_lead_days"
-    ORDER_DETAIL = "order_detail"
+    FACT_ORDER_DETAIL = "fact_order_detail"
     FACT_REVIEW_ANSWER_LEAD_DAYS = "fact_review_answer_lead_days"
 
     # batch

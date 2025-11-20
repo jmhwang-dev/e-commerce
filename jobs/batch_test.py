@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     spark_session.stop()
     
-    app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.ORDER_DETAIL)
+    app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.FACT_ORDER_DETAIL)
     # print(app_class_list)
     # exit()
 

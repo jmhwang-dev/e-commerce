@@ -109,7 +109,7 @@ class FactOrderLeadDaysBatch(BaseBatch):
 
 class OrderDetailBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.ORDER_DETAIL, spark_session)
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_DETAIL, spark_session)
 
     def extract(self):
         customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
@@ -183,9 +183,9 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         self.check_table(self.spark_session, fact_order_timeline_avsc_reader.dst_table_identifier)
         self.fact_order_lead_days = self.spark_session.read.table(fact_order_timeline_avsc_reader.dst_table_identifier)
 
-        order_detail_avsc_reader = AvscReader(GoldAvroSchema.ORDER_DETAIL)
-        self.check_table(self.spark_session, order_detail_avsc_reader.dst_table_identifier)
-        self.order_detail_df = self.spark_session.read.table(order_detail_avsc_reader.dst_table_identifier)
+        fact_order_detail_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_DETAIL)
+        self.check_table(self.spark_session, fact_order_detail_avsc_reader.dst_table_identifier)
+        self.fact_order_detail_df = self.spark_session.read.table(fact_order_detail_avsc_reader.dst_table_identifier)
 
     def transform(self):
         sales_period_df = self.fact_order_lead_days \
@@ -194,9 +194,9 @@ class FactMonthlySalesByProductBatch(BaseBatch):
             .withColumn('sales_period', F.date_format(F.col('delivered_customer'), 'yyyy-MM')) \
             .drop('delivered_customer')
         
-        period_order_detail_df = sales_period_df.join(self.order_detail_df, on='order_id', how='inner')
+        period_fact_order_detail_df = sales_period_df.join(self.fact_order_detail_df, on='order_id', how='inner')
 
-        product_period_sales_df = period_order_detail_df.groupBy('product_id', 'category', 'sales_period') \
+        product_period_sales_df = period_fact_order_detail_df.groupBy('product_id', 'category', 'sales_period') \
             .agg(
                 F.sum('quantity').alias('total_sales_quantity'),
                 F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
