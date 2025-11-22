@@ -1,4 +1,5 @@
-from typing import Optional
+import time
+from typing import Optional, Dict
 
 from pyspark.sql import functions as F
 from pyspark.sql import SparkSession
@@ -14,6 +15,7 @@ from service.utils.schema.reader import AvscReader
 class SilverBatch(BaseBatch):
     watermark_avsc_reader: AvscReader = AvscReader(SilverAvroSchema.WATERMARK, False)
     watermark_schema: Optional[StructType] = None
+    src_snapshot_ids: Dict[str, int] = {}    # incremental 처리가 필요한 경우, 소스 테이블별 마지막 스냅샷 아이디 저장
 
     def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None,):
         super().__init__(app_name, dst_avsc_filename, spark_session)
@@ -25,7 +27,6 @@ class SilverBatch(BaseBatch):
         """
 
         # TODO: refactoring - too many logic
-
         src_avsc_reader = AvscReader(src_avsc_filename)
         src_schema = BaseBatch.get_schema(self.spark_session, src_avsc_reader)
         BaseBatch.check_table(self.spark_session, src_avsc_reader.dst_table_identifier)
@@ -46,7 +47,9 @@ class SilverBatch(BaseBatch):
             if not earliest: return empty_df
             self.end_snapshot_id = earliest["snapshot_id"]
             print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] Initial load on earliest snapshot: {self.end_snapshot_id}")
-            return self.spark_session.read.format("iceberg").option("snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
+            return self.spark_session.read.format("iceberg") \
+                .option("snapshot-id", self.end_snapshot_id) \
+                .load(self.src_table_identifier)
         else:
             latest = get_snapshot_details(snapshot_df, TimeBoundary.LATEST)
             if not latest: return
@@ -59,20 +62,36 @@ class SilverBatch(BaseBatch):
                 return empty_df
 
             print(f"[ {self.app_name} | {self.src_table_identifier:<30} ] Incremental load from {last_id} before {self.end_snapshot_id}")
-            return self.spark_session.read.format("iceberg").option("start-snapshot-id", last_id).option("end-snapshot-id", self.end_snapshot_id).load(self.src_table_identifier)
+            return self.spark_session.read.format("iceberg") \
+                .option("start-snapshot-id", last_id) \
+                .option("end-snapshot-id", self.end_snapshot_id) \
+                .load(self.src_table_identifier)
         
-    def update_watermark(self, ):
-        df: DataFrame = self.spark_session.createDataFrame([[self.app_name, self.src_table_identifier, self.end_snapshot_id]], self.watermark_schema)
-        df.createOrReplaceTempView('updates')
-        self.spark_session.sql(
-            f"""
-            MERGE INTO {self.watermark_avsc_reader.dst_table_identifier} t
-            USING updates s
-            ON t.app_name = s.app_name and t.src = s.src
-            WHEN MATCHED and t.last_processed_snapshot_id != s.last_processed_snapshot_id THEN
-                UPDATE SET t.last_processed_snapshot_id = s.last_processed_snapshot_id
-            WHEN NOT MATCHED THEN INSERT *
-            """)
+    def update_watermark(self, src_table_identifier: str, end_snapshot_id: int):
+        max_retries = 10  # 10번까지 해도 30초 안 걸림
+        for attempt in range(1, max_retries + 1):
+            try:
+                df: DataFrame = self.spark_session.createDataFrame([[self.app_name, src_table_identifier, end_snapshot_id]], self.watermark_schema)
+                df.createOrReplaceTempView('updates')
+                self.spark_session.sql(
+                    f"""
+                    MERGE INTO {self.watermark_avsc_reader.dst_table_identifier} t
+                    USING updates s
+                    ON t.app_name = s.app_name and t.src = s.src
+                    WHEN MATCHED and t.last_processed_snapshot_id != s.last_processed_snapshot_id THEN
+                        UPDATE SET t.last_processed_snapshot_id = s.last_processed_snapshot_id
+                    WHEN NOT MATCHED THEN INSERT *
+                    """)
+                
+            except Exception as e:
+                if "ValidationException" in str(e) or "conflicting files" in str(e):
+                    if attempt == max_retries:
+                        raise
+                    delay = 0.5 * (2 ** attempt)  # 0.5, 1, 2, 4, 8... 초
+                    print(f"[ {self.app_name} ] Watermark 충돌 → {delay}s 후 재시도 ({attempt}/{max_retries})")
+                    time.sleep(delay)
+                else:
+                    raise  # 다른 에러면 바로 터뜨림
 
 class GeoCoordBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -82,10 +101,7 @@ class GeoCoordBatch(SilverBatch):
         self.geo_df = self.get_incremental_df(BronzeAvroSchema.GEOLOCATION)
 
         if not self.geo_df.isEmpty():
-            self.update_watermark()
-
-            # print(self.geo_df.count())
-            # self.geo_df.orderBy('zip_code').show(n=100)
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
     def transform(self):
         geo_df = self.geo_df \
@@ -96,11 +112,6 @@ class GeoCoordBatch(SilverBatch):
         self.output_df = GeoCoordBase.transform(geo_df)
 
     def load(self,):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
 
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -111,6 +122,8 @@ class GeoCoordBatch(SilverBatch):
                 INSERT *
         """)
         
+        for src_table, snapshot_id in self.src_snapshot_ids.items():
+            self.update_watermark(src_table, snapshot_id)
         self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 class OlistUserBatch(SilverBatch):
@@ -122,26 +135,19 @@ class OlistUserBatch(SilverBatch):
         self.customer_df = self.get_incremental_df(BronzeAvroSchema.CUSTOMER)
 
         if not self.customer_df.isEmpty():
-            self.update_watermark()
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
         self.seller_df = self.get_incremental_df(BronzeAvroSchema.SELLER)
 
-        if not self.seller_df.isEmpty():    
-            self.update_watermark()
+        if not self.seller_df.isEmpty():
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
     def transform(self):
-        customer_df = self.customer_df.dropDuplicates()
-        seller_df = self.seller_df.dropDuplicates()
 
-        self.output_df = OlistUserBase.transform(customer_df, seller_df)
-        self.output_df = self.output_df.drop('ingest_time')
+        self.output_df = OlistUserBase.transform(self.customer_df, self.seller_df)
+        self.output_df = self.output_df.drop('ingest_time').dropDuplicates()
 
     def load(self,):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
         
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -151,6 +157,8 @@ class OlistUserBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
 
+        for src_table, snapshot_id in self.src_snapshot_ids.items():
+            self.update_watermark(src_table, snapshot_id)
         self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 class OrderEventBatch(SilverBatch):
@@ -161,17 +169,17 @@ class OrderEventBatch(SilverBatch):
         self.estimated_df = self.get_incremental_df(BronzeAvroSchema.ESTIMATED_DELIVERY_DATE)
 
         if not self.estimated_df.isEmpty():
-            self.update_watermark()
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
         self.order_item_df = self.get_incremental_df(BronzeAvroSchema.ORDER_ITEM)
 
         if not self.order_item_df.isEmpty():
-            self.update_watermark()
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
         self.order_status_df = self.get_incremental_df(BronzeAvroSchema.ORDER_STATUS)
 
         if not self.order_status_df.isEmpty():
-            self.update_watermark()
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
             
     def transform(self):
         # except `ingest_time`
@@ -182,15 +190,7 @@ class OrderEventBatch(SilverBatch):
         self.output_df = OrderEventBase.transform(estimated_df, shippimt_limit_df, order_status_df)
         self.output_df = self.output_df.dropDuplicates()
 
-        # print('*'*40)
-        # print(self.output_df.filter(F.col('data_type') == 'delivered_customer').count())
-
     def load(self):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
         
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -200,8 +200,10 @@ class OrderEventBatch(SilverBatch):
             WHEN NOT MATCHED THEN INSERT *
         """)
     
-        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
+        for src_table, snapshot_id in self.src_snapshot_ids.items():
+            self.update_watermark(src_table, snapshot_id)
 
+        self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
 
 class ProductMetadataBatch(SilverBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None):
@@ -233,11 +235,6 @@ class ProductMetadataBatch(SilverBatch):
         self.output_df = self.output_df.drop('ingest_time')
 
     def load(self):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
         
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -248,6 +245,7 @@ class ProductMetadataBatch(SilverBatch):
                 INSERT (product_id, category, seller_id)
                 VALUES (s.product_id, s.category, s.seller_id)
         """)
+
 
         self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)
     
@@ -282,11 +280,6 @@ class CustomerOrderBatch(SilverBatch):
         self.output_df = self.output_df.drop('ingest_time')
 
     def load(self):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
         
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -305,18 +298,13 @@ class ReviewMetadataBatch(SilverBatch):
     def extract(self):
         self.review_df = self.get_incremental_df(BronzeAvroSchema.REVIEW)
         if not self.review_df.isEmpty():
-            self.update_watermark()
+            self.src_snapshot_ids[self.src_table_identifier] = self.end_snapshot_id
 
     def transform(self,):
         self.output_df = ReviewMetadataBase.transform(self.review_df)
         self.output_df = self.output_df.drop('ingest_time')
 
     def load(self):
-        dst_df = self.output_df.sparkSession.read.table(self.dst_avsc_reader.dst_table_identifier)
-
-        if dst_df.isEmpty():
-            write_iceberg(self.output_df.sparkSession, self.output_df, self.dst_avsc_reader.dst_table_identifier, mode='w')
-            return
         
         self.output_df.createOrReplaceTempView("updates")
         self.output_df.sparkSession.sql(f"""
@@ -325,5 +313,9 @@ class ReviewMetadataBatch(SilverBatch):
             ON t.review_id = s.review_id
             WHEN NOT MATCHED THEN INSERT *
         """)
+
+
+        for src_table, snapshot_id in self.src_snapshot_ids.items():
+            self.update_watermark(src_table, snapshot_id)
 
         self.get_current_dst_table(self.output_df.sparkSession, -1, self.is_debug, line_number=5)

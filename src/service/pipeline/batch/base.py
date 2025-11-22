@@ -78,8 +78,8 @@ class BaseBatch(ABC):
             BronzeAvroSchema.SELLER: StructField('seller_id', StringType(), False),
 
             SilverAvroSchema.CUSTOMER_ORDER: StructField('order_id', StringType(), False),
-            SilverAvroSchema.GEO_COORD: StructField('zip_code', StringType(), False),
-            SilverAvroSchema.OLIST_USER: StructField('user_id', IntegerType(), False),
+            SilverAvroSchema.GEO_COORD: StructField('zip_code', IntegerType(), False),
+            SilverAvroSchema.OLIST_USER: StructField('user_id', StringType(), False),
             SilverAvroSchema.ORDER_EVENT: StructField('order_id', StringType(), False),
             SilverAvroSchema.PRODUCT_METADATA: StructField('product_id', StringType(), False),
             SilverAvroSchema.REVIEW_METADATA: StructField('order_id', StringType(), False),     # consider repartition
@@ -101,8 +101,8 @@ class BaseBatch(ABC):
         except Exception as e:
             raise ValueError(f"Failed to convert Avro schema to Spark schema: {str(e)}")
         
-        # # ingest_time 필드 제거
-        # filtered_fields = [field for field in dst_table_schema.fields if field.name != 'ingest_time']
+        # ingest_time 필드 제거
+        filtered_fields = [field for field in dst_table_schema.fields if field.name != 'ingest_time']
         
         # 키 컬럼 추가 (key 컬럼에서 None은 제외)
         key_col = KEY_COL_MAPPING.get(avsc_reader.table_name)
@@ -113,15 +113,17 @@ class BaseBatch(ABC):
             raise ValueError(f"Unknown table name: {avsc_reader.table_name}")
         
         # 새로운 스키마 반환
-        return StructType(dst_table_schema.fields + [key_col])
+        # return StructType(dst_table_schema.fields + [key_col])
+        return StructType(filtered_fields + [key_col])
 
     @staticmethod
     def initialize_dst_table(spark_session:SparkSession, dst_table_schema:StructType, dst_table_identifier:str) -> None:
         if spark_session.catalog.tableExists(dst_table_identifier):
+            # spark_session.catalog.refreshTable(dst_table_identifier)
             return
         
         dst_df = spark_session.createDataFrame([], dst_table_schema)
-        write_iceberg(spark_session, dst_df, dst_table_identifier, mode='a')
+        write_iceberg(spark_session, dst_df, dst_table_identifier, mode='w')
 
     def get_current_dst_table(self, spark_session:SparkSession, batch_id:int=-1, debug=False, line_number=200):
         dst_df = spark_session.read.table(self.dst_avsc_reader.dst_table_identifier)

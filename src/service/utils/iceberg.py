@@ -26,6 +26,7 @@ def init_catalog(spark:SparkSession, namespace:str, table_name: str = '', is_dro
         # spark.sql(f'DESCRIBE FORMATTED {namespace}.{table}').show()
 
 def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifier: str, mode:str = '') -> None:
+
     if mode == '':
         raise TypeError(f"write_iceberg() missing 1 required positional argument: 'mode'. mode must be one of 'w' or 'a'")
     
@@ -36,7 +37,7 @@ def write_iceberg(spark_session: SparkSession, df: DataFrame, dst_table_identifi
         return
 
     if mode == 'w':
-        df.writeTo(dst_table_identifier).replace()
+        df.writeTo(dst_table_identifier).create()
         print(f"{dst_table_identifier} has been replaced")
 
     elif mode == 'a':
