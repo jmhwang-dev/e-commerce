@@ -10,11 +10,10 @@ from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Spark DAG Runner')
-    parser.add_argument('--is_drop', type=bool, required=True, help='Initialize catalog or not')
+    parser.add_argument('--is_drop', action='store_true', help='Drop and recreate all tables')
     args = parser.parse_args()
 
-    _is_drop = args.is_drop
-    
+    _is_drop = args.is_drop    
     spark_session = get_spark_session(app_name='initilize catalog', dev=False)
 
     init_catalog(spark_session, 'silver', is_drop=_is_drop)

@@ -22,7 +22,7 @@ def init_catalog(is_drop: bool) -> SparkSubmitOperator:
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
         properties_file='/opt/airflow/config/spark-iceberg.conf',
-        application_args=['--is_drop', str(is_drop)] # Optional arguments for your Spark job
+        application_args=['--is_drop'] if is_drop else []
     )
 
 def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
@@ -50,7 +50,7 @@ def zip_src():
 with DAG(
     dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
-    # schedule=timedelta(seconds=60),  # Set to a schedule like '@daily' or None for manual runs
+    schedule=timedelta(seconds=300),  # Set to a schedule like '@daily' or None for manual runs
     catchup=False,
     tags=['spark', 'pipeline']
 ) as dag:
