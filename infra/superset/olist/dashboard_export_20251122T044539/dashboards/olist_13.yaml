@@ -1,0 +1,382 @@
+dashboard_title: olist
+description: null
+css: ''
+slug: null
+certified_by: ''
+certification_details: ''
+published: true
+uuid: 50e31bb7-6f10-4f4f-9bc8-658fa9df4c71
+position:
+  CHART-IZvRu7mVoJW4Dr199lFmj:
+    children: []
+    id: CHART-IZvRu7mVoJW4Dr199lFmj
+    meta:
+      chartId: 129
+      height: 62
+      sliceName: Sales Detail by Product
+      uuid: d093ce8e-3b3b-4f60-9ebf-a8af14c213b4
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW--2QMXkVWzPieFix72-zhp
+    type: CHART
+  CHART-_A-CXBBsglMmjoHfa_ohD:
+    children: []
+    id: CHART-_A-CXBBsglMmjoHfa_ohD
+    meta:
+      chartId: 127
+      height: 42
+      sliceName: Sales by month
+      uuid: 506b0efb-2df2-418b-b0a2-fb2d39e60c1f
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW-HZ_URmkV1dfAvUJCA--6W
+    type: CHART
+  CHART-explore-131-1:
+    children: []
+    id: CHART-explore-131-1
+    meta:
+      chartId: 131
+      height: 62
+      sliceName: Rank (Category)
+      uuid: 86d08ba8-0ed7-4e33-ba89-30600868137c
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW--2QMXkVWzPieFix72-zhp
+    type: CHART
+  CHART-explore-134-1:
+    children: []
+    id: CHART-explore-134-1
+    meta:
+      chartId: 134
+      height: 42
+      sliceName: Review Distribution
+      uuid: 57949253-271c-43bf-8944-8d5a04e71aa7
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW-cTNq-JeHT5DZZOtQtpP2V
+    type: CHART
+  CHART-explore-136-1:
+    children: []
+    id: CHART-explore-136-1
+    meta:
+      chartId: 136
+      height: 42
+      sliceName: Average Order Lead Days
+      uuid: 5b87b93d-daec-4f28-8d18-7b666dde676e
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW-cTNq-JeHT5DZZOtQtpP2V
+    type: CHART
+  CHART-explore-137-1:
+    children: []
+    id: CHART-explore-137-1
+    meta:
+      chartId: 137
+      height: 42
+      sliceName: quantity test
+      uuid: 5beb56d4-0489-44e9-b2a0-5d6bdc31149c
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW-HZ_URmkV1dfAvUJCA--6W
+    type: CHART
+  CHART-fkjVfDvkqX-pucrMj2nAQ:
+    children: []
+    id: CHART-fkjVfDvkqX-pucrMj2nAQ
+    meta:
+      chartId: 132
+      height: 47
+      sliceName: Order Location
+      uuid: 5191736e-ce55-4d2f-b417-9ec66ff84478
+      width: 6
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    - ROW-M1ug4VfUwpKkqx00IDefc
+    type: CHART
+  CHART-iAkt09VUhNQchkW_AiXM-:
+    children: []
+    id: CHART-iAkt09VUhNQchkW_AiXM-
+    meta:
+      chartId: 133
+      height: 50
+      sliceName: Deliver Status
+      uuid: cb683242-a8fe-44b2-9224-e60bfae999df
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    - ROW-rlCnK9QL0HcpVx5WDZA2N
+    type: CHART
+  CHART-skOrDBB3OOKvzXjb_f7cF:
+    children: []
+    id: CHART-skOrDBB3OOKvzXjb_f7cF
+    meta:
+      chartId: 125
+      height: 47
+      sliceName: order_detail
+      uuid: b4da8f60-14ad-424d-98b1-ffc7811b08fb
+      width: 6
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    - ROW-M1ug4VfUwpKkqx00IDefc
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children: []
+    id: GRID_ID
+    parents:
+    - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: olist
+    type: HEADER
+  ROOT_ID:
+    children:
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    id: ROOT_ID
+    type: ROOT
+  ROW--2QMXkVWzPieFix72-zhp:
+    children:
+    - CHART-explore-131-1
+    - CHART-IZvRu7mVoJW4Dr199lFmj
+    id: ROW--2QMXkVWzPieFix72-zhp
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    type: ROW
+  ROW-HZ_URmkV1dfAvUJCA--6W:
+    children:
+    - CHART-explore-137-1
+    - CHART-_A-CXBBsglMmjoHfa_ohD
+    id: ROW-HZ_URmkV1dfAvUJCA--6W
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    type: ROW
+  ROW-M1ug4VfUwpKkqx00IDefc:
+    children:
+    - CHART-skOrDBB3OOKvzXjb_f7cF
+    - CHART-fkjVfDvkqX-pucrMj2nAQ
+    id: ROW-M1ug4VfUwpKkqx00IDefc
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    type: ROW
+  ROW-cTNq-JeHT5DZZOtQtpP2V:
+    children:
+    - CHART-explore-134-1
+    - CHART-explore-136-1
+    id: ROW-cTNq-JeHT5DZZOtQtpP2V
+    meta:
+      '0': ROOT_ID
+      '1': TABS-eXO2ZAsXzWS-r-mGqzyoD
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    type: ROW
+  ROW-rlCnK9QL0HcpVx5WDZA2N:
+    children:
+    - CHART-iAkt09VUhNQchkW_AiXM-
+    id: ROW-rlCnK9QL0HcpVx5WDZA2N
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    type: ROW
+  TAB-3tA4PX1Lj9INg2IEhstDc:
+    children:
+    - ROW-rlCnK9QL0HcpVx5WDZA2N
+    - ROW-M1ug4VfUwpKkqx00IDefc
+    id: TAB-3tA4PX1Lj9INg2IEhstDc
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: Delivery Monitor
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    type: TAB
+  TAB-O-rSFA4ocjTCplVg4g148:
+    children:
+    - ROW--2QMXkVWzPieFix72-zhp
+    - ROW-HZ_URmkV1dfAvUJCA--6W
+    - ROW-cTNq-JeHT5DZZOtQtpP2V
+    id: TAB-O-rSFA4ocjTCplVg4g148
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: Sales Rank
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    type: TAB
+  TABS-eXO2ZAsXzWS-r-mGqzyoD:
+    children:
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - TAB-3tA4PX1Lj9INg2IEhstDc
+    id: TABS-eXO2ZAsXzWS-r-mGqzyoD
+    meta: {}
+    parents:
+    - ROOT_ID
+    type: TABS
+metadata:
+  color_scheme_domain: []
+  shared_label_colors: []
+  map_label_colors:
+    '1': '#5AC189'
+    '2': '#FCC700'
+    '3': '#3CCCCB'
+    '4': '#E04355'
+    '5': '#454E7C'
+    Volume Drivers: '#1FA8C9'
+    Question Marks: '#FF7F44'
+    Star Products: '#666666'
+    Niche Gems: '#A868B7'
+    SUM(total_sales_amount), Star Products: '#1FA8C9'
+    SUM(total_sales_amount), Volume Drivers: '#454E7C'
+    SUM(total_sales_amount), Niche Gems: '#5AC189'
+    SUM(total_sales_amount), Question Marks: '#FF7F44'
+    SUM(total_sales_quantity), Star Products: '#1FA8C9'
+    SUM(total_sales_quantity), Volume Drivers: '#454E7C'
+    SUM(total_sales_quantity), Niche Gems: '#5AC189'
+    SUM(total_sales_quantity), Question Marks: '#FF7F44'
+  label_colors: {}
+  chart_configuration:
+    '125':
+      id: 125
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 127
+        - 129
+        - 131
+        - 132
+        - 133
+        - 134
+        - 136
+        - 137
+    '127':
+      id: 127
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 125
+        - 129
+        - 131
+        - 132
+        - 133
+        - 134
+        - 136
+        - 137
+    '129':
+      id: 129
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 125
+        - 127
+        - 131
+        - 132
+        - 133
+        - 134
+        - 136
+        - 137
+    '131':
+      id: 131
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 125
+        - 127
+        - 129
+        - 132
+        - 133
+        - 134
+        - 136
+        - 137
+    '133':
+      id: 133
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 125
+        - 127
+        - 129
+        - 131
+        - 132
+        - 134
+        - 136
+        - 137
+    '137':
+      id: 137
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 125
+        - 127
+        - 129
+        - 131
+        - 132
+        - 133
+        - 134
+        - 136
+  global_chart_configuration:
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    chartsInScope:
+    - 125
+    - 127
+    - 129
+    - 131
+    - 132
+    - 133
+    - 134
+    - 136
+    - 137
+  color_scheme: ''
+  refresh_frequency: 0
+  expanded_slices: {}
+  timed_refresh_immune_slices: []
+  cross_filters_enabled: true
+  default_filters: '{}'
+  stagger_refresh: true
+version: 1.0.0

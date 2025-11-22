@@ -1,0 +1,132 @@
+table_name: product_review
+main_dttm_col: review_creation_date
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: warehousedev
+schema: gold
+sql: "with ReviewLeadDays as (\nselect \norder_id,\nreview_id,\nreview_score,\ndate_format(review_creation_date,\
+  \ 'yyyy-MM') AS review_period,\nuntil_answer_lead_days\nfrom gold.fact_review_answer_lead_days\n\
+  ),\n\nProductReview as (\nselect *\nfrom ReviewLeadDays\njoin (\n  select order_id,\
+  \ product_id\n  from gold.fact_order_detail\n) using(order_id)\njoin (\n  select\
+  \ product_id, group, sales_period\n  from gold.fact_monthly_sales_by_product\n)\n\
+  using(product_id)\nwhere review_period = sales_period\n)\n\nselect * from ProductReview\n\
+  order by product_id"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 05dd40cf-5185-47d7-86cd-3ddd5f981072
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: null
+  warning_text: null
+columns:
+- column_name: sales_period
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: product_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: order_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: review_period
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: review_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: group
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: until_answer_lead_days
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: review_score
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+version: 1.0.0
+database_uuid: 296ec29a-0751-45b3-a479-cbd6181bd787
