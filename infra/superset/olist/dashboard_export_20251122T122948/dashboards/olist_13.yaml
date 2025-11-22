@@ -12,10 +12,10 @@ position:
     id: CHART-IZvRu7mVoJW4Dr199lFmj
     meta:
       chartId: 129
-      height: 62
-      sliceName: Sales Detail by Product
+      height: 63
+      sliceName: Rank (Product)
       uuid: d093ce8e-3b3b-4f60-9ebf-a8af14c213b4
-      width: 8
+      width: 7
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -28,9 +28,9 @@ position:
     meta:
       chartId: 127
       height: 42
-      sliceName: Sales by month
+      sliceName: Sales by Month
       uuid: 506b0efb-2df2-418b-b0a2-fb2d39e60c1f
-      width: 8
+      width: 7
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -42,10 +42,10 @@ position:
     id: CHART-explore-131-1
     meta:
       chartId: 131
-      height: 62
+      height: 63
       sliceName: Rank (Category)
       uuid: 86d08ba8-0ed7-4e33-ba89-30600868137c
-      width: 4
+      width: 5
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -60,7 +60,7 @@ position:
       height: 42
       sliceName: Review Distribution
       uuid: 57949253-271c-43bf-8944-8d5a04e71aa7
-      width: 4
+      width: 5
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -75,7 +75,7 @@ position:
       height: 42
       sliceName: Average Order Lead Days
       uuid: 5b87b93d-daec-4f28-8d18-7b666dde676e
-      width: 8
+      width: 7
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -88,9 +88,9 @@ position:
     meta:
       chartId: 137
       height: 42
-      sliceName: quantity test
+      sliceName: Sales Quantity by Month
       uuid: 5beb56d4-0489-44e9-b2a0-5d6bdc31149c
-      width: 4
+      width: 5
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -242,7 +242,7 @@ position:
     meta:
       defaultText: Tab title
       placeholder: Tab title
-      text: Sales Rank
+      text: Sales Detail
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
