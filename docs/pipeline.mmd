@@ -1,8 +1,9 @@
 ---
 config:
   layout: elk
+  theme: default
 ---
-flowchart TD
+flowchart TB
  subgraph Kafka_Topics["Bronze"]
         order_status["order_status"]
         order_item["order_item"]
@@ -24,29 +25,27 @@ flowchart TD
   end
  subgraph Gold_layer["Gold_layer"]
         fact_order_lead_days["fact_order_lead_days"]
-        order_detail["order_detail"]
+        fact_order_detail["fact_order_detail"]
         dim_user_location["dim_user_location"]
         fact_monthly_sales_by_product["fact_monthly_sales_by_product"]
         fact_review_answer_lead_days["fact_review_answer_lead_days"]
-        delivery_status["delivery_status"]
   end
     order_status --> order_event
-    order_item -- drop shipping_limit_date, seller_id --> customer_order
+    order_item -- drop shipping_limit_date --> customer_order
     order_item -- select order_id, shipping_limit_date --> order_event
     estimated_delivery_date -- select order_id, estimated_delivery_date --> order_event
     product -- select product_id, category --> product_metadata
     review -- drop review_comment_title, review_comment_message --> review_metadata
     review_metadata --> fact_review_answer_lead_days
-    order_event --> fact_order_lead_days & delivery_status
+    order_event --> fact_order_lead_days
     order_item -- select product_id, seller_id --> product_metadata
     payment --> customer_order
-    product_metadata --> order_detail
-    customer_order --> order_detail
+    product_metadata --> fact_order_detail
+    customer_order --> fact_order_detail
     fact_order_lead_days --> fact_monthly_sales_by_product
     olist_user --> dim_user_location
     geo_coord --> dim_user_location
     seller --> olist_user
     customer --> olist_user
     geolocation -- valid coordinate --> geo_coord
-    order_detail --> fact_monthly_sales_by_product
-    style delivery_status fill:#C8E6C9
+    fact_order_detail --> fact_monthly_sales_by_product
