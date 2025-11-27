@@ -14,9 +14,11 @@ if __name__=="__main__":
     stream_avsc_filenames = BronzeAvroSchema.get_all_filenames() + SilverAvroSchema.get_all_filenames()
     
     delete_topics(admin_client, stream_avsc_filenames)
-    create_topics(admin_client, stream_avsc_filenames, 2, 1)
+    create_topics(admin_client, stream_avsc_filenames, 1, 1)
 
-    base_interval = 0  # seconds
+    base_interval = 30  # seconds
+    threshold_interval = 300  # seconds
+
     order_status_df = OrderStatusBronzeProducer.get_df()
     past_event_timestamp = pd.to_datetime("2016-09-04 21:15:19.000000")   # first timestamp in order_status
     for i, order_status_series in order_status_df.iterrows():
@@ -24,7 +26,7 @@ if __name__=="__main__":
         event_term = current_event_timestamp - past_event_timestamp
 
         # transaction replay: mock real-time transaction
-        if event_term > pd.Timedelta(seconds=base_interval):
+        if event_term > pd.Timedelta(seconds=threshold_interval):
             time.sleep(base_interval)
         else:
             time.sleep(event_term.total_seconds())
