@@ -32,11 +32,11 @@ class BaseBatch(ABC):
     src_table_identifier: str = ''  # to update watermark table
     dst_avsc_reader: Optional[AvscReader] = None
 
-    def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None):
+    def __init__(self, app_name: str, dst_avsc_filename: str, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
         self.app_name = app_name
         self.spark_session = spark_session if spark_session is not None else get_spark_session(app_name=self.app_name)
 
-        self.dst_avsc_reader = AvscReader(dst_avsc_filename)
+        self.dst_avsc_reader = AvscReader(dst_avsc_filename, use_internal=False, is_stream=is_stream)
         dst_scheam = BaseBatch.get_schema(self.spark_session, self.dst_avsc_reader)
         BaseBatch.initialize_dst_table(self.spark_session, dst_scheam, self.dst_avsc_reader.dst_table_identifier)
 

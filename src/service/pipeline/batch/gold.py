@@ -9,8 +9,8 @@ from service.utils.schema.reader import AvscReader
 from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 
 class DimUserLocationBatch(BaseBatch):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.DIM_USER_LOCATION, spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
+        super().__init__(self.__class__.__name__, GoldAvroSchema.DIM_USER_LOCATION, spark_session, is_stream)
 
     def extract(self):
         geo_coord_avsc_reader = AvscReader(SilverAvroSchema.GEO_COORD)
@@ -48,8 +48,8 @@ class DimUserLocationBatch(BaseBatch):
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
 
 class FactOrderLeadDaysBatch(BaseBatch):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_LEAD_DAYS, spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_LEAD_DAYS, spark_session, is_stream)
 
     def extract(self):
         order_event_avsc_reader = AvscReader(SilverAvroSchema.ORDER_EVENT)
@@ -108,8 +108,8 @@ class FactOrderLeadDaysBatch(BaseBatch):
         self.get_current_dst_table(output_df.sparkSession, batch_id)
 
 class FactOrderDetailBatch(BaseBatch):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_DETAIL, spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_ORDER_DETAIL, spark_session, is_stream)
 
     def extract(self):
         customer_order_avsc_reader = AvscReader(SilverAvroSchema.CUSTOMER_ORDER)
@@ -164,8 +164,8 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         - Niche Gems: 낮은 판매량 + 높은 가격 (프리미엄 틈새 제품)
         - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
     """
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT, spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT, spark_session, is_stream)
 
     def extract(self):
         fact_order_timeline_avsc_reader = AvscReader(GoldAvroSchema.FACT_ORDER_LEAD_DAYS)
@@ -241,8 +241,8 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
         
 class FactReviewAnswerLeadDaysBatch(BaseBatch):
-    def __init__(self, spark_session: Optional[SparkSession] = None):
-        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS, spark_session)
+    def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
+        super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS, spark_session, is_stream)
 
     def extract(self):
         review_metadata_avsc_reader = AvscReader(SilverAvroSchema.REVIEW_METADATA)

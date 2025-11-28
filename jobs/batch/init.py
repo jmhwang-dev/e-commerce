@@ -16,8 +16,8 @@ if __name__ == "__main__":
     _is_drop = args.is_drop    
     spark_session = get_spark_session(app_name='initilize catalog', dev=False)
 
-    init_catalog(spark_session, 'silver', is_drop=_is_drop)
-    init_catalog(spark_session, 'gold', is_drop=_is_drop)
+    init_catalog(spark_session, 'silver.batch', is_drop=_is_drop)
+    init_catalog(spark_session, 'gold.batch', is_drop=_is_drop)
 
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)

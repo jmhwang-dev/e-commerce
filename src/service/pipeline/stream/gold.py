@@ -161,7 +161,7 @@ class FactOrderLeadDaysStream(GoldStream):
             )
 
     def load(self, micro_batch: DataFrame, batch_id):
-        FactOrderLeadDaysBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        FactOrderLeadDaysBatch(micro_batch.sparkSession, is_stream=True).load(micro_batch, batch_id)
         
     def get_query(self):
         self.extract()
@@ -222,7 +222,7 @@ class DimUserLocationStream(GoldStream):
         ).dropDuplicates()
         
     def load(self, micro_batch:DataFrame, batch_id: int):
-        DimUserLocationBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        DimUserLocationBatch(micro_batch.sparkSession, is_stream=True).load(micro_batch, batch_id)
         
     def get_query(self):
         self.extract()
@@ -285,7 +285,7 @@ class FactOrderDetailStream(GoldStream):
         ).dropna().drop('ingest_time').dropDuplicates()
     
     def load(self, micro_batch:DataFrame, batch_id: int):
-        FactOrderDetailBatch(micro_batch.sparkSession).load(micro_batch, batch_id)
+        FactOrderDetailBatch(micro_batch.sparkSession, is_stream=True).load(micro_batch, batch_id)
 
     def get_query(self):
         self.extract()

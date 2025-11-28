@@ -5,7 +5,7 @@ from service.pipeline.stream.bronze import load_cdc_stream, load_cdc_batch
 
 if __name__ == "__main__":
     spark_session = get_spark_session("cdc")
-    init_catalog(spark_session, 'bronze', is_drop=True)
+    init_catalog(spark_session, 'bronze.batch', is_drop=True)
 
     logger = get_logger(__name__, '/opt/spark/logs/cdc.log')
     

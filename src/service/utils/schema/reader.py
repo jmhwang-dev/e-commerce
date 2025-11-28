@@ -3,7 +3,8 @@ from service.utils.schema.registry_manager import SchemaRegistryManager
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
 class AvscReader:
-    def __init__(self, schema_name, use_internal=False):
+    def __init__(self, schema_name, use_internal=False, is_stream:bool=False):
+        self.subnamespace = 'batch' if not is_stream else 'stream'
         self.schema_name = schema_name
         self.client = SchemaRegistryManager._get_client(use_internal)
 
@@ -29,4 +30,4 @@ class AvscReader:
         self.namespace = self.json_schema.get('namespace')
         self.table_name = self.json_schema.get('name')
 
-        self.dst_table_identifier = f"{self.namespace}.{self.table_name}"
+        self.dst_table_identifier = f"{self.namespace}.{self.subnamespace}.{self.table_name}"

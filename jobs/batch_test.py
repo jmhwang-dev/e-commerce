@@ -12,18 +12,16 @@ from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 if __name__ == "__main__":
     spark_session = get_spark_session("Batch", dev=False)
     
-    init_catalog(spark_session, 'silver', is_drop=True)
-    init_catalog(spark_session, 'gold', is_drop=True)
-
+    init_catalog(spark_session, 'silver.batch', is_drop=False)
+    init_catalog(spark_session, 'gold.batch', is_drop=False)
     watermark_avsc_reader = AvscReader(SilverAvroSchema.WATERMARK)
     watermark_scheam = base.BaseBatch.get_schema(spark_session, watermark_avsc_reader)
     base.BaseBatch.initialize_dst_table(spark_session, watermark_scheam, watermark_avsc_reader.dst_table_identifier)
-    SilverAvroSchema.CUSTOMER_ORDER
 
     spark_session.stop()
     
-    # app_class_list: List[base.BaseBatch] = get_batch_pipeline(GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT)
-    app_class_list: List[base.BaseBatch] = [silver.OrderEventBatch]
+    # app_class_list: List[base.BaseBatch] = get_batch_pipeline('all')
+    app_class_list: List[base.BaseBatch] = [silver.OlistUserBatch, silver.GeoCoordBatch]
 
     i = 0
     iter_count = 3
@@ -35,5 +33,6 @@ if __name__ == "__main__":
             app.transform()
             app.load()
             app.spark_session.stop()
+            print('done:', app.__class__.__name__)
         time.sleep(mock_schedule_interval)
         i += 1

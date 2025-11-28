@@ -31,9 +31,9 @@ if __name__ == "__main__":
     silver_avsc_filenames = SilverAvroSchema.get_all_filenames()
     delete_topics(admin_client, silver_avsc_filenames)
     create_topics(admin_client, silver_avsc_filenames)
-    init_catalog(spark_session, 'gold', is_drop=True)
+    init_catalog(spark_session, 'gold.stream', is_drop=True)
 
-    target_job = get_stream_pipeline(GoldAvroSchema.FACT_ORDER_DETAIL)
+    target_job = get_stream_pipeline('all')
     
     job_class_list:List[base.BaseStream] = target_job
     run_stream(spark_session, job_class_list)
