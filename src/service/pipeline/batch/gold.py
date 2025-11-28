@@ -154,17 +154,28 @@ class FactOrderDetailBatch(BaseBatch):
 
 class FactMonthlySalesByProductBatch(BaseBatch):
     """
-    목적: 월별 제품 매출 기록을 기반으로 카테고리별로 4개 그룹으로 분류된 제품 포트폴리오 매트릭스 생성
-    
-    [분류 기준 (Category 별 중앙값 기준)]
-    1. Y축: 총 매출액 (Total Sales Amount) - 비즈니스 기여도
-    2. X축: 총 판매량 (Total Sales Quantity) - 인기도/트래픽
-    
-    [분류 그룹]
-    - Star Products (1사분면): High Vol + High Rev (매출과 인기 모두 높은 효자 상품)
-    - Volume Drivers (2사분면): High Vol + Low Rev (박리다매, 미끼 상품)
-    - Niche Gems (3사분면): Low Vol + High Rev (판매량은 적으나 고가/고수익 상품)
-    - Question Marks (4사분면): Low Vol + Low Rev (저성과 제품)
+    [Batch Layer: Product Context Generation for Hybrid Dashboard]
+
+    1. 목적 (Technical Objective):
+        - 실시간 배송 관제 시스템(Operational View)에 결합될 상품별 분석 컨텍스트(Analytical Context)를 생성함.
+        - OLTP 성격의 '실시간 주문 상태' 정보와 OLAP 성격의 '상품 가치 평가' 정보를 통합하여 의사결정의 입체성을 확보.
+
+    2. 데이터 처리 로직 (OLAP - BCG Matrix Re-interpretation):
+        - 대용량 트랜잭션 이력(History Data)을 집계하여 상품의 비즈니스 등급을 산정.
+        - X축 (Traffic): 판매량 (Sales Quantity) -> 플랫폼 내 트래픽 점유율
+        - Y축 (Value): 평균 단가 (Mean Unit Price) -> 객단가 기반 수익성
+          * Note: 초기 모델의 Y축인 '총 매출(Revenue)'은 판매량과 강한 양의 상관관계(Multicollinearity)를 보여
+            4분면 편향이 발생함. 이를 해결하기 위해 독립 변수인 '단가'로 축을 변경함.
+
+    3. 분류 기준 및 보정 (Long-tail Calibration):
+        - 현상: 전체 상품의 50% 이상이 '월 판매량 1개'에 집중된 롱테일(Long-tail) 분포 확인 (Median=1).
+        - 보정: 단순 중앙값 분할(>=) 시 변별력 상실을 방지하기 위해, 성과 기준을 '초과(> 1)'로 상향 조정.
+
+        [Result: Product Grade Context]
+        - Star Products: High Vol (>1) / High Price (>=Med)
+        - Volume Drivers: High Vol (>1) / Low Price (<Med)
+        - Niche Gems: Low Vol (<=1) / High Price (>=Med)
+        - Question Marks: Low Vol (<=1) / Low Price (<Med)
     """
     def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT, spark_session, is_stream)
@@ -195,21 +206,20 @@ class FactMonthlySalesByProductBatch(BaseBatch):
                 F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
             )
         
-        # 평균 단가 계산 (필요 시 활용)
+        # 평균 단가(Unit Price) 계산
+        # 안전한 나눗셈을 위해 NULLIF 처리를 하면 좋으나, 로직상 quantity가 0일 수 없으므로 그대로 둠
         fact_monthly_sales_by_product_df = product_period_sales_df.withColumn(
             'mean_sales', 
             F.col('total_sales_amount') / F.col('total_sales_quantity')
         )
-
-        # 2. 기준값 계산: 카테고리 & 기간별 '판매량 중앙값'과 '매출 중앙값' 도출
-        # percentile_approx(col, 0.5) = Median
+        
         metrics_stats_df = fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
             F.percentile_approx('total_sales_quantity', 0.5).alias('median_vol'),
-            F.percentile_approx('total_sales_amount', 0.5).alias('median_rev')
+            # ★ 여기를 수정했습니다 (total_sales_amount -> mean_sales)
+            F.percentile_approx('mean_sales', 0.5).alias('median_price') 
         )
 
-        # 3. 기준값 조인 및 4분면 그룹 분류
-        # 중앙값보다 크거나 같으면 High, 작으면 Low로 판단
+        # 3. 기준값 조인 및 4분면 그룹 분류 (Long-tail 보정 로직 적용)
         self.output_df = fact_monthly_sales_by_product_df.join(
             metrics_stats_df, 
             on=['category', 'sales_period'], 
@@ -217,19 +227,22 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         ).withColumn(
             "group",
             F.when(
-                (F.col("total_sales_quantity") >= F.col("median_vol")) & 
-                (F.col("total_sales_amount") >= F.col("median_rev")), 
-                "Star Products"  # 1사분면: 많이 팔리고 매출도 높음
+                # Star: 많이 팔림(>1) AND 비쌈(>=Median)
+                (F.col("total_sales_quantity") > F.col("median_vol")) & 
+                (F.col("mean_sales") >= F.col("median_price")), 
+                "Star Products"
             ).when(
-                (F.col("total_sales_quantity") >= F.col("median_vol")) & 
-                (F.col("total_sales_amount") < F.col("median_rev")), 
-                "Volume Drivers" # 2사분면: 많이 팔리지만 매출은 낮음 (박리다매)
+                # Volume Driver: 많이 팔림(>1) BUT 쌈(<Median)
+                (F.col("total_sales_quantity") > F.col("median_vol")) & 
+                (F.col("mean_sales") < F.col("median_price")), 
+                "Volume Drivers"
             ).when(
-                (F.col("total_sales_quantity") < F.col("median_vol")) & 
-                (F.col("total_sales_amount") >= F.col("median_rev")), 
-                "Niche Gems"     # 3사분면: 적게 팔리지만 매출은 높음 (고단가/프리미엄)
-            ).otherwise("Question Marks") # 4사분면: 둘 다 낮음 (저성과)
-        ).drop("median_vol", "median_rev") # 계산에 쓴 임시 컬럼 제거
+                # Niche Gem: 적게 팔림(<=1) BUT 비쌈(>=Median)
+                (F.col("total_sales_quantity") <= F.col("median_vol")) & 
+                (F.col("mean_sales") >= F.col("median_price")), 
+                "Niche Gems"
+            ).otherwise("Question Marks") # 적게 팔림(<=1) AND 쌈(<Median)
+        ).drop("median_vol", "median_price")
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
         # (기존 load 로직 동일)
