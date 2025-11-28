@@ -155,14 +155,16 @@ class FactOrderDetailBatch(BaseBatch):
 class FactMonthlySalesByProductBatch(BaseBatch):
     """
     목적: 월별 제품 매출 기록을 기반으로 카테고리별로 4개 그룹으로 분류된 제품 포트폴리오 매트릭스 생성
-    분류 기준:
-        - 판매량 기준점: 카테고리 내 75 백분위수 (상위 25%)
-        - 가격 기준점: 카테고리 내 중앙값 (50 백분위수)
-    분류 그룹:
-        - Star Products: 높은 판매량 + 높은 가격 (고수익 인기 제품)
-        - Volume Drivers: 높은 판매량 + 낮은 가격 (대량 판매 제품)
-        - Niche Gems: 낮은 판매량 + 높은 가격 (프리미엄 틈새 제품)
-        - Question Marks: 낮은 판매량 + 낮은 가격 (저성과 제품)
+    
+    [분류 기준 (Category 별 중앙값 기준)]
+    1. Y축: 총 매출액 (Total Sales Amount) - 비즈니스 기여도
+    2. X축: 총 판매량 (Total Sales Quantity) - 인기도/트래픽
+    
+    [분류 그룹]
+    - Star Products (1사분면): High Vol + High Rev (매출과 인기 모두 높은 효자 상품)
+    - Volume Drivers (2사분면): High Vol + Low Rev (박리다매, 미끼 상품)
+    - Niche Gems (3사분면): Low Vol + High Rev (판매량은 적으나 고가/고수익 상품)
+    - Question Marks (4사분면): Low Vol + Low Rev (저성과 제품)
     """
     def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_MONTHLY_SALES_BY_PRODUCT, spark_session, is_stream)
@@ -177,6 +179,7 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         self.fact_order_detail_df = self.spark_session.read.table(fact_order_detail_avsc_reader.dst_table_identifier)
 
     def transform(self):
+        # 1. 기본 집계 데이터 생성
         sales_period_df = self.fact_order_lead_days \
             .filter(F.col('delivered_customer').isNotNull()) \
             .select('order_id', 'delivered_customer') \
@@ -185,38 +188,51 @@ class FactMonthlySalesByProductBatch(BaseBatch):
         
         period_fact_order_detail_df = sales_period_df.join(self.fact_order_detail_df, on='order_id', how='inner')
 
+        # 제품/기간별 판매량 및 매출액 집계
         product_period_sales_df = period_fact_order_detail_df.groupBy('product_id', 'category', 'sales_period') \
             .agg(
                 F.sum('quantity').alias('total_sales_quantity'),
                 F.sum(F.col('quantity') * F.col('unit_price')).alias('total_sales_amount')
             )
         
+        # 평균 단가 계산 (필요 시 활용)
         fact_monthly_sales_by_product_df = product_period_sales_df.withColumn(
             'mean_sales', 
             F.col('total_sales_amount') / F.col('total_sales_quantity')
         )
 
-        # 1. 매출 기준 사분위수 도출
-        sales_quantile_df = fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
-            F.percentile_approx('total_sales_amount', 0.75).alias('q3'),
-            F.percentile_approx('total_sales_amount', 0.5).alias('q2'),
-            F.percentile_approx('total_sales_amount', 0.25).alias('q1')
+        # 2. 기준값 계산: 카테고리 & 기간별 '판매량 중앙값'과 '매출 중앙값' 도출
+        # percentile_approx(col, 0.5) = Median
+        metrics_stats_df = fact_monthly_sales_by_product_df.groupBy('category', 'sales_period').agg(
+            F.percentile_approx('total_sales_quantity', 0.5).alias('median_vol'),
+            F.percentile_approx('total_sales_amount', 0.5).alias('median_rev')
         )
 
-        # 2. 사분위수 기준 매출 그룹 분류
+        # 3. 기준값 조인 및 4분면 그룹 분류
+        # 중앙값보다 크거나 같으면 High, 작으면 Low로 판단
         self.output_df = fact_monthly_sales_by_product_df.join(
-            sales_quantile_df, 
+            metrics_stats_df, 
             on=['category', 'sales_period'], 
             how='inner'
         ).withColumn(
             "group",
-            F.when(F.col("q3") <= (F.col("total_sales_amount")), "Star Products")
-             .when((F.col("q2") <= F.col("total_sales_amount")) & (F.col("total_sales_amount") < F.col("q3")), "Volume Drivers")
-             .when((F.col("q1") <= F.col("total_sales_amount")) & (F.col("total_sales_amount") < F.col("q2")), "Niche Gems")
-             .otherwise("Question Marks")
-        )
+            F.when(
+                (F.col("total_sales_quantity") >= F.col("median_vol")) & 
+                (F.col("total_sales_amount") >= F.col("median_rev")), 
+                "Star Products"  # 1사분면: 많이 팔리고 매출도 높음
+            ).when(
+                (F.col("total_sales_quantity") >= F.col("median_vol")) & 
+                (F.col("total_sales_amount") < F.col("median_rev")), 
+                "Volume Drivers" # 2사분면: 많이 팔리지만 매출은 낮음 (박리다매)
+            ).when(
+                (F.col("total_sales_quantity") < F.col("median_vol")) & 
+                (F.col("total_sales_amount") >= F.col("median_rev")), 
+                "Niche Gems"     # 3사분면: 적게 팔리지만 매출은 높음 (고단가/프리미엄)
+            ).otherwise("Question Marks") # 4사분면: 둘 다 낮음 (저성과)
+        ).drop("median_vol", "median_rev") # 계산에 쓴 임시 컬럼 제거
 
     def load(self, df:Optional[DataFrame] = None, batch_id: int = -1):
+        # (기존 load 로직 동일)
         if df is not None:
             output_df = df
         else:
@@ -236,10 +252,9 @@ class FactMonthlySalesByProductBatch(BaseBatch):
                 target.group = source.group
             WHEN NOT MATCHED THEN
             INSERT (product_id, sales_period, total_sales_quantity, total_sales_amount, mean_sales, category, group)
-            VALUES (source.product_id, source.sales_period, source.total_sales_quantity, source.total_sales_amount, source.mean_sales, source.category, source.group);
+            VALUES (source.product_id, source.sales_period, source.total_sales_quantity, source.total_sales_amount, source.mean_sales, source.category, source.group)
         """)
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
-        
 class FactReviewAnswerLeadDaysBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS, spark_session, is_stream)
