@@ -1,0 +1,45 @@
+slice_name: Order Detail
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 40__table
+  viz_type: table
+  slice_id: 125
+  query_mode: raw
+  groupby: []
+  temporal_columns_lookup: {}
+  all_columns:
+  - group_styled
+  - category
+  - product_id
+  - quantity
+  - unit_price
+  percent_metrics: []
+  adhoc_filters: []
+  order_by_cols: []
+  order_desc: true
+  server_pagination: true
+  row_limit: 1000
+  server_page_length: 10
+  table_timestamp_format: smart_date
+  include_search: false
+  allow_rearrange_columns: false
+  allow_render_html: true
+  column_config:
+    latest_group:
+      truncateLongCells: true
+  show_cell_bars: true
+  color_pn: true
+  comparison_color_scheme: Green
+  conditional_formatting: []
+  comparison_type: values
+  extra_form_data: {}
+  dashboards:
+  - 13
+query_context: '{"datasource":{"id":40,"type":"table"},"force":false,"queries":[{"filters":[],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["group_styled","category","product_id","quantity","unit_price"],"orderby":[],"annotation_layers":[],"row_limit":10,"row_offset":0,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[],"time_offsets":[]},{"filters":[],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["group_styled","category","product_id","quantity","unit_price"],"orderby":[],"annotation_layers":[],"row_limit":0,"row_offset":0,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[],"time_offsets":[],"is_rowcount":true}],"form_data":{"datasource":"40__table","viz_type":"table","slice_id":125,"query_mode":"raw","groupby":[],"temporal_columns_lookup":{},"all_columns":["group_styled","category","product_id","quantity","unit_price"],"percent_metrics":[],"adhoc_filters":[],"order_by_cols":[],"order_desc":true,"server_pagination":true,"row_limit":1000,"server_page_length":10,"table_timestamp_format":"smart_date","include_search":false,"allow_rearrange_columns":false,"allow_render_html":true,"column_config":{"latest_group":{"truncateLongCells":true}},"show_cell_bars":true,"color_pn":true,"comparison_color_scheme":"Green","conditional_formatting":[],"comparison_type":"values","extra_form_data":{},"dashboards":[13],"force":false,"result_format":"json","result_type":"full","include_time":false},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: b4da8f60-14ad-424d-98b1-ffc7811b08fb
+version: 1.0.0
+dataset_uuid: 40dab393-3b50-44b9-8a55-22e80484c346

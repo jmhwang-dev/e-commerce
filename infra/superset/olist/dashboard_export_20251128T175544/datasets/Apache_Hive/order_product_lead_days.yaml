@@ -1,4 +1,4 @@
-table_name: fact_monthly_sales_by_product
+table_name: order_product_lead_days
 main_dttm_col: null
 description: null
 default_endpoint: null
@@ -6,7 +6,14 @@ offset: 0
 cache_timeout: null
 catalog: warehousedev
 schema: gold
-sql: select * from gold.fact_monthly_sales_by_product
+sql: "with ProductGroupByPeriod as (\nselect\n  product_id,\n  category,\n  group,\n\
+  \  sales_period\nfrom gold.batch.fact_monthly_sales_by_product\n),\nLeadDaysWithSalesPeriod\
+  \ as (\nselect\n  order_id,\n  date_format(delivered_customer, 'yyyy-MM') AS sales_period,\n\
+  \  purchase_to_approval_days,\n  approval_to_carrier_days,\n  carrier_to_customer_days\n\
+  \  carrier_delivery_delay_days,\n  customer_delivery_delay_days\nfrom gold.batch.fact_order_lead_days\n\
+  where delivered_customer is not null\n),\nOrderProduct as (\nselect order_id, product_id\n\
+  from gold.batch.fact_order_detail\n)\n\nselect * from OrderProduct\njoin LeadDaysWithSalesPeriod\n\
+  using(order_id)\njoin ProductGroupByPeriod\nusing(product_id, sales_period)"
 params: null
 template_params: null
 filter_select_enabled: true
@@ -14,7 +21,7 @@ fetch_values_predicate: null
 extra: null
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: db724d25-438a-40da-bac3-e8923eeef53e
+uuid: a654e27f-bcd7-42a1-aa41-e6d07cfcd48f
 metrics:
 - metric_name: count
   verbose_name: COUNT(*)
@@ -26,42 +33,6 @@ metrics:
   extra: null
   warning_text: null
 columns:
-- column_name: total_sales_quantity
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: DOUBLE_TYPE
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: total_sales_amount
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: DOUBLE_TYPE
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: mean_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: DOUBLE_TYPE
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
 - column_name: sales_period
   verbose_name: null
   is_dttm: false
@@ -70,7 +41,7 @@ columns:
   advanced_data_type: null
   groupby: true
   filterable: true
-  expression: null
+  expression: ''
   description: null
   python_date_format: null
   extra: null
@@ -82,7 +53,19 @@ columns:
   advanced_data_type: null
   groupby: true
   filterable: true
-  expression: null
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: order_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
   description: null
   python_date_format: null
   extra: null
@@ -94,7 +77,7 @@ columns:
   advanced_data_type: null
   groupby: true
   filterable: true
-  expression: null
+  expression: ''
   description: null
   python_date_format: null
   extra: null
@@ -106,7 +89,55 @@ columns:
   advanced_data_type: null
   groupby: true
   filterable: true
-  expression: null
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: purchase_to_approval_days
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: approval_to_carrier_days
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: carrier_delivery_delay_days
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: customer_delivery_delay_days
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT_TYPE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
   description: null
   python_date_format: null
   extra: null

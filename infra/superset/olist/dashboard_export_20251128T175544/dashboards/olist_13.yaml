@@ -13,9 +13,9 @@ position:
     meta:
       chartId: 129
       height: 63
-      sliceName: Rank (Product)
+      sliceName: Rank by Product
       uuid: d093ce8e-3b3b-4f60-9ebf-a8af14c213b4
-      width: 7
+      width: 8
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -43,9 +43,9 @@ position:
     meta:
       chartId: 131
       height: 63
-      sliceName: Rank (Category)
+      sliceName: Rank by Category
       uuid: 86d08ba8-0ed7-4e33-ba89-30600868137c
-      width: 5
+      width: 4
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -73,7 +73,7 @@ position:
     meta:
       chartId: 136
       height: 42
-      sliceName: Average Order Lead Days
+      sliceName: Average Order Lead Days by Month
       uuid: 5b87b93d-daec-4f28-8d18-7b666dde676e
       width: 7
     parents:
@@ -97,15 +97,30 @@ position:
     - TAB-O-rSFA4ocjTCplVg4g148
     - ROW-HZ_URmkV1dfAvUJCA--6W
     type: CHART
+  CHART-explore-216-1:
+    children: []
+    id: CHART-explore-216-1
+    meta:
+      chartId: 216
+      height: 61
+      sliceName: Product Portfolio Matrix
+      uuid: 654ff341-1a9d-4288-bc25-e34b24d20715
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    - ROW-cJV2VWSNaDazpS-lvGjy6
+    type: CHART
   CHART-fkjVfDvkqX-pucrMj2nAQ:
     children: []
     id: CHART-fkjVfDvkqX-pucrMj2nAQ
     meta:
       chartId: 132
-      height: 47
+      height: 82
       sliceName: Order Location
       uuid: 5191736e-ce55-4d2f-b417-9ec66ff84478
-      width: 6
+      width: 5
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -117,8 +132,8 @@ position:
     id: CHART-iAkt09VUhNQchkW_AiXM-
     meta:
       chartId: 133
-      height: 50
-      sliceName: Deliver Status
+      height: 63
+      sliceName: Delivery Status
       uuid: cb683242-a8fe-44b2-9224-e60bfae999df
       width: 12
     parents:
@@ -132,10 +147,10 @@ position:
     id: CHART-skOrDBB3OOKvzXjb_f7cF
     meta:
       chartId: 125
-      height: 47
-      sliceName: order_detail
+      height: 82
+      sliceName: Order Detail
       uuid: b4da8f60-14ad-424d-98b1-ffc7811b08fb
-      width: 6
+      width: 7
     parents:
     - ROOT_ID
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
@@ -195,6 +210,17 @@ position:
     - TABS-eXO2ZAsXzWS-r-mGqzyoD
     - TAB-3tA4PX1Lj9INg2IEhstDc
     type: ROW
+  ROW-cJV2VWSNaDazpS-lvGjy6:
+    children:
+    - CHART-explore-216-1
+    id: ROW-cJV2VWSNaDazpS-lvGjy6
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-eXO2ZAsXzWS-r-mGqzyoD
+    - TAB-O-rSFA4ocjTCplVg4g148
+    type: ROW
   ROW-cTNq-JeHT5DZZOtQtpP2V:
     children:
     - CHART-explore-134-1
@@ -236,6 +262,7 @@ position:
   TAB-O-rSFA4ocjTCplVg4g148:
     children:
     - ROW--2QMXkVWzPieFix72-zhp
+    - ROW-cJV2VWSNaDazpS-lvGjy6
     - ROW-HZ_URmkV1dfAvUJCA--6W
     - ROW-cTNq-JeHT5DZZOtQtpP2V
     id: TAB-O-rSFA4ocjTCplVg4g148
@@ -258,25 +285,31 @@ position:
     type: TABS
 metadata:
   color_scheme_domain: []
-  shared_label_colors: []
+  shared_label_colors:
+  - Niche Gems
+  - Question Marks
+  - Star Products
+  - Volume Drivers
   map_label_colors:
     '1': '#5AC189'
-    '2': '#FCC700'
-    '3': '#3CCCCB'
-    '4': '#E04355'
+    '2': '#E04355'
+    '3': '#FCC700'
+    '4': '#666666'
     '5': '#454E7C'
-    Volume Drivers: '#1FA8C9'
-    Question Marks: '#FF7F44'
-    Star Products: '#666666'
-    Niche Gems: '#A868B7'
-    SUM(total_sales_amount), Star Products: '#1FA8C9'
-    SUM(total_sales_amount), Volume Drivers: '#454E7C'
-    SUM(total_sales_amount), Niche Gems: '#5AC189'
+    SUM(total_sales_amount), Niche Gems: '#1FA8C9'
+    SUM(total_sales_amount), Star Products: '#454E7C'
+    SUM(total_sales_amount), Volume Drivers: '#5AC189'
     SUM(total_sales_amount), Question Marks: '#FF7F44'
-    SUM(total_sales_quantity), Star Products: '#1FA8C9'
-    SUM(total_sales_quantity), Volume Drivers: '#454E7C'
+    SUM(total_sales_quantity), Volume Drivers: '#1FA8C9'
+    SUM(total_sales_quantity), Star Products: '#454E7C'
     SUM(total_sales_quantity), Niche Gems: '#5AC189'
     SUM(total_sales_quantity), Question Marks: '#FF7F44'
+    Volume Drivers: '#1FA8C9'
+    Question Marks: '#454E7C'
+    Star Products: '#FF7F44'
+    Niche Gems: '#5AC189'
+    customer: '#EA0B8C'
+    seller: '#6C838E'
   label_colors: {}
   chart_configuration:
     '125':
@@ -292,6 +325,7 @@ metadata:
         - 134
         - 136
         - 137
+        - 216
     '127':
       id: 127
       crossFilters:
@@ -305,6 +339,7 @@ metadata:
         - 134
         - 136
         - 137
+        - 216
     '129':
       id: 129
       crossFilters:
@@ -318,6 +353,7 @@ metadata:
         - 134
         - 136
         - 137
+        - 216
     '131':
       id: 131
       crossFilters:
@@ -331,6 +367,7 @@ metadata:
         - 134
         - 136
         - 137
+        - 216
     '133':
       id: 133
       crossFilters:
@@ -344,6 +381,7 @@ metadata:
         - 134
         - 136
         - 137
+        - 216
     '137':
       id: 137
       crossFilters:
@@ -357,6 +395,7 @@ metadata:
         - 133
         - 134
         - 136
+        - 216
   global_chart_configuration:
     scope:
       rootPath:
@@ -372,6 +411,7 @@ metadata:
     - 134
     - 136
     - 137
+    - 216
   color_scheme: ''
   refresh_frequency: 0
   expanded_slices: {}
@@ -379,4 +419,42 @@ metadata:
   cross_filters_enabled: true
   default_filters: '{}'
   stagger_refresh: true
+  native_filter_configuration:
+  - cascadeParentIds: []
+    controlValues:
+      defaultToFirstItem: false
+      enableEmptyFilter: false
+      inverseSelection: false
+      multiSelect: true
+      searchAllOptions: false
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    description: ''
+    filterType: filter_select
+    id: NATIVE_FILTER-kNpr8brxg8_GZ0IqG5Xk_
+    name: sales_period
+    scope:
+      excluded:
+      - 125
+      - 132
+      - 133
+      - 134
+      - 136
+      rootPath:
+      - ROOT_ID
+    targets:
+    - column:
+        name: sales_period
+      datasetUuid: db724d25-438a-40da-bac3-e8923eeef53e
+    type: NATIVE_FILTER
+    chartsInScope:
+    - 216
+    - 129
+    - 131
+    - 127
+    - 137
+    tabsInScope:
+    - TAB-O-rSFA4ocjTCplVg4g148
 version: 1.0.0
