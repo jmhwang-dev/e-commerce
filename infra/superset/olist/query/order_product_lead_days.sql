@@ -4,7 +4,7 @@ select
   category,
   group,
   sales_period
-from gold.fact_monthly_sales_by_product
+from gold.batch.fact_monthly_sales_by_product
 ),
 LeadDaysWithSalesPeriod as (
 select
@@ -15,12 +15,12 @@ select
   carrier_to_customer_days
   carrier_delivery_delay_days,
   customer_delivery_delay_days
-from gold.fact_order_lead_days
+from gold.batch.fact_order_lead_days
 where delivered_customer is not null
 ),
 OrderProduct as (
 select order_id, product_id
-from fact_order_detail
+from gold.batch.fact_order_detail
 )
 
 select * from OrderProduct
