@@ -1,13 +1,13 @@
 import pandas as pd
 from pathlib import Path
 
-from ecommerce.utils import (
+from translate.utils import (
     ensure_directories,
     get_dataset,
     SilverDataName,
     POSTPROCESS_ARTIFACTS_DIR,
 )
-from ecommerce.pipelines.bronze2silver.reviews_post import gather_inference, is_conflict
+from translate.pipelines.reviews import gather_inference, is_conflict
 
 if __name__=="__main__":
     ensure_directories()

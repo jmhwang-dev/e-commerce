@@ -3,7 +3,7 @@ import multiprocessing as mp
 from pathlib import Path
 from datetime import datetime
 
-from ecommerce.utils import (
+from translate.utils import (
     ensure_directories,
     get_dataset,
     PreprocessConfig,
@@ -11,8 +11,8 @@ from ecommerce.utils import (
     INFERENCE_ARTIFACTS_DIR,
     PREPROCESS_CONFIGS_DIR,
 )
-from ecommerce.inference import run_translator
-from ecommerce.inference.gather import merge_results
+from translate.inference import run_translator
+from translate.inference.gather import merge_results
 
 def get_workers(config: PreprocessConfig, dst_prefix, worker_cnt=2) -> dict[str, mp.Process]:
     dataset, _ = get_dataset(config.dst_path)

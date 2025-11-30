@@ -1,6 +1,6 @@
 import os
 
-from ecommerce.utils import (
+from translate.utils import (
     ensure_directories,
     get_dataset,
     BronzeDataName,
@@ -9,7 +9,7 @@ from ecommerce.utils import (
     PREPROCESS_ARTIFACTS_DIR,
     SILVER_DIR,
 )
-from service.consumer.reviews import PortuguessPreprocessor
+from translate.pipelines.reviews import PortuguessPreprocessor
 
 if __name__ == "__main__":
     ensure_directories()
