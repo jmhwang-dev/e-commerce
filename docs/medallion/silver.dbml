@@ -21,11 +21,6 @@ Table product_metadata {
   ingest_time timestamp
 }
 
-Table review_clean_comment {
-  review_id string [primary key]
-  message_type string
-  portugues string
-}
 
 Table watermark {
   app_name string
@@ -58,7 +53,6 @@ Table order_event {
 // Relationships
 Ref: customer_order.product_id > product_metadata.product_id
 Ref: product_metadata.seller_id > olist_user.user_id
-Ref: review_clean_comment.review_id > review_metadata.review_id
 Ref: olist_user.zip_code > geo_coord.zip_code
 Ref: order_event.order_id > customer_order.order_id
 Ref: review_metadata.order_id > customer_order.order_id

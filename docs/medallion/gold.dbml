@@ -16,7 +16,7 @@ Table dim_user_location {
   lng float
 }
 
-Table order_detail {
+Table fact_order_detail {
   order_id string
   product_id string
   category string
@@ -50,7 +50,7 @@ Table fact_order_lead_days {
 }
 
 // Relationships
-Ref: order_detail.product_id > fact_monthly_sales_by_product.product_id
-Ref: order_detail.user_id > dim_user_location.user_id
-Ref: fact_review_answer_lead_days.order_id > order_detail.order_id
-Ref: fact_order_lead_days.order_id > order_detail.order_id
+Ref: fact_order_detail.product_id > fact_monthly_sales_by_product.product_id
+Ref: fact_order_detail.user_id > dim_user_location.user_id
+Ref: fact_review_answer_lead_days.order_id > fact_order_detail.order_id
+Ref: fact_order_lead_days.order_id > fact_order_detail.order_id
