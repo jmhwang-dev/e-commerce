@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'kafka'  # Kafka JMX Exporter 스크랩
+    static_configs:
+      - targets: ['192.168.45.192:19100', '192.168.45.192:19101', '192.168.45.192:19102']  # 각 브로커의 호스트 포트
+    metrics_path: '/metrics'  # JMX Exporter 기본 경로
+
+  - job_name: 'etl'
+    static_configs:
+      - targets: ['192.168.45.192:9080', '192.168.45.192:9080']
+    metrics_path: '/metrics'  # JMX Exporter 기본 경로
