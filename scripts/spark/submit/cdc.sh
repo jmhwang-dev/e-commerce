@@ -47,7 +47,7 @@ docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
   
 # Spark 실행: -T 옵션을 추가하여 TTY 할당 비활성화
 docker compose exec spark-client spark-submit \
-  --master spark://192.168.45.191:7077 \
+  --master spark://192.168.45.192:7077 \
   --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1" \
   --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1" \
   --deploy-mode client \

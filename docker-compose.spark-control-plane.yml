@@ -1,14 +1,45 @@
-version: '3.8'
-
 x-spark-common: &spark-common
   image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
-  environment:
-    - SPARK_NO_DAEMONIZE=true
 
 services:
-  # [Master 1] Speed Layer (CDC)
-  # - Service Port: 7077
-  # - Web UI: 8080
+  spark-client:
+    <<: *spark-common
+    hostname: spark-client
+    container_name: spark-client
+    network_mode: host 
+    
+    depends_on:
+      - spark-master-cdc
+      - spark-master-etl
+      - spark-history
+      
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+      - ./configs/kafka:/configs/kafka:ro
+      - ./notebooks/spark:/opt/spark/work-dir
+      - ./jobs/:/jobs/
+      - ./src/:/mnt/src
+      - ./logs/spark/:/opt/spark/logs/
+      # JMX 모니터링이 필요 없다면 아래 두 줄은 주석 처리해도 됩니다.
+      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
+
+    working_dir: /
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - PYTHONPATH=/mnt/src
+      
+      # [매우 중요] 드라이버가 외부(RPi/Desktop) 워커에게 알려줄 자신의 주소
+      - SPARK_LOCAL_HOSTNAME=192.168.45.192
+      - spark.driver.bindAddress=0.0.0.0
+
+    # 리소스 제한 (Mini-PC 16GB 중 3GB 할당 -> 아주 적절함)
+    # CDC Driver 4개 + Batch Driver 1개 동시에 띄우기에 충분합니다.
+    mem_limit: 3g  
+    cpus: 1.0
+ 
+    command: tail -f /dev/null
+
   spark-master-cdc:
     <<: *spark-common
     hostname: spark-master-cdc
