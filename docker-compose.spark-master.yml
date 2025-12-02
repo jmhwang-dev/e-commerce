@@ -1,0 +1,71 @@
+version: '3.8'
+
+x-spark-common: &spark-common
+  image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+  environment:
+    - SPARK_NO_DAEMONIZE=true
+
+services:
+  # [Master 1] Speed Layer (CDC)
+  # - Service Port: 7077
+  # - Web UI: 8080
+  spark-master-cdc:
+    <<: *spark-common
+    hostname: spark-master-cdc
+    container_name: spark-master-cdc
+    ports:
+      - "8080:8080"  # Web UI (CDC는 기본 8080 사용)
+      - "7077:7077"  # Master Port (RPi 워커들이 여기로 연결)
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    depends_on:
+      - spark-history
+
+  # [Master 2] Batch Layer (ETL)
+  # - Service Port: 7078
+  # - Web UI: 8081
+  spark-master-etl:
+    <<: *spark-common
+    hostname: spark-master-etl
+    container_name: spark-master-etl
+    ports:
+      - "8081:8080"  # Web UI (호스트 8081 -> 컨테이너 8080)
+      - "7078:7077"  # Master Port (데스크탑 워커들이 여기로 연결)
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    depends_on:
+      - spark-history
+
+  # [History Server]
+  # - Web UI: 18080 (CDC 마스터와 겹치지 않게 주의!)
+  spark-history:
+    <<: *spark-common
+    container_name: spark-history
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+      # 중요: 모든 마스터와 워커가 로그를 여기로 쌓아야 보입니다.
+      # 실제로는 MinIO나 HDFS 경로를 쓰는 게 좋지만, 로컬 테스트에선 공유 볼륨 필요
+      - ./logs/spark/:/opt/spark/logs/
+      - ./data/spark-events:/opt/spark/events # spark-defaults.conf의 eventLog.dir 경로와 일치해야 함
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
+
+  # [Init Job]
+  init-spark:
+    <<: *spark-common
+    container_name: init-spark
+    depends_on:
+      - spark-master-cdc # 둘 중 아무거나 의존해도 됨
+      - spark-master-etl
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for masters...';
+        sleep 10;
+        # 로컬 모드로 실행하여 네임스페이스 생성 (Master 연결 불필요)
+        spark-sql --master local[*] -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
+      "
