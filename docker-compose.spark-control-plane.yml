@@ -4,7 +4,6 @@ x-spark-common: &spark-common
 services:
   spark-client:
     <<: *spark-common
-    hostname: spark-client
     container_name: spark-client
     network_mode: host 
     
