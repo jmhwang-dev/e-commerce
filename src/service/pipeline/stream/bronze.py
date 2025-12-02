@@ -91,7 +91,7 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
                 .mode("append") \
                 .saveAsTable(dst_avsc_reader.dst_table_identifier)
             end = time.time()
-            print(f"[{dst_avsc_reader.dst_table_identifier:<30}] has saved {record_count} rows (Processing time: {end-start:.2f} sec)")
+            print(f"[{dst_avsc_reader.dst_table_identifier:<36}] has saved {record_count} rows (Processing time: {end-start:.2f} sec)")
 
         except Exception as e:
             print(f"[{dst_avsc_reader.dst_table_identifier:<30}] {e}")
