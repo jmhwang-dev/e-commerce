@@ -1,0 +1,16 @@
+# mbean 원본 패턴으로 pattern을 찾아야함
+rules:
+  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec|MessagesInPerSec), topic=(.*)><>Count'
+    name: kafka_server_brokertopicmetrics_$1
+    labels:
+      topic: "$2"
+
+  - pattern: 'kafka\.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value'
+    name: kafka_server_replicamanager_under_replicated_partitions
+
+  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=(FailedProduceRequestsPerSec|FailedFetchRequestsPerSec)><>Count'
+    name: kafka_server_brokertopicmetrics_$1
+
+  - pattern: 'java\.lang<type=OperatingSystem><>ProcessCpuTime'
+    name: kafka_process_cpu_seconds_total
+    multiplier: 0.000000001

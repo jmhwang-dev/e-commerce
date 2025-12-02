@@ -1,0 +1,17 @@
+# mbean 원본 패턴으로 pattern을 찾아야함
+rules:
+  - pattern: 'metrics<name=app-(.*)\.(\d+)\.executor\.(runTime|jvmGCTime|memoryBytesSpilled), type=counters><>Count'
+    name: spark_executor_$3
+    labels:
+      app_id: "$1"
+      executor_id: "$2"
+
+  - pattern: 'java\.lang<type=OperatingSystem><>ProcessCpuTime'
+    name: spark_executor_process_cpu_seconds_total
+    multiplier: 0.000000001
+    
+  - pattern: 'java\.lang<type=OperatingSystem><>CommittedVirtualMemorySize'
+    name: spark_executor_process_virtual_memory_bytes
+    
+  - pattern: 'java\.lang<type=OperatingSystem><>TotalPhysicalMemorySize'
+    name: spark_executor_process_resident_memory_bytes
