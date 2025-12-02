@@ -12,4 +12,4 @@ services:
       - ./configs/spark:/opt/spark/conf:ro
     command: >
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
-      spark://192.168.45.191:7077
+      spark://192.168.45.192:7077
