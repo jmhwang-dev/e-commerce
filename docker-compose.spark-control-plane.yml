@@ -5,7 +5,7 @@ services:
   spark-client:
     <<: *spark-common
     container_name: spark-client
-    network_mode: host 
+    network_mode: host
     
     depends_on:
       - spark-master-cdc
