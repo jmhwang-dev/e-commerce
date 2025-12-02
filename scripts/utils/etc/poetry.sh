@@ -2,7 +2,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 
 echo 'add_to_path "$HOME/.local/bin"' > ~/.envs/poetry.sh
 
-# poetry install
+# poetry install # 파이썬 버전 필요 (conda 로 설치해서 파이썬 버전 설정 가능)
 # poetry shell
 
 # poetry env remove python

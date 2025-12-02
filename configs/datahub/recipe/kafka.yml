@@ -2,8 +2,8 @@ source:
   type: kafka
   config:
     connection:
-      bootstrap: '192.168.45.191:19092,192.168.45.191:19094,192.168.45.191:19096'
-      schema_registry_url: 'http://192.168.45.191:8082'
+      bootstrap: '192.168.45.192:19092,192.168.45.192:19094,192.168.45.192:19096'
+      schema_registry_url: 'http://192.168.45.192:8082'
     platform_instance: kafka_dev
     env: dev
     disable_topic_record_naming_strategy: true
