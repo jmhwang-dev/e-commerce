@@ -35,8 +35,8 @@ if __name__ == "__main__":
     create_topics(admin_client, silver_avsc_filenames)
     init_catalog(spark_session, 'gold.stream', is_drop=True)
 
-    # target_job = get_stream_pipeline(SilverAvroSchema.OLIST_USER)
-    target_job = [stream.silver.OlistUserStream]
+    target_job = get_stream_pipeline('all')
+    # target_job = [stream.silver.OlistUserStream]
     
     job_class_list:List[base.BaseStream] = target_job
     run_stream(spark_session, job_class_list)
