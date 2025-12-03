@@ -6,8 +6,8 @@ from pathlib import Path
 import yaml
 import shutil
 
-from ecommerce.utils.config import PreprocessConfig, TranslatePipelineConfig
-from ecommerce.utils.paths import ensure_directories
+from translate.utils.config import PreprocessConfig, TranslatePipelineConfig
+from translate.utils.paths import ensure_directories
 
 ARTIFACT_PATH = Path("./tests/tmp_config_test/")
 ARTIFACT_PATH.mkdir(parents=True, exist_ok=True)
