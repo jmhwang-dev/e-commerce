@@ -2,7 +2,7 @@ services:
   spark-worker-etl:
     image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
     container_name: spark-worker-etl
-    # network_mode: host
+    network_mode: host
     restart: unless-stopped
     environment:
       - SPARK_WORKER_CORES=12
@@ -10,6 +10,8 @@ services:
       - SPARK_NO_DAEMONIZE=true
     volumes:
       - ./configs/spark:/opt/spark/conf:ro
+      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
     command: >
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
       spark://192.168.45.192:7078

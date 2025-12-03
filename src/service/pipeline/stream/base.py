@@ -10,7 +10,7 @@ from service.utils.schema.reader import AvscReader
 from service.utils.spark import get_deserialized_avro_stream_df
 from service.producer.bronze import *
 
-from config.kafka import BOOTSTRAP_SERVERS_INTERNAL
+from config.kafka import BOOTSTRAP_SERVERS_INTERNAL, BOOTSTRAP_SERVERS_EXTERNAL
 
 
 class BaseStream(ABC):
@@ -55,15 +55,16 @@ class BaseStream(ABC):
             )
         )
 
-    def get_query(self,):
+    def get_query(self, use_interal:bool = False):
         self.extract()
         self.transform()
 
+        bootstrap_server = BOOTSTRAP_SERVERS_EXTERNAL if not use_interal else BOOTSTRAP_SERVERS_INTERNAL
         return self.output_df.writeStream \
             .trigger(processingTime=self.process_time) \
             .queryName(self.query_name) \
             .format("kafka") \
-            .option("kafka.bootstrap.servers", BOOTSTRAP_SERVERS_INTERNAL) \
+            .option("kafka.bootstrap.servers", bootstrap_server) \
             .option("topic", self.dst_avsc_reader.table_name) \
             .option("checkpointLocation", self.checkpoint_path) \
             .start()
