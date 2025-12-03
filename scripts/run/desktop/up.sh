@@ -1,4 +1,5 @@
 docker compose \
     -f docker-compose.inference.yml \
     -f docker-compose.storage.yml \
+    -f docker-compose.spark-worker-etl.yml \
     up -d --force-recreate
