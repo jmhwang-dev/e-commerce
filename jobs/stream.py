@@ -9,6 +9,8 @@ from service.utils.schema.avsc import SilverAvroSchema, GoldAvroSchema
 from service.utils.spark import get_spark_session, run_stream_queries
 from service.utils.kafka import delete_topics, create_topics, get_confluent_kafka_admin_client
 from service.pipeline.stream import base
+from service.pipeline import stream
+
 from config.kafka import BOOTSTRAP_SERVERS_EXTERNAL
 
 LOGGER = get_logger(__name__, '/opt/spark/logs/stream.log')
@@ -33,7 +35,8 @@ if __name__ == "__main__":
     create_topics(admin_client, silver_avsc_filenames)
     init_catalog(spark_session, 'gold.stream', is_drop=True)
 
-    target_job = get_stream_pipeline('all')
+    # target_job = get_stream_pipeline(SilverAvroSchema.OLIST_USER)
+    target_job = [stream.silver.OlistUserStream]
     
     job_class_list:List[base.BaseStream] = target_job
     run_stream(spark_session, job_class_list)

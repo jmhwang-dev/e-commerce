@@ -44,7 +44,7 @@ zip -r ../$SRC_ZIP service config schema > /dev/null
 cd ..
 # 컨테이너에 복사
 docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
-
+  
 # Spark 실행: -T 옵션을 추가하여 TTY 할당 비활성화
 docker compose -f docker-compose.spark-control-plane.yml exec spark-client spark-submit \
   --master spark://192.168.45.192:7077 \
