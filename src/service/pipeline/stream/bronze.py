@@ -56,7 +56,7 @@ def load_cdc_stream(spark_session: SparkSession, option_dict: dict[str, str], lo
             
             dst_avsc_reader = AvscReader(avsc_filename)
             deserialized_stream = BaseStream.get_topic_df(
-                get_kafka_stream_df(spark_session, dst_avsc_reader.table_name, 100),
+                get_kafka_stream_df(spark_session, dst_avsc_reader.table_name, 200),
                 dst_avsc_reader
             )
 
