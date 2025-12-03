@@ -11,3 +11,4 @@ python-dotenv
 emoji
 confluent-kafka[avro]
 pyyaml
+psycopg2-binary

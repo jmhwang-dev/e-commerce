@@ -40,6 +40,7 @@ dependencies = [
     "scikit-learn (>=1.7.2,<2.0.0)",
     "acryl-datahub (==1.2.0)",
     "pyarrow (>=21.0.0,<22.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
 ]
 
 

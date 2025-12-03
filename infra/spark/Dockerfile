@@ -7,6 +7,7 @@ ARG HADOOP_AWS_VERSION=3.3.4
 ARG AWS_SDK_VERSION=1.12.262
 ARG CONFLUENT_VERSION=7.6.1
 ARG ABRIS_VERSION=6.4.1
+ARG POSTGRES_VERSION=42.7.3
 
 FROM apache/spark:${SPARK_VERSION}-scala${SCALA_BINARY_VERSION}-java${JAVA_VERSION}-python3-ubuntu
 
@@ -19,6 +20,7 @@ ARG HADOOP_AWS_VERSION
 ARG AWS_SDK_VERSION
 ARG CONFLUENT_VERSION
 ARG ABRIS_VERSION
+ARG POSTGRES_VERSION
 
 USER root
 ENV SPARK_HOME=/opt/spark
@@ -58,6 +60,8 @@ RUN set -e; \
         "https://packages.confluent.io/maven/io/confluent/kafka-schema-serializer/7.6.6/kafka-schema-serializer-7.6.6.jar" & \
     curl -fSL -o "$SPARK_HOME/jars/common-config-7.6.0.jar" \
         "https://packages.confluent.io/maven/io/confluent/common-config/7.6.0/common-config-7.6.0.jar" & \
+    curl -fSL -o "$SPARK_HOME/jars/postgresql-${POSTGRES_VERSION}.jar" \
+        "https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_VERSION}/postgresql-${POSTGRES_VERSION}.jar" & \
     wait; \
     pip3 install --no-cache-dir -r /tmp/requirements.txt
 
