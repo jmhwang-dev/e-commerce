@@ -6,7 +6,7 @@ docker run -d \
   --network host \
   apache/spark:latest \
   /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker \
-  spark://192.168.45.192:7077
+  spark://192.168.45.190:7077
 
 # 삭제
 docker stop spark-master

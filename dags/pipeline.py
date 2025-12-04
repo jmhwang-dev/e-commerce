@@ -14,6 +14,16 @@ ARFTIFACT_DIR_PATH = '/opt/airflow/artifact'
 ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
 SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_default")
 
+CONF = {
+    "spark.driver.host": "192.168.45.190",
+    "spark.driver.bindAddress": "0.0.0.0",
+    "spark.driver.port": "7001",
+    "spark.driver.blockManager.port": "7002",
+    "spark.driver.extraJavaOptions": "-Daws.region=us-east-1",
+    "spark.executor.extraJavaOptions": "-Daws.region=us-east-1",
+    # "spark.ui.port": "4041",
+}
+
 def init_catalog(is_drop: bool) -> SparkSubmitOperator:
     return SparkSubmitOperator(
         task_id='init_catalog',
@@ -21,7 +31,8 @@ def init_catalog(is_drop: bool) -> SparkSubmitOperator:
         conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
-        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        properties_file='/opt/spark/config/spark-defaults.conf',
+        conf=CONF,
         application_args=['--is_drop'] if is_drop else []
     )
 
@@ -32,7 +43,8 @@ def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
         conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
-        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        properties_file='/opt/spark/config/spark-defaults.conf',
+        conf=CONF,
         application_args=['--app_name', app_name] # Optional arguments for your Spark job
     )
 

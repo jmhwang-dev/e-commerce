@@ -20,7 +20,7 @@ docker exec -it spark-master bash
 # 마스터 컨테이너 내부에서 실행
 ./bin/spark-submit \
   --class org.apache.spark.examples.SparkPi \
-  --master spark://192.168.45.192:7077 \
+  --master spark://192.168.45.190:7077 \
   --executor-memory 1g \
   --total-executor-cores 2 \
   ./examples/jars/spark-examples_2.13-4.0.0.jar \

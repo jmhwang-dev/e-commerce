@@ -80,6 +80,7 @@ x-airflow-common:
     - ./src:/opt/airflow/src
     - ./src/service/utils/schema/avsc.py:/opt/airflow/jobs/src/service/utils/schema/avsc.py
     - ./jobs/batch:/opt/airflow/jobs/batch
+    - ./configs/spark:/opt/spark/config
     - ${AIRFLOW_PROJ_DIR:-./dags}:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs/airflow:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/configs/airflow:/opt/airflow/config
@@ -186,6 +187,15 @@ services:
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
+      
+      SPARK_DRIVER_PORT: ${SPARK_DRIVER_PORT}
+      SPARK_DRIVER_BLOCK_MANAGER_PORT: ${SPARK_DRIVER_BLOCK_MANAGER_PORT}
+      SPARK_DRIVER_HOST: ${SPARK_DRIVER_HOST}
+      SPARK_DRIVER_BIND_ADDRESS: ${SPARK_DRIVER_BIND_ADDRESS}
+    
+    ports:
+      - "${SPARK_DRIVER_PORT}:${SPARK_DRIVER_PORT}"
+      - "${SPARK_DRIVER_BLOCK_MANAGER_PORT}:${SPARK_DRIVER_BLOCK_MANAGER_PORT}"
 
     restart: always
     depends_on:
