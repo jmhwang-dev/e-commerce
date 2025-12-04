@@ -31,7 +31,7 @@ services:
     environment:
       PYTHONPATH: "/mnt/src"
       
-    mem_limit: 3g
+    mem_limit: 5g
     cpus: 3.0
 
     command: tail -f /dev/null
