@@ -31,7 +31,7 @@ services:
       - ./logs/spark/:/opt/spark/logs/
       
       # JMX 모니터링
-      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./infra/shared:/mnt/shared/
       - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
 
     working_dir: /

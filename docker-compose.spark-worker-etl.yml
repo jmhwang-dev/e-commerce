@@ -10,7 +10,7 @@ services:
       - SPARK_NO_DAEMONIZE=true
     volumes:
       - ./configs/spark:/opt/spark/conf:ro
-      - ./downloads/jmx_exporter:/mnt/jmx_exporter/
+      - ./infra/shared:/mnt/shared/
       - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
     command: >
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker

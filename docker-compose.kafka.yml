@@ -33,7 +33,7 @@ services:
     volumes:
       - ./configs/kafka/server1.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node1:/var/lib/kafka/data
-      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro # JMX Exporter JAR
+      - ./infra/shared/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro # JMX Exporter JAR
       - ./configs/jmx/kafka.yml:/etc/kafka/jmx/kafka.yml:ro # JMX Exporter 설정 파일
 
   kafka2:
@@ -43,7 +43,7 @@ services:
     volumes:
       - ./configs/kafka/server2.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node2:/var/lib/kafka/data
-      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
+      - ./infra/shared/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
       - ./configs/jmx/kafka.yml:/etc/kafka/jmx/kafka.yml:ro
 
   kafka3:
@@ -53,7 +53,7 @@ services:
     volumes:
       - ./configs/kafka/server3.properties:/etc/kafka/docker/server.properties:ro
       - ./data/kafka/node3:/var/lib/kafka/data
-      - ./downloads/jmx_exporter/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
+      - ./infra/shared/jmx_prometheus_javaagent-1.3.0.jar:/etc/kafka/jmx/jmx_prometheus_javaagent-1.3.0.jar:ro
       - ./configs/jmx/kafka.yml:/etc/kafka/jmx/kafka.yml:ro
 
   schema-registry:
