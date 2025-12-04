@@ -3,8 +3,9 @@
 # -------------------------------------------------------
 x-spark-common: &spark-common
   image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
-  # [핵심] 리눅스 머신이므로 Host 모드 사용 (성능 및 포트 이슈 해결)
-  network_mode: host
+  # [변경] macOS Docker Desktop의 VM 격리 특성으로 host 모드 미지원.
+  # Bridge 모드(기본값) 사용 및 명시적 포트 매핑(Ports Mapping) 적용.
+  # network_mode: host 
 
 services:
   # -------------------------------------------------------
@@ -13,10 +14,27 @@ services:
   spark-client:
     <<: *spark-common
     container_name: spark-client
+    
+    # [추가] Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방.
+    ports:
+      - "7003:7003" # Driver Port
+      - "7004:7004" # Block Manager Port
+      - "4040:4040" # Spark UI
+      
     environment:
       PYTHONPATH: "/mnt/src"
-      SPARK_DRIVER_HOST: 192.168.45.190
+      
+      # [핵심] Driver 실행 시 바인딩(Bind) 주소.
+      # 컨테이너 내부 IP 부재로 인한 "Cannot assign requested address" 에러 방지를 위해 0.0.0.0 설정.
       SPARK_DRIVER_BIND_ADDRESS: 0.0.0.0
+      
+      # [핵심] 외부(Desktop/Pi 워커)에 광고(Advertise)할 주소.
+      # 도커 내부 IP(172.x) 대신 iMac의 물리 IP를 명시하여 통신 오류 방지.
+      SPARK_DRIVER_HOST: 192.168.45.190
+      
+      # 포트 고정 (랜덤 포트 사용 방지)
+      SPARK_DRIVER_PORT: 7001
+      SPARK_DRIVER_BLOCK_MANAGER_PORT: 7002
       
     mem_limit: 3g
     cpus: 1.0
@@ -29,8 +47,6 @@ services:
       - ./jobs/:/jobs/
       - ./src/:/mnt/src
       - ./logs/spark/:/opt/spark/logs/
-      
-      # JMX 모니터링
       - ./infra/shared:/mnt/shared/
       - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
 
@@ -42,13 +58,25 @@ services:
   spark-master-cdc:
     <<: *spark-common
     container_name: spark-master-cdc
+    
+    # [추가] Bridge 모드 외부 접속 포트 개방.
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+
     environment:
       SPARK_NO_DAEMONIZE: "true"
       
-      SPARK_MASTER_HOST: 192.168.45.190
+      # [수정] 바인딩 에러 방지 설정.
+      # 컨테이너 내부 IP(172.x)로 들어오는 요청 수신을 위해 0.0.0.0 지정.
+      SPARK_MASTER_HOST: 0.0.0.0
+      
+      # [추가] 외부 워커 연결용 광고 주소.
+      # 워커가 마스터를 찾을 수 있도록 물리 IP(192.168.45.190) 명시.
+      SPARK_PUBLIC_DNS: 192.168.45.190
+      
       SPARK_MASTER_PORT: 7077
       SPARK_MASTER_WEBUI_PORT: 8080
-      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
       
     volumes:
       - ./configs/spark:/opt/spark/conf
@@ -57,36 +85,28 @@ services:
       - spark-history
 
   # -------------------------------------------------------
-  # 3. ETL Master (Port: 7078, 8081 - 포트 충돌 방지)
+  # 3. ETL Master (Stream) (Port: 7078, 8081)
   # -------------------------------------------------------
   spark-master-stream:
     <<: *spark-common
     container_name: spark-master-stream
+    
+    # [추가] 외부 접속 허용.
+    ports:
+      - "7078:7078"
+      - "8081:8081"
+
     environment:
       SPARK_NO_DAEMONIZE: "true"
       
-      SPARK_MASTER_HOST: 192.168.45.190
+      # [수정] 컨테이너 내부 바인딩 (에러 방지).
+      SPARK_MASTER_HOST: 0.0.0.0
+      
+      # [추가] 외부 광고용 주소 (워커 연결용).
+      SPARK_PUBLIC_DNS: 192.168.45.190
+      
       SPARK_MASTER_PORT: 7078
       SPARK_MASTER_WEBUI_PORT: 8081
-      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
-      
-    volumes:
-      - ./configs/spark:/opt/spark/conf
-    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
-    depends_on:
-      - spark-history
-
-  
-  spark-master-batch:
-    <<: *spark-common
-    container_name: spark-master-batch
-    environment:
-      SPARK_NO_DAEMONIZE: "true"
-      
-      SPARK_MASTER_HOST: 192.168.45.190
-      SPARK_MASTER_PORT: 7079
-      SPARK_MASTER_WEBUI_PORT: 8083
-      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
       
     volumes:
       - ./configs/spark:/opt/spark/conf
@@ -95,22 +115,58 @@ services:
       - spark-history
 
   # -------------------------------------------------------
-  # 4. History Server (Port: 18080)
+  # 4. Batch Master (Port: 7079, 8083)
+  # -------------------------------------------------------
+  spark-master-batch:
+    <<: *spark-common
+    container_name: spark-master-batch
+    
+    # [추가] 외부 접속 허용.
+    ports:
+      - "7079:7079"
+      - "8083:8083"
+
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      
+      # [수정] 컨테이너 내부 바인딩 (에러 방지).
+      SPARK_MASTER_HOST: 0.0.0.0
+      
+      # [추가] 외부 광고용 주소 (워커 연결용).
+      SPARK_PUBLIC_DNS: 192.168.45.190
+      
+      SPARK_MASTER_PORT: 7079
+      SPARK_MASTER_WEBUI_PORT: 8083
+      
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    depends_on:
+      - spark-history
+
+  # -------------------------------------------------------
+  # 5. History Server (Port: 18080)
   # -------------------------------------------------------
   spark-history:
     <<: *spark-common
     container_name: spark-history
     restart: unless-stopped
+    
+    # [추가] Bridge 모드 웹 접속용 포트 개방.
+    ports:
+      - "18080:18080"
+
     environment:
       SPARK_NO_DAEMONIZE: "true"
       SPARK_HISTORY_OPTS: "-Dspark.history.ui.port=18080"
+      # 워커와 직접 통신하지 않으므로 Public DNS 불필요. S3(MinIO) 연결 설정 중요.
       
     volumes:
       - ./configs/spark:/opt/spark/conf
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
 
   # -------------------------------------------------------
-  # 5. Init Job (Iceberg Namespace 생성)
+  # 6. Init Job (Iceberg Namespace 생성)
   # -------------------------------------------------------
   init-spark:
     <<: *spark-common
@@ -121,7 +177,7 @@ services:
       - spark-master-stream
     volumes:
       - ./configs/spark:/opt/spark/conf
-    # Host 모드이므로 Desktop(192.168.45.191)의 MinIO에 바로 접근 가능
+    # Bridge 모드이나 Desktop(192.168.45.191)은 외부망이므로 접근 가능.
     entrypoint: >
       bash -c "
         echo 'Waiting for cluster stability...';
