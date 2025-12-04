@@ -34,6 +34,7 @@ services:
       sh -c '
         mc alias set local http://minio:9000 minioadmin minioadmin &&
         mc mb --ignore-existing local/tmp &&
+        mc mb --ignore-existing local/spark-events &&
         mc mb --ignore-existing local/warehousedev/bronze &&
         mc mb --ignore-existing local/warehousedev/silver &&
         mc mb --ignore-existing local/warehousedev/gold &&
