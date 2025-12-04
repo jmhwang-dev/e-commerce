@@ -1,6 +1,2 @@
-docker compose \
-    -f docker-compose.kafka.yml \
-    -f docker-compose.metric.yml \
-    down -v
-
+sudo bash ./scripts/run/iMac/down.sh
 sudo rm -r ./data/kafka

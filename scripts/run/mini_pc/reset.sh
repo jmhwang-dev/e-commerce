@@ -1,6 +1,2 @@
-docker compose \
-    -f docker-compose.airflow.yml \
-    -f docker-compose.spark-control-plane.yml \
-    down -v
-
+sudo bash ./scripts/run/mini_pc/down.sh
 sudo rm -r ./data/airflow ./logs/airflow

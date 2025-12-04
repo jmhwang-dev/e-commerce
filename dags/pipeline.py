@@ -21,7 +21,8 @@ def init_catalog(is_drop: bool) -> SparkSubmitOperator:
         conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
-        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        properties_file='/opt/spark/config/spark-defaults.conf',
+        conf={ "spark.cores.max": "2" },
         application_args=['--is_drop'] if is_drop else []
     )
 
@@ -32,7 +33,8 @@ def get_spark_submit_operator(app_name) -> SparkSubmitOperator:
         conn_id=SPARK_CONN_ID,  # Connection ID for your Spark cluster
         py_files=ZIP_DST_PATH,
         deploy_mode='client',
-        properties_file='/opt/airflow/config/spark-iceberg.conf',
+        properties_file='/opt/spark/config/spark-defaults.conf',
+        conf={ "spark.cores.max": "2" },
         application_args=['--app_name', app_name] # Optional arguments for your Spark job
     )
 

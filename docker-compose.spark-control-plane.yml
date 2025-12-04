@@ -15,7 +15,7 @@ services:
     container_name: spark-client
     environment:
       PYTHONPATH: "/mnt/src"
-      SPARK_DRIVER_HOST: 192.168.45.192
+      SPARK_DRIVER_HOST: 192.168.45.190
       SPARK_DRIVER_BIND_ADDRESS: 0.0.0.0
       
     mem_limit: 3g
@@ -45,8 +45,7 @@ services:
     environment:
       SPARK_NO_DAEMONIZE: "true"
       
-      # [핵심] 마스터가 사용할 물리 IP 및 포트 지정
-      SPARK_MASTER_HOST: 192.168.45.192
+      SPARK_MASTER_HOST: 192.168.45.190
       SPARK_MASTER_PORT: 7077
       SPARK_MASTER_WEBUI_PORT: 8080
       SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
@@ -60,16 +59,33 @@ services:
   # -------------------------------------------------------
   # 3. ETL Master (Port: 7078, 8081 - 포트 충돌 방지)
   # -------------------------------------------------------
-  spark-master-etl:
+  spark-master-stream:
     <<: *spark-common
-    container_name: spark-master-etl
+    container_name: spark-master-stream
     environment:
       SPARK_NO_DAEMONIZE: "true"
       
-      # [핵심] 마스터가 사용할 물리 IP 및 변경된 포트 지정
-      SPARK_MASTER_HOST: 192.168.45.192
+      SPARK_MASTER_HOST: 192.168.45.190
       SPARK_MASTER_PORT: 7078
       SPARK_MASTER_WEBUI_PORT: 8081
+      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
+      
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    depends_on:
+      - spark-history
+
+  
+  spark-master-batch:
+    <<: *spark-common
+    container_name: spark-master-batch
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      
+      SPARK_MASTER_HOST: 192.168.45.190
+      SPARK_MASTER_PORT: 7079
+      SPARK_MASTER_WEBUI_PORT: 8083
       SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
       
     volumes:
