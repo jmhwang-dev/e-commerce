@@ -48,6 +48,11 @@ docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
 # Spark 실행
 docker compose -f docker-compose.spark-control-plane.yml exec spark-client spark-submit \
   --master spark://192.168.45.190:7078 \
+  --conf spark.driver.host=192.168.45.190 \
+  --conf spark.driver.bindAddress=0.0.0.0 \
+  --conf spark.driver.port=7005 \
+  --conf spark.driver.blockManager.port=7006 \
+  --conf spark.ui.port=4041 \
   --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/shared/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/spark_driver.yml" \
   --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/shared/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/spark_executor.yml" \
   --deploy-mode client \

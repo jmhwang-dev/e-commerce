@@ -17,15 +17,22 @@ services:
     
     # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
-      - "7003:7003" # Driver Port
-      - "7004:7004" # Block Manager Port
-      - "4040:4040" # Spark UI
+      # [CDC용]
+      - "7003:7003" # Driver
+      - "7004:7004" # BlockManager
+      
+      # [Stream용]
+      - "7005:7005" # Driver
+      - "7006:7006" # BlockManager
+      
+      - "4040:4040" # CDC UI
+      - "4041:4041" # Stream UI (UI 포트도 겹치면 안 됨)
       
     environment:
       PYTHONPATH: "/mnt/src"
       
     mem_limit: 3g
-    cpus: 1.0
+    cpus: 3.0
 
     command: tail -f /dev/null
     volumes:
