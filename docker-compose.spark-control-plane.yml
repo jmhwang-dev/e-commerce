@@ -117,7 +117,8 @@ services:
     container_name: init-spark
     depends_on:
       - spark-master-cdc
-      - spark-master-etl
+      - spark-master-batch
+      - spark-master-stream
     volumes:
       - ./configs/spark:/opt/spark/conf
     # Host 모드이므로 Desktop(192.168.45.191)의 MinIO에 바로 접근 가능
