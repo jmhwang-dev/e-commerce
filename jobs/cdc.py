@@ -16,5 +16,5 @@ if __name__ == "__main__":
         'process_time': '5 seconds'
     }
 
-    load_cdc_stream(spark_session, CDC_OPTIONS, logger)
-    # load_cdc_batch(spark_session, CDC_OPTIONS)
+    # load_cdc_stream(spark_session, CDC_OPTIONS, logger)
+    load_cdc_batch(spark_session, CDC_OPTIONS)

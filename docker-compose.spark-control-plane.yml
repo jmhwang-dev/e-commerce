@@ -84,16 +84,13 @@ services:
   spark-history:
     <<: *spark-common
     container_name: spark-history
+    restart: unless-stopped
     environment:
       SPARK_NO_DAEMONIZE: "true"
-      # [핵심] 히스토리 서버 포트 변경
       SPARK_HISTORY_OPTS: "-Dspark.history.ui.port=18080"
       
     volumes:
       - ./configs/spark:/opt/spark/conf
-      # 로컬 로그 폴더 (디버깅용)
-      - ./logs/spark/:/opt/spark/logs/
-      # 실제 로그 데이터는 spark-defaults.conf 설정을 통해 S3(MinIO)에서 읽음
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
 
   # -------------------------------------------------------
