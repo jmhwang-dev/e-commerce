@@ -15,7 +15,7 @@ services:
     <<: *spark-common
     container_name: spark-client
     
-    # [추가] Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방.
+    # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
       - "7003:7003" # Driver Port
       - "7004:7004" # Block Manager Port
@@ -23,18 +23,6 @@ services:
       
     environment:
       PYTHONPATH: "/mnt/src"
-      
-      # [핵심] Driver 실행 시 바인딩(Bind) 주소.
-      # 컨테이너 내부 IP 부재로 인한 "Cannot assign requested address" 에러 방지를 위해 0.0.0.0 설정.
-      SPARK_DRIVER_BIND_ADDRESS: 0.0.0.0
-      
-      # [핵심] 외부(Desktop/Pi 워커)에 광고(Advertise)할 주소.
-      # 도커 내부 IP(172.x) 대신 iMac의 물리 IP를 명시하여 통신 오류 방지.
-      SPARK_DRIVER_HOST: 192.168.45.190
-      
-      # 포트 고정 (랜덤 포트 사용 방지)
-      SPARK_DRIVER_PORT: 7001
-      SPARK_DRIVER_BLOCK_MANAGER_PORT: 7002
       
     mem_limit: 3g
     cpus: 1.0
@@ -59,22 +47,15 @@ services:
     <<: *spark-common
     container_name: spark-master-cdc
     
-    # [추가] Bridge 모드 외부 접속 포트 개방.
+    # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
       - "7077:7077"
       - "8080:8080"
 
     environment:
       SPARK_NO_DAEMONIZE: "true"
-      
-      # [수정] 바인딩 에러 방지 설정.
-      # 컨테이너 내부 IP(172.x)로 들어오는 요청 수신을 위해 0.0.0.0 지정.
       SPARK_MASTER_HOST: 0.0.0.0
-      
-      # [추가] 외부 워커 연결용 광고 주소.
-      # 워커가 마스터를 찾을 수 있도록 물리 IP(192.168.45.190) 명시.
       SPARK_PUBLIC_DNS: 192.168.45.190
-      
       SPARK_MASTER_PORT: 7077
       SPARK_MASTER_WEBUI_PORT: 8080
       
@@ -91,20 +72,15 @@ services:
     <<: *spark-common
     container_name: spark-master-stream
     
-    # [추가] 외부 접속 허용.
+    # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
       - "7078:7078"
       - "8081:8081"
 
     environment:
       SPARK_NO_DAEMONIZE: "true"
-      
-      # [수정] 컨테이너 내부 바인딩 (에러 방지).
       SPARK_MASTER_HOST: 0.0.0.0
-      
-      # [추가] 외부 광고용 주소 (워커 연결용).
       SPARK_PUBLIC_DNS: 192.168.45.190
-      
       SPARK_MASTER_PORT: 7078
       SPARK_MASTER_WEBUI_PORT: 8081
       
@@ -121,20 +97,14 @@ services:
     <<: *spark-common
     container_name: spark-master-batch
     
-    # [추가] 외부 접속 허용.
     ports:
       - "7079:7079"
       - "8083:8083"
 
     environment:
       SPARK_NO_DAEMONIZE: "true"
-      
-      # [수정] 컨테이너 내부 바인딩 (에러 방지).
       SPARK_MASTER_HOST: 0.0.0.0
-      
-      # [추가] 외부 광고용 주소 (워커 연결용).
       SPARK_PUBLIC_DNS: 192.168.45.190
-      
       SPARK_MASTER_PORT: 7079
       SPARK_MASTER_WEBUI_PORT: 8083
       
@@ -152,7 +122,6 @@ services:
     container_name: spark-history
     restart: unless-stopped
     
-    # [추가] Bridge 모드 웹 접속용 포트 개방.
     ports:
       - "18080:18080"
 
