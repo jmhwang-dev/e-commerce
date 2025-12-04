@@ -1,21 +1,27 @@
+# -------------------------------------------------------
+# [1] 공통 설정 (이미지와 네트워크만 관리)
+# -------------------------------------------------------
 x-spark-common: &spark-common
-  # build:
-  #   context: ./infra/spark
-  #   dockerfile: Dockerfile
-  # image: ecommerce-spark:latest
   image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+  # [핵심] 리눅스 머신이므로 Host 모드 사용 (성능 및 포트 이슈 해결)
+  network_mode: host
 
 services:
+  # -------------------------------------------------------
+  # 1. Spark Client (Driver 역할)
+  # -------------------------------------------------------
   spark-client:
     <<: *spark-common
     container_name: spark-client
-    network_mode: host
-    
-    depends_on:
-      - spark-master-cdc
-      - spark-master-etl
-      - spark-history
+    environment:
+      PYTHONPATH: "/mnt/src"
+      SPARK_DRIVER_HOST: 192.168.45.192
+      SPARK_DRIVER_BIND_ADDRESS: 0.0.0.0
       
+    mem_limit: 3g
+    cpus: 1.0
+
+    command: tail -f /dev/null
     volumes:
       - ./configs/spark:/opt/spark/conf
       - ./configs/kafka:/configs/kafka:ro
@@ -23,83 +29,91 @@ services:
       - ./jobs/:/jobs/
       - ./src/:/mnt/src
       - ./logs/spark/:/opt/spark/logs/
-      # JMX 모니터링이 필요 없다면 아래 두 줄은 주석 처리해도 됩니다.
+      
+      # JMX 모니터링
       - ./downloads/jmx_exporter:/mnt/jmx_exporter/
       - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
 
     working_dir: /
-    environment:
-      - SPARK_NO_DAEMONIZE=true
-      - PYTHONPATH=/mnt/src
-      
-      # [매우 중요] 드라이버가 외부(RPi/Desktop) 워커에게 알려줄 자신의 주소
-      - SPARK_LOCAL_HOSTNAME=192.168.45.192
-      - spark.driver.bindAddress=0.0.0.0
 
-    # 리소스 제한 (Mini-PC 16GB 중 3GB 할당 -> 아주 적절함)
-    # CDC Driver 4개 + Batch Driver 1개 동시에 띄우기에 충분합니다.
-    mem_limit: 3g  
-    cpus: 1.0
- 
-    command: tail -f /dev/null
-
+  # -------------------------------------------------------
+  # 2. CDC Master (Port: 7077, 8080)
+  # -------------------------------------------------------
   spark-master-cdc:
     <<: *spark-common
-    hostname: spark-master-cdc
     container_name: spark-master-cdc
-    ports:
-      - "8080:8080"  # Web UI (CDC는 기본 8080 사용)
-      - "7077:7077"  # Master Port (RPi 워커들이 여기로 연결)
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      
+      # [핵심] 마스터가 사용할 물리 IP 및 포트 지정
+      SPARK_MASTER_HOST: 192.168.45.192
+      SPARK_MASTER_PORT: 7077
+      SPARK_MASTER_WEBUI_PORT: 8080
+      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
+      
     volumes:
       - ./configs/spark:/opt/spark/conf
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     depends_on:
       - spark-history
 
-  # [Master 2] Batch Layer (ETL)
-  # - Service Port: 7078
-  # - Web UI: 8081
+  # -------------------------------------------------------
+  # 3. ETL Master (Port: 7078, 8081 - 포트 충돌 방지)
+  # -------------------------------------------------------
   spark-master-etl:
     <<: *spark-common
-    hostname: spark-master-etl
     container_name: spark-master-etl
-    ports:
-      - "8081:8080"  # Web UI (호스트 8081 -> 컨테이너 8080)
-      - "7078:7077"  # Master Port (데스크탑 워커들이 여기로 연결)
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      
+      # [핵심] 마스터가 사용할 물리 IP 및 변경된 포트 지정
+      SPARK_MASTER_HOST: 192.168.45.192
+      SPARK_MASTER_PORT: 7078
+      SPARK_MASTER_WEBUI_PORT: 8081
+      SPARK_MASTER_BIND_ADDRESS: 0.0.0.0
+      
     volumes:
       - ./configs/spark:/opt/spark/conf
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     depends_on:
       - spark-history
 
-  # [History Server]
-  # - Web UI: 18080 (CDC 마스터와 겹치지 않게 주의!)
+  # -------------------------------------------------------
+  # 4. History Server (Port: 18080)
+  # -------------------------------------------------------
   spark-history:
     <<: *spark-common
     container_name: spark-history
-    ports:
-      - "18080:18080"
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      # [핵심] 히스토리 서버 포트 변경
+      SPARK_HISTORY_OPTS: "-Dspark.history.ui.port=18080"
+      
     volumes:
       - ./configs/spark:/opt/spark/conf
-      # 중요: 모든 마스터와 워커가 로그를 여기로 쌓아야 보입니다.
-      # 실제로는 MinIO나 HDFS 경로를 쓰는 게 좋지만, 로컬 테스트에선 공유 볼륨 필요
+      # 로컬 로그 폴더 (디버깅용)
       - ./logs/spark/:/opt/spark/logs/
-      - ./data/spark-events:/opt/spark/events # spark-defaults.conf의 eventLog.dir 경로와 일치해야 함
+      # 실제 로그 데이터는 spark-defaults.conf 설정을 통해 S3(MinIO)에서 읽음
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
 
-  # [Init Job]
+  # -------------------------------------------------------
+  # 5. Init Job (Iceberg Namespace 생성)
+  # -------------------------------------------------------
   init-spark:
     <<: *spark-common
     container_name: init-spark
     depends_on:
-      - spark-master-cdc # 둘 중 아무거나 의존해도 됨
+      - spark-master-cdc
       - spark-master-etl
     volumes:
       - ./configs/spark:/opt/spark/conf
+    # Host 모드이므로 Desktop(192.168.45.191)의 MinIO에 바로 접근 가능
     entrypoint: >
       bash -c "
-        echo 'Waiting for masters...';
+        echo 'Waiting for cluster stability...';
         sleep 10;
-        # 로컬 모드로 실행하여 네임스페이스 생성 (Master 연결 불필요)
-        spark-sql --master local[*] -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
+        echo 'Initializing Iceberg Namespace via S3 (MinIO)...';
+        /opt/spark/bin/spark-sql \
+        --master local[*] \
+        -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
       "
