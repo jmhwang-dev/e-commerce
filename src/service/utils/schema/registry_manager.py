@@ -27,7 +27,7 @@ def _handle_sr_errors(func: Callable) -> Callable:
 class SchemaRegistryManager:
     """Confluent Schema Registry와의 모든 상호작용을 관리하는 유틸리티 클래스."""
 
-    load_dotenv('./configs/kafka/.env')
+    load_dotenv('./configs/kafka/.env.kafka')
     SCHEMA_REGISTRY_URL: str = os.environ.get("SCHEMA_REGISTRY_INTERNAL_URL", "http://schema-registry:8081")
     _client: Optional[SchemaRegistryClient] = None
 

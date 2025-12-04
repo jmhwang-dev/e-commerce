@@ -1,4 +1,8 @@
 docker compose \
     -f docker-compose.storage.yml \
-    -f docker-compose.spark-worker-etl.yml \
+    up -d --force-recreate
+
+docker compose \
+    -f docker-compose.spark-worker.yml \
+    --env-file ./configs/spark/.env.desktop \
     up -d --force-recreate

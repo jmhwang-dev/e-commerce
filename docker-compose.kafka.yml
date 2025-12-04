@@ -19,7 +19,7 @@ x-kafka-common: &kafka-common
   image: apache/kafka:3.9.1
   user: root
   env_file:
-    - ./configs/kafka/.env
+    - ./configs/kafka/.env.kafka
   healthcheck: *kafka-healthcheck
 
 x-confluent-common: &confluent-common
