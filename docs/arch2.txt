@@ -1,0 +1,186 @@
+---
+config:
+  layout: elk
+---
+flowchart TB
+
+%% ==========================================
+%% [External Systems]
+%% ==========================================
+ExternalDB(["External DB (Source)"])
+EventAPI(["Event API (Source)"])
+BITools["BI Tools / APIs (Sink)"]
+
+%% ==========================================
+%% [Coordination Layer]
+%% ==========================================
+KRaft[("KRaft Quorum
+HA Consensus")]
+
+%% ==========================================
+%% [NODE 1: iMac (Control Tower)]
+%% ==========================================
+subgraph iMac_Node["🖥️ iMac (Control Tower)"]
+    direction TB
+    Airflow["Airflow Scheduler"]
+end
+
+%% ==========================================
+%% [NODE 2: Desktop (Stream & Gold)]
+%% ==========================================
+subgraph Desktop_Node["⚡ Desktop (Stream / K.B. 1 / Gold)"]
+    direction TB
+    subgraph Stream_Control["Stream Control Unit"]
+        M_Str["Master Stream"]
+        D_Str["Stream Driver"]
+    end
+    E_Str["Executor Stream"]
+    K_Desk["Kafka Broker 1
+    Role: broker,controller
+    Quorum Voter ID: 1"]
+    subgraph MinIO_Gold["MinIO Gold (BI-Optimized)"]
+        M_Go["Gold Layer
+        (High-Performance Access)"]
+    end
+end
+
+%% ==========================================
+%% [NODE 3: R-Pi (CDC & Ingestion)]
+%% ==========================================
+subgraph RPi_Node["🍓 R-Pi (CDC / K.B. 2 / Ingestion Hub)"]
+    direction TB
+    subgraph CDC_Control["CDC Control Unit"]
+        M_CDC["Master CDC"]
+        D_CDC["CDC Driver"]
+    end
+    E_CDC["Executor CDC"]
+    K_RPi["Kafka Broker 2
+    Role: broker,controller
+    Quorum Voter ID: 2"]
+end
+
+%% ==========================================
+%% [NODE 4: Mini PC (Batch & Bronze/Silver)]
+%% ==========================================
+subgraph MiniPC_Node["💻 Mini PC (Batch / K.B. 3 / Bronze-Silver)"]
+    direction TB
+    subgraph Batch_Control["Batch Control Unit"]
+        M_Bat["Master Batch"]
+        D_Bat_Local["Batch Driver (Local)"]
+    end
+    E_Bat["Executor Batch"]
+    K_Mini["Kafka Broker 3
+    Role: broker,controller
+    Quorum Voter ID: 3"]
+    subgraph MinIO_BS["MinIO Bronze/Silver (Batch-Optimized)"]
+        M_Br["Bronze Layer"]
+        M_Si["Silver Layer"]
+    end
+end
+
+%% ==========================================
+%% [A. Control Flow]
+%% ==========================================
+
+%% Master -> KRaft Coordination
+M_Str -.State-Sync.-> KRaft
+M_CDC -.State-Sync.-> KRaft
+M_Bat -.State-Sync.-> KRaft
+
+%% KRaft -> Brokers Quorum
+KRaft -.Quorum.-> K_Desk
+KRaft -.Quorum.-> K_RPi
+KRaft -.Quorum.-> K_Mini
+
+%% Airflow Scheduling
+Airflow --Schedule--> D_Bat_Local
+
+%% Driver -> Master (Request)
+D_Str -.Request.-> M_Str
+D_CDC -.Request.-> M_CDC
+D_Bat_Local -.Request.-> M_Bat
+
+%% Master -> Executor (Deploy)
+M_Str --Deploy--> E_Str
+M_CDC --Deploy--> E_CDC
+M_Bat --Deploy--> E_Bat
+
+%% Driver -> Executor (Task)
+D_Str --Task--> E_Str
+D_CDC --Task--> E_CDC
+D_Bat_Local --Task--> E_Bat
+
+%% ==========================================
+%% [B. Data Flow]
+%% ==========================================
+
+%% 1. Data Ingestion (K_RPi Hub)
+ExternalDB --CDC--> K_RPi
+EventAPI --Produce--> K_RPi
+
+%% 2. CDC Pipeline (Pink - Network Write)
+K_RPi ==Read:raw-cdc==> E_CDC
+E_CDC ==Network-Write==> M_Br
+
+%% 3. Stream Pipeline (Orange - LOCAL Write!)
+K_RPi ==Read:raw-events==> E_Str
+E_Str ==Write:filtered==> K_Desk
+K_Desk ==Read:filtered==> E_Str
+E_Str ==LOCAL-WRITE-GOLD==> M_Go
+
+%% 4. Batch Pipeline (Purple - LOCAL Bronze/Silver, Network Gold)
+M_Br ==Local-Read==> E_Bat
+E_Bat ==LOCAL-WRITE-SILVER==> M_Si
+M_Si ==Local-Read==> E_Bat
+E_Bat ==Network-Write-Gold==> M_Go
+
+%% 5. Data Export
+M_Go --Export--> BITools
+
+%% ==========================================
+%% [Styling]
+%% ==========================================
+
+style KRaft fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+style Airflow fill:#b2dfdb,stroke:#00695c,stroke-width:2px
+style Stream_Control fill:#ffcc80,stroke:#e65100,stroke-width:2px
+style CDC_Control fill:#f48fb1,stroke:#c2185b,stroke-width:2px
+style Batch_Control fill:#ce93d8,stroke:#7b1fa2,stroke-width:2px
+style MinIO_Gold fill:#fff9c4,stroke:#fbc02d,stroke-width:3px
+style MinIO_BS fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+
+style ExternalDB fill:#e0f7fa,stroke:#00bcd4,stroke-width:2px
+style EventAPI fill:#e0f7fa,stroke:#00bcd4,stroke-width:2px
+style BITools fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+
+style iMac_Node fill:#e3f2fd,stroke:#1565c0,stroke-width:4px
+style Desktop_Node fill:#fff3e0,stroke:#e65100,stroke-width:4px
+style RPi_Node fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+style MiniPC_Node fill:#f3e5f5,stroke:#7b1fa2,stroke-width:4px
+
+%% ==========================================
+%% [Link Styling]
+%% ==========================================
+
+%% Control Flow
+linkStyle 0,1,2 stroke:#388e3c,stroke-width:2px,stroke-dasharray:2 2
+linkStyle 3,4,5 stroke:#388e3c,stroke-width:2px,stroke-dasharray:2 2
+linkStyle 6 stroke:#00695c,stroke-width:2px
+linkStyle 7,8,9 stroke:gray,stroke-width:2px,stroke-dasharray:2 2
+linkStyle 10,11,12 stroke:blue,stroke-width:2px
+linkStyle 13,14,15 stroke:blue,stroke-width:1px,stroke-dasharray:5 5
+
+%% Data Ingestion
+linkStyle 16,17 stroke:#00bcd4,stroke-width:3px
+
+%% CDC Pipeline (Pink)
+linkStyle 18,19 stroke:#d81b60,stroke-width:4px
+
+%% Stream Pipeline (Orange - LOCAL!)
+linkStyle 20,21,22,23 stroke:#e65100,stroke-width:5px
+
+%% Batch Pipeline (Purple - Hybrid)
+linkStyle 24,25,26,27 stroke:#7b1fa2,stroke-width:4px
+
+%% Data Export
+linkStyle 28 stroke:#4caf50,stroke-width:3px

@@ -1,0 +1,139 @@
+graph LR
+    %% ==========================================
+    %% [스타일 정의]
+    %% ==========================================
+    style iMac_Node fill:#e3f2fd,stroke:#1565c0,stroke-width:4px,rx:10,ry:10
+    style Desktop_Node fill:#fff3e0,stroke:#e65100,stroke-width:4px,rx:10,ry:10
+    style RPi_Node fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style MiniPC_Node fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+
+    %% 내부 컴포넌트 스타일
+    style Spark_Client fill:#ffffff,stroke:#90caf9,stroke-width:2px
+    style Airflow_Box fill:#b2dfdb,stroke:#00695c,stroke-width:2px
+    style Masters_Group fill:#fff3e0,stroke:#ffb74d,stroke-width:2px
+    style Kafka_Box fill:#eeeeee,stroke:#616161,stroke-width:2px
+
+    %% 데이터 스토리지 클래스
+    classDef kafka_topic fill:#fafafa,stroke:#333,stroke-width:2px;
+    classDef minio_bucket fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5;
+
+    %% ==========================================
+    %% [NODE 1: iMac (Head Node)]
+    %% ==========================================
+    subgraph iMac_Node ["🖥️ iMac (Control Tower)"]
+        direction TB
+        
+        %% 1. Kafka
+        subgraph Kafka_Box ["Kafka"]
+            K_Br["Topic: Bronze"]:::kafka_topic
+            K_Si["Topic: Silver"]:::kafka_topic
+        end
+
+        %% 2. Control Plane (격리 및 그룹화)
+        subgraph Control_Plane ["Control Plane"]
+            direction LR
+            
+            %% A. Drivers (Stream/CDC 통합)
+            subgraph Spark_Client ["Spark Client"]
+                direction TB
+                D_Str["(1) Stream Driver"]
+                D_CDC["(2) CDC Driver"]
+            end
+
+            %% B. Airflow (격리됨)
+            subgraph Airflow_Box ["Airflow (Isolated)"]
+                D_Bat["(3) Batch Driver"]
+            end
+
+            %% C. Masters
+            subgraph Masters_Group ["Spark Masters"]
+                direction TB
+                M_Str["Master (Stream)"]
+                M_CDC["Master (CDC)"]
+                M_Bat["Master (Batch)"]
+            end
+        end
+    end
+
+    %% ==========================================
+    %% [NODE 2: Desktop]
+    %% ==========================================
+    subgraph Desktop_Node ["⚡ Desktop"]
+        direction TB
+        E_Str["Executor (Stream)"]
+        
+        subgraph MinIO_Lake ["MinIO Storage"]
+            M_Br[("Bronze")]:::minio_bucket
+            M_Si[("Silver")]:::minio_bucket
+            M_Go[("Gold")]:::minio_bucket
+        end
+    end
+
+    %% ==========================================
+    %% [NODE 3: R-Pi]
+    %% ==========================================
+    subgraph RPi_Node ["🍓 R-Pi Cluster"]
+        E_CDC["Executor (CDC)"]
+    end
+
+    %% ==========================================
+    %% [NODE 4: Mini PC]
+    %% ==========================================
+    subgraph MiniPC_Node ["💻 Mini PC"]
+        E_Bat["Executor (Batch)"]
+    end
+
+    %% ==========================================
+    %% [A. 제어 흐름 (Control Flow)]
+    %% ==========================================
+    %% 1. 자원 요청 (Driver -> Master)
+    D_Str -.-> M_Str
+    D_CDC -.-> M_CDC
+    D_Bat -.-> M_Bat
+
+    %% 2. 실행 명령 (Master -> Executor)
+    M_Str -- "Deploy" --> E_Str
+    M_CDC -- "Deploy" --> E_CDC
+    M_Bat -- "Deploy" --> E_Bat
+
+    %% 3. 작업 지시 (Driver -> Executor)
+    D_Str -- "Task" --> E_Str
+    D_CDC -- "Task" --> E_CDC
+    D_Bat -- "Task" --> E_Bat
+
+    %% ==========================================
+    %% [B. 데이터 흐름 (Data Flow)]
+    %% ==========================================
+    %% CDC (Pink)
+    K_Br == "Read" ==> E_CDC
+    E_CDC == "Write" ==> M_Br
+
+    %% Stream (Orange)
+    K_Br == "Read" ==> E_Str
+    E_Str == "Write" ==> K_Si
+    K_Si == "Read" ==> E_Str
+    E_Str == "Local Write" ==> M_Go
+
+    %% Batch (Purple)
+    M_Br -. "Read" .-> E_Bat
+    E_Bat -. "Write" .-> M_Si
+    M_Si -. "Read" .-> E_Bat
+    E_Bat -. "Write" .-> M_Go
+
+    %% ==========================================
+    %% [링크 스타일링]
+    %% ==========================================
+    
+    %% Control Flow
+    linkStyle 0,1,2 stroke:gray,stroke-width:2px,stroke-dasharray: 2 2;
+    linkStyle 3,4,5 stroke:blue,stroke-width:2px;
+    linkStyle 6,7,8 stroke:blue,stroke-width:1px,stroke-dasharray: 5 5;
+
+    %% CDC Data
+    linkStyle 9,10 stroke:#d81b60,stroke-width:4px;
+
+    %% Stream Data
+    linkStyle 11,12,13,14 stroke:#e65100,stroke-width:4px;
+
+    %% Batch Data
+    linkStyle 15,16,17,18 stroke:#7b1fa2,stroke-width:3px,stroke-dasharray: 5 5;
