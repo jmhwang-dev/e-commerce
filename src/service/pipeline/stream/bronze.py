@@ -82,7 +82,7 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
 
             record_count = deserialized_df.count()
             if record_count == 0:
-                print(f"[{dst_avsc_reader.dst_table_identifier:<30}] No records")
+                print(f"[{dst_avsc_reader.dst_table_identifier:<36}] No records")
                 continue
             
             start = time.time()
@@ -94,7 +94,7 @@ def load_medallion_layer(micro_batch_df:DataFrame, batch_id: int):
             print(f"[{dst_avsc_reader.dst_table_identifier:<36}] has saved {record_count} rows (Processing time: {end-start:.2f} sec)")
 
         except Exception as e:
-            print(f"[{dst_avsc_reader.dst_table_identifier:<30}] {e}")
+            print(f"[{dst_avsc_reader.dst_table_identifier:<36}] {e}")
 
 def load_cdc_batch(spark_session: SparkSession, option_dict: dict[str, str]) -> None:
     """
