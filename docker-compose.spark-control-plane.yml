@@ -32,7 +32,7 @@ services:
       PYTHONPATH: "/mnt/src"
       
     mem_limit: 5g
-    cpus: 3.0
+    cpus: 6.0
 
     command: tail -f /dev/null
     volumes:
