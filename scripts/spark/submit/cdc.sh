@@ -5,7 +5,7 @@ set -e
 rm -rf "data/minio/tmp/*" 2>/dev/null || true
 
 # 체크포인트 기본 경로
-BASE_PATHS=("data/minio/warehousedev/cdc/dev")
+BASE_PATHS=("data/minio/warehousedev/stream/dev")
 
 for CHECKPOINT_BASE in "${BASE_PATHS[@]}"; do
   echo "=== Cleaning checkpoints in $CHECKPOINT_BASE ==="
@@ -44,17 +44,17 @@ zip -r ../$SRC_ZIP service config schema > /dev/null
 cd ..
 # 컨테이너에 복사
 docker cp "$SRC_ZIP" spark-client:/opt/spark/work-dir/$SRC_ZIP
-  
-# Spark 실행: -T 옵션을 추가하여 TTY 할당 비활성화
+
+# Spark 실행
 docker compose -f docker-compose.spark-control-plane.yml exec spark-client spark-submit \
-  --master spark://192.168.45.190:7077 \
-  --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1" \
+  --master spark://192.168.45.190:7078 \
   --conf spark.driver.host=192.168.45.190 \
   --conf spark.driver.bindAddress=0.0.0.0 \
-  --conf spark.driver.port=7003 \
-  --conf spark.driver.blockManager.port=7004 \
-  --conf spark.ui.port=4040 \
-  --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1" \
+  --conf spark.driver.port=7005 \
+  --conf spark.driver.blockManager.port=7006 \
+  --conf spark.ui.port=4041 \
+  --conf spark.driver.extraJavaOptions="-Daws.region=us-east-1 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/shared/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/spark_driver.yml" \
+  --conf spark.executor.extraJavaOptions="-Daws.region=us-east-1 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9082 -javaagent:/mnt/shared/jmx_prometheus_javaagent-1.3.0.jar=9080:/mnt/configs/jmx/spark_executor.yml" \
   --deploy-mode client \
   --py-files /opt/spark/work-dir/$SRC_ZIP \
   "$PYTHON_SCRIPT"
