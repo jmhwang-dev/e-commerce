@@ -15,6 +15,8 @@ ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
 SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_default")
 
 CONF = {
+    "spark.dynamicAllocation.enabled": "false",
+    "spark.executor.instances": "2",
     "spark.driver.host": "192.168.45.190",
     "spark.driver.bindAddress": "0.0.0.0",
     "spark.driver.port": "7001",
