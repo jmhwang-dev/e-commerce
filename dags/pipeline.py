@@ -62,7 +62,7 @@ def zip_src():
 with DAG(
     dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
-    schedule=timedelta(seconds=300),  # Set to a schedule like '@daily' or None for manual runs
+    schedule=timedelta(seconds=1200),  # Set to a schedule like '@daily' or None for manual runs
     catchup=False,
     tags=['spark', 'pipeline']
 ) as dag:
