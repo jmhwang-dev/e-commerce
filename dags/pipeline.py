@@ -15,6 +15,8 @@ ZIP_DST_PATH = f'{ARFTIFACT_DIR_PATH}/src.zip'
 SPARK_CONN_ID = os.getenv("SPARK_CONN_ID", "spark_default")
 
 CONF = {
+    "spark.dynamicAllocation.enabled": "false",
+    "spark.executor.instances": "2",
     "spark.driver.host": "192.168.45.190",
     "spark.driver.bindAddress": "0.0.0.0",
     "spark.driver.port": "7001",
@@ -62,7 +64,7 @@ def zip_src():
 with DAG(
     dag_id='pipeline',
     start_date=datetime(2016, 9, 4),
-    schedule=timedelta(seconds=300),  # Set to a schedule like '@daily' or None for manual runs
+    schedule=timedelta(seconds=1200),  # Set to a schedule like '@daily' or None for manual runs
     catchup=False,
     tags=['spark', 'pipeline']
 ) as dag:

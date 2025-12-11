@@ -1,4 +1,0 @@
-psycopg2-binary
-pyhive==0.7.0
-thrift
-thrift_sasl
