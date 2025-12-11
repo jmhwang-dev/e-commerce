@@ -1,0 +1,1 @@
+select * from gold.batch.fact_monthly_sales_by_product
