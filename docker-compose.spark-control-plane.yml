@@ -57,7 +57,7 @@ services:
     # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
       - "7077:7077"
-      - "8080:8080"
+      - "8084:8080"
 
     environment:
       SPARK_NO_DAEMONIZE: "true"
@@ -82,7 +82,7 @@ services:
     # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
     ports:
       - "7078:7078"
-      - "8081:8081"
+      - "8085:8081"
 
     environment:
       SPARK_NO_DAEMONIZE: "true"
