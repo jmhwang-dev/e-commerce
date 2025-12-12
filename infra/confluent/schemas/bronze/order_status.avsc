@@ -3,9 +3,14 @@
   "type": "record",
   "name": "order_status",
   "fields": [
-    { "name": "status", "type": ["null", "string"], "default": null },
     {
       "name": "timestamp",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    },
+    { "name": "status", "type": ["null", "string"], "default": null },
+    {
+      "name": "estimated_delivery_date",
       "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
       "default": null
     },
