@@ -23,9 +23,6 @@ def get_producer(topic_name):
     elif topic_name == GeolocationBronzeProducer.dst_topic:
         return GeolocationBronzeProducer
     
-    elif topic_name == EstimatedDeliberyDateBronzeProducer.dst_topic:
-        return EstimatedDeliberyDateBronzeProducer
-    
     elif topic_name == OrderItemBronzeProducer.dst_topic:
         return OrderItemBronzeProducer
     

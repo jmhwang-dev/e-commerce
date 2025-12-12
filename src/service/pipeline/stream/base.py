@@ -92,9 +92,6 @@ class BaseStream(ABC):
         elif topic_name == GeolocationBronzeProducer.dst_topic:
             return GeolocationBronzeProducer.key_column
         
-        elif topic_name == EstimatedDeliberyDateBronzeProducer.dst_topic:
-            return EstimatedDeliberyDateBronzeProducer.key_column
-        
         elif topic_name == OrderItemBronzeProducer.dst_topic:
             return OrderItemBronzeProducer.key_column
         
