@@ -19,12 +19,6 @@ Table seller {
   ingest_time timestamp [null, default: null]
 }
 
-Table estimated_delivery_date {
-  order_id string [primary key]
-  estimated_delivery_date timestamp [null, default: null]
-  ingest_time timestamp [null, default: null]
-}
-
 Table payment {
   order_id string [primary key]
   payment_sequential integer [null, default: null]
@@ -82,6 +76,5 @@ Ref: order_item.seller_id > seller.seller_id
 Ref: review.order_id > order_status.order_id
 Ref: customer.zip_code > geolocation.zip_code
 Ref: seller.zip_code > geolocation.zip_code
-Ref: estimated_delivery_date.order_id > order_status.order_id
 Ref: payment.order_id > order_status.order_id
 Ref: order_item.order_id > order_status.order_id

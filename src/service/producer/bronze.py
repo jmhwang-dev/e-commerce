@@ -76,11 +76,6 @@ class PaymentBronzeProducer(BronzeProducer):
 class OrderItemBronzeProducer(BronzeProducer):
     dst_topic = BronzeAvroSchema.ORDER_ITEM
     key_column = 'order_id'
-###
-
-class EstimatedDeliberyDateBronzeProducer(BronzeProducer):
-    dst_topic = BronzeAvroSchema.ESTIMATED_DELIVERY_DATE
-    key_column = 'order_id'
     
 class ReviewBronzeProducer(BronzeProducer):
     dst_topic = BronzeAvroSchema.REVIEW

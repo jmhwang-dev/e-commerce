@@ -15,7 +15,6 @@ source:
       "order_item-value": "order_item"
       "review-value": "review"
       "payment-value": "payment"
-      "estimated_delivery_date-value": "estimated_delivery_date"
       "geolocation-value": "geolocation"
 sink:
   type: datahub-rest

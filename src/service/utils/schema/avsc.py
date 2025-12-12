@@ -22,7 +22,6 @@ class BronzeAvroSchema(BaseAvroSchema):
     CUSTOMER = "customer"
     SELLER = "seller"
     GEOLOCATION = "geolocation"
-    ESTIMATED_DELIVERY_DATE = "estimated_delivery_date"
     ORDER_ITEM = "order_item"    
     ORDER_STATUS = "order_status"
     PAYMENT = "payment"

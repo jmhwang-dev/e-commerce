@@ -68,7 +68,6 @@ class BaseBatch(ABC):
         # 키 컬럼 매핑
         KEY_COL_MAPPING = {
             BronzeAvroSchema.CUSTOMER: StructField('customer_id', StringType(), False),
-            BronzeAvroSchema.ESTIMATED_DELIVERY_DATE: StructField('order_id', StringType(), False),
             BronzeAvroSchema.GEOLOCATION: StructField('zip_code', IntegerType(), False),
             BronzeAvroSchema.ORDER_ITEM: StructField('order_id', StringType(), False),
             BronzeAvroSchema.ORDER_STATUS: StructField('order_id', StringType(), False),
