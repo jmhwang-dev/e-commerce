@@ -268,6 +268,7 @@ class FactMonthlySalesByProductBatch(BaseBatch):
             VALUES (source.product_id, source.sales_period, source.total_sales_quantity, source.total_sales_amount, source.mean_sales, source.category, source.group)
         """)
         self.get_current_dst_table(output_df.sparkSession, batch_id, False)
+
 class FactReviewAnswerLeadDaysBatch(BaseBatch):
     def __init__(self, spark_session: Optional[SparkSession] = None, is_stream: bool=False):
         super().__init__(self.__class__.__name__, GoldAvroSchema.FACT_REVIEW_ANSWER_LEAD_DAYS, spark_session, is_stream)
