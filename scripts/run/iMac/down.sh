@@ -1,9 +1,7 @@
 docker compose \
     -f docker-compose.kafka.yml \
     -f docker-compose.metric.yml \
-    down -v
-
-docker compose \
+    -f docker-compose.thrift.yml \
     -f docker-compose.spark-control-plane.yml \
     down -v
 
