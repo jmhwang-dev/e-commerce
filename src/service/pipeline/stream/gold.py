@@ -150,7 +150,7 @@ class FactOrderLeadDaysStream(GoldStream):
             yield state_output_df
         
         # Stateful 처리
-        self.output_df = self.order_event_stream.withWatermark("ingest_time", "1 day") \
+        self.output_df = self.order_event_stream.withWatermark("ingest_time", "60 day") \
             .groupBy("order_id") \
             .applyInPandasWithState(
                 func=stateful_func,

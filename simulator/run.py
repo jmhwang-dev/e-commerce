@@ -16,8 +16,8 @@ if __name__=="__main__":
     delete_topics(admin_client, stream_avsc_filenames)
     create_topics(admin_client, stream_avsc_filenames, 1, 1)
 
-    base_interval = 30  # seconds
-    threshold_interval = 300  # seconds
+    base_interval = 0  # seconds
+    threshold_interval = 0  # seconds
 
     order_status_df = OrderStatusBronzeProducer.get_df()
     past_event_timestamp = pd.to_datetime("2016-09-04 21:15:19.000000")   # first timestamp in order_status
