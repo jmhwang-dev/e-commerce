@@ -12,5 +12,5 @@ rules:
     name: kafka_server_brokertopicmetrics_$1
 
   - pattern: 'java\.lang<type=OperatingSystem><>ProcessCpuTime'
-    name: kafka_process_cpu_seconds_total
+    name: kafka_process_cpu_seconds
     multiplier: 0.000000001

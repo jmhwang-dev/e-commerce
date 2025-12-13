@@ -7,7 +7,7 @@ rules:
       executor_id: "$2"
 
   - pattern: 'java\.lang<type=OperatingSystem><>ProcessCpuTime'
-    name: spark_executor_process_cpu_seconds_total
+    name: spark_executor_process_cpu_seconds
     multiplier: 0.000000001
     
   - pattern: 'java\.lang<type=OperatingSystem><>CommittedVirtualMemorySize'

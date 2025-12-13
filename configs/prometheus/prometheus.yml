@@ -13,5 +13,5 @@ scrape_configs:
 
   - job_name: 'etl'
     static_configs:
-      - targets: ['192.168.45.190:9080', '192.168.45.190:9080']
+      - targets: ['192.168.45.190:9080', '192.168.45.191:9081']
     metrics_path: '/metrics'  # JMX Exporter 기본 경로
