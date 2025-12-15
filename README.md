@@ -30,6 +30,8 @@
 ### 1. Logical Architecture (Lambda)
 데이터 처리의 목적에 따라 두 가지 레이어를 결합하여 설계했습니다.
 
+![Lambda](./docs/assets/img/portfolio/pipeline_logical.png)
+
 * **Speed Layer (Real-time)**
     * **Components:** Kafka, Spark Structured Streaming
     * **Role:** 주문 상태 변경 이벤트를 실시간으로 스트리밍하여 배송 지연 여부를 즉각적으로 감지합니다.
@@ -43,11 +45,11 @@
 ### 2. Data Flow (Medallion)
 데이터 품질 및 정제 수준에 따라 3단계 계층으로 파이프라인을 구성했습니다.
 
+![Medallion](./docs/assets/img/portfolio/medallion.png)
+
 * **Bronze:** Raw Data (Append-only CDC Logs)
 * **Silver:** Cleaned & Augmented Data (Schema Validated)
 * **Gold:** Aggregated Business Metrics (Sales, Lead Time)
-
-![Medallion](../assets/img/portfolio/medallion.png)
 
 ## Key Engineering Highlights
 
@@ -69,14 +71,15 @@
 ## Result (Dashboard & Monitoring)
 
 ### Sales & Delivery Dashboard (Superset)
-* **Sales Detail:** 월별 판매 추이 및 상품별 매출 순위 시각화
-![Sales Dashboard](../assets/img/portfolio/dashboard/sales.png)
+![Sales Dashboard](./docs/assets/img/portfolio/sales.png)
+_Sales Detail: 월별 판매 추이 및 상품별 매출 순위 시각화_
 
-* **Delivery Monitor:** 주문 단계별 리드타임 및 지연 현황 모니터링
-![Delivery Monitor](../assets/img/portfolio/dashboard/monitor.png)
+
+![Delivery Monitor](./docs/assets/img/portfolio/monitor.png)
+_Delivery Monitor: 주문 단계별 리드타임 및 지연 현황 모니터링_
 
 ### Pipeline Monitoring (Grafana)
 * **Metrics:** Kafka MessagesInPerSec, Spark Streaming Latency/InputRate 등
 
-* **Observability:** 데이터 파이프라인의 병목 현상 및 지연을 실시간 추적
-![Grafana Dashboard](../assets/img/portfolio/grafana.png)
+![Grafana Dashboard](./docs/assets/img/portfolio/grafana.png)
+_Observability: 데이터 파이프라인의 병목 현상 및 지연을 실시간 추적_
