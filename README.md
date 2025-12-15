@@ -1,6 +1,6 @@
 # Real-time E-commerce Delivery & Sales Dashboard
 
-- **Olist E-commerce** 데이터셋을 활용하여 브라질 전자상거래 시장의 배송 현황과 판매 성과를 분석하는 데이터 파이프라인 프로젝트
+- [Olist E-commerce Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/data)을 활용하여 배송 현황과 판매 성과를 분석하는 데이터 파이프라인 프로젝트
 
 - 상세 설명: https://jmhwang-dev.github.io/posts/ecommerce/
 
@@ -9,7 +9,7 @@
 * **Background:** 판매 중개 수수료가 핵심 수익원인 플랫폼 특성상, 판매자의 매출 성장이 곧 플랫폼의 성장을 의미합니다.
 * **Problem:** LLM 기반 리뷰 분석 결과, 부정적인 고객 경험과 매출 저해의 핵심 원인이 '배송 지연'임을 식별했습니다.
 * **Goal:** 실시간으로 배송 지연을 감지하고, 상품 등급에 따른 우선순위별 조치를 지원하여 운영 효율을 극대화합니다.
-* **Approach:** **Lambda Architecture**를 도입하여 운영 이슈 대응을 위한 실시간성과 정밀한 분석을 위한 신뢰성을 동시에 확보했습니다.
+* **Approach:** **Lambda Architecture**를 도입하여 실시간성과 신뢰성을 동시에 확보했습니다.
 
 ## Tech Stack
 
