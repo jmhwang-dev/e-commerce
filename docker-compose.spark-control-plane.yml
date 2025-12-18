@@ -28,8 +28,13 @@ services:
       - "4040:4040" # CDC UI
       - "4041:4041" # Stream UI (UI 포트도 겹치면 안 됨)
 
+      # stream
       - "9080:9080" # JMX Exporter for Driver
       - "9081:9081" # JMX Exporter for Excutor
+
+      # cdc
+      - "9083:9083" # JMX Exporter for Driver
+      - "9084:9084" # JMX Exporter for Excutor
       
     environment:
       PYTHONPATH: "/mnt/src"
