@@ -75,11 +75,22 @@ def get_confluent_serializer_conf(topic: str, use_internal=False) -> Tuple[Union
 def get_confluent_kafka_producer(bootstrap_server_list: List[str], serializer: Union[AvroSerializer, StringSerializer]) -> SerializingProducer:
     # TODO: Refactor `*BronzeProducer` to use an AVSC file for key schema instead of hard-coding in Python class.
     producer_conf = {
-        'bootstrap.servers': bootstrap_server_list[0],
+        'bootstrap.servers': ','.join(bootstrap_server_list),
         'key.serializer': StringSerializer('utf_8'),
         'value.serializer': serializer,
-        'acks': 'all',
-        'retries': 3
+        
+        # [정합성/안정성 설정]
+        'acks': 'all',              # 데이터 유실 방지를 위해 모든 복제본(ISR)의 쓰기 확인
+        'enable.idempotence': True, # 프로듀서 단의 멱등성 보장으로 중복 전송 방지
+        'retries': 5,               # 일시적 네트워크 장애 시 자동 재시도 횟수 상향
+        
+        # [성능/비용 최적화 설정]
+        'compression.type': 'zstd', # 높은 압축률로 네트워크 대역폭 비용 최적화
+        'linger.ms': 10,            # 10ms 대기를 통해 메시지를 배치(Batch)로 묶어 Throughput 증대
+        'batch.size': 65536,        # 배치의 최대 크기를 64KB로 설정하여 I/O 효율화
+        
+        # [연결 설정]
+        'max.in.flight.requests.per.connection': 5 # 멱등성 유지와 순서 보장을 위한 동시 요청 제한
     }
     return SerializingProducer(producer_conf)
 
