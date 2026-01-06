@@ -1,0 +1,56 @@
+Table fact_monthly_sales_by_product {
+  category string
+  product_id string
+  sales_period string
+  group string
+  total_sales_quantity double
+  total_sales_amount double
+  mean_sales double
+}
+
+Table dim_user_location {
+  user_id string
+  user_type string
+  zip_code integer
+  lat float
+  lng float
+}
+
+Table fact_order_detail {
+  order_id string
+  product_id string
+  category string
+  quantity long
+  unit_price float
+  user_id string
+}
+
+Table fact_review_answer_lead_days {
+  review_id string
+  order_id string
+  review_score integer
+  review_creation_date timestamp
+  review_answer_timestamp timestamp
+  until_answer_lead_days integer
+}
+
+Table fact_order_lead_days {
+  order_id string
+  purchase timestamp [null, default: null]
+  approve timestamp [null, default: null]
+  shipping_limit timestamp [null, default: null]
+  delivered_carrier timestamp [null, default: null]
+  estimated_delivery timestamp [null, default: null]
+  delivered_customer timestamp [null, default: null]
+  purchase_to_approval_days integer [null, default: null]
+  approval_to_carrier_days integer [null, default: null]
+  carrier_to_customer_days integer [null, default: null]
+  carrier_delivery_delay_days integer [null, default: null]
+  customer_delivery_delay_days integer [null, default: null]
+}
+
+// Relationships
+Ref: fact_order_detail.product_id > fact_monthly_sales_by_product.product_id
+Ref: fact_order_detail.user_id > dim_user_location.user_id
+Ref: fact_review_answer_lead_days.order_id > fact_order_detail.order_id
+Ref: fact_order_lead_days.order_id > fact_order_detail.order_id

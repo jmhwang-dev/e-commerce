@@ -1,0 +1,26 @@
+{
+  "namespace": "bronze",
+  "type": "record",
+  "name": "review",
+  "fields": [
+    { "name": "order_id", "type": ["null", "string"], "default": null },
+    {
+      "name": "review_creation_date",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    },
+    {
+      "name": "review_answer_timestamp",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    },
+    { "name": "review_score", "type": ["null", "int"], "default": null },
+    { "name": "review_comment_title", "type": ["null", "string"], "default": null },
+    { "name": "review_comment_message", "type": ["null", "string"], "default": null },
+    {
+      "name": "ingest_time",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    }
+  ]
+}

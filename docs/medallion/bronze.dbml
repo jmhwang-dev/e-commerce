@@ -1,0 +1,87 @@
+Table customer {
+  customer_id string [primary key]
+  zip_code integer [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table geolocation {
+  zip_code integer [primary key]
+  lat float [null, default: null]
+  lng float [null, default: null]
+  state string [null, default: null]
+  city string [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table seller {
+  seller_id string [primary key]
+  zip_code integer [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table estimated_delivery_date {
+  order_id string [primary key]
+  estimated_delivery_date timestamp [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table payment {
+  order_id string [primary key]
+  payment_sequential integer [null, default: null]
+  timestamp timestamp [null, default: null]
+  payment_value float [null, default: null]
+  payment_type string [null, default: null]
+  payment_installments integer [null, default: null]
+  customer_id string [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table order_item {
+  order_id string [primary key]
+  order_item_id integer [null, default: null]
+  shipping_limit_date timestamp [null, default: null]
+  price float [null, default: null]
+  freight_value float [null, default: null]
+  product_id string [null, default: null]
+  seller_id string [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table order_status {
+  order_id string [primary key]
+  status string [null, default: null]
+  timestamp timestamp [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table review {
+  review_id string [primary key]
+  order_id string [null, default: null]
+  review_creation_date timestamp [null, default: null]
+  review_answer_timestamp timestamp [null, default: null]
+  review_score integer [null, default: null]
+  review_comment_title string [null, default: null]
+  review_comment_message string [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+Table product {
+  product_id string [primary key]
+  category string [null, default: null]
+  weight_g float [null, default: null]
+  length_cm float [null, default: null]
+  height_cm float [null, default: null]
+  width_cm float [null, default: null]
+  ingest_time timestamp [null, default: null]
+}
+
+// Relationships
+Ref: payment.customer_id > customer.customer_id
+Ref: order_item.product_id > product.product_id
+Ref: order_item.seller_id > seller.seller_id
+Ref: review.order_id > order_status.order_id
+Ref: customer.zip_code > geolocation.zip_code
+Ref: seller.zip_code > geolocation.zip_code
+Ref: estimated_delivery_date.order_id > order_status.order_id
+Ref: payment.order_id > order_status.order_id
+Ref: order_item.order_id > order_status.order_id

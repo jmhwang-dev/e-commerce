@@ -1,0 +1,19 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "fact_order_lead_days",
+  "fields": [
+    { "name": "order_id", "type": "string" },
+    { "name": "purchase", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },
+    { "name": "approve", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },
+    { "name": "shipping_limit", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },
+    { "name": "delivered_carrier", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },
+    { "name": "estimated_delivery", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },
+    { "name": "delivered_customer", "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }], "default": null },  
+    { "name": "purchase_to_approval_days", "type": ["null", "int"], "default": null },
+    { "name": "approval_to_carrier_days", "type": ["null", "int"], "default": null },
+    { "name": "carrier_to_customer_days", "type": ["null", "int"], "default": null },
+    { "name": "carrier_delivery_delay_days", "type": ["null", "int"], "default": null },
+    { "name": "customer_delivery_delay_days", "type": ["null", "int"], "default": null }
+  ]
+}

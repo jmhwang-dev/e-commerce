@@ -1,0 +1,13 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "customer_order",
+  "fields": [
+    { "name": "customer_id", "type": "string" },
+    { "name": "product_id", "type": "string" },
+    { "name": "seller_id", "type": "string" },
+    { "name": "quantity", "type": "long" },
+    { "name": "unit_price", "type": "float" },
+    { "name": "ingest_time", "type": { "type": "long", "logicalType": "timestamp-millis" } }
+  ]
+}

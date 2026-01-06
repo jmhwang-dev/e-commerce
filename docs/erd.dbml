@@ -1,0 +1,71 @@
+Table geolocation {
+  zip_code int [pk]
+  lat float
+  lng float
+  state string
+  city string
+}
+
+Table seller {
+  seller_id string [pk]
+  zip_code int [ref: > geolocation.zip_code] // FK
+  // 정규화 강화: INDEX 추천 (SQL: CREATE INDEX idx_seller_zip ON seller(zip_code);)
+}
+
+Table product {
+  product_id string [pk]
+  weight_g float
+  length_cm float
+  height_cm float
+  width_cm float
+  category string [note: 'e.g., electronics, books, clothing - 추가 카테고리 확장 가능'] // string으로 변경
+}
+
+Table customer {
+  customer_id string [pk]
+  zip_code int [ref: > geolocation.zip_code] // FK
+  // 정규화 강화: VIEW 추천 (SQL: CREATE VIEW customer_location AS SELECT c.*, g.city FROM customer c JOIN geolocation g ON c.zip_code = g.zip_code;)
+}
+
+Table order_item {
+  order_id string [pk]
+  order_item_id integer [pk]
+  shipping_limit_date datetime
+  price float
+  freight_value float
+  product_id string [ref: > product.product_id, note: '1:N relationship (one product to many order_items)'] // FK, 1:N 명시
+  seller_id string [ref: > seller.seller_id] // FK
+  // estimated_delivery 제거: 별도 테이블로 분리
+}
+
+Table estimated_delivery_date {
+  order_id string [pk, ref: > order_item.order_id, note: '1:1 relationship (one order to one estimated delivery)'] // PK & FK, 1:1 명시
+  estimated_delivery datetime
+}
+
+Table payment {
+  order_id string [pk, ref: > order_item.order_id]
+  payment_sequential float [pk]
+  timestamp datetime
+  payment_value float
+  payment_type string
+  payment_installments integer [note: 'minimum 1, CHECK (payment_installments >= 1)'] // CHECK 제약 note 추가
+  customer_id string [ref: > customer.customer_id] // FK
+}
+
+
+Table review {
+  review_id string [pk]
+  review_creation_date datetime
+  review_answer_timestamp datetime
+  review_score integer [note: '1-5 scale, CHECK (review_score BETWEEN 1 AND 5)'] // CHECK 제약 note 추가
+  review_comment_title string
+  review_comment_message string
+  order_id string [ref: > order_item.order_id]
+}
+
+Table order_status {
+  order_id string [pk, ref: > order_item.order_id] // 복합 PK 일부
+  status string [pk, note: 'e.g., purchase, approved, delivered_carrier, delivered'] // string으로 변경, 복합 PK 일부
+  timestamp datetime
+}

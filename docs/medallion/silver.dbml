@@ -1,0 +1,58 @@
+Table geo_coord {
+  zip_code string [primary key]
+  lat float
+  lng float
+  ingest_time timestamp
+}
+
+Table customer_order {
+  order_id string [primary key]
+  customer_id string
+  product_id string
+  quantity long
+  unit_price float
+  ingest_time timestamp
+}
+
+Table product_metadata {
+  product_id string [primary key]
+  category string
+  seller_id string
+  ingest_time timestamp
+}
+
+
+Table watermark {
+  app_name string
+  src string
+  last_processed_snapshot_id long
+}
+
+Table review_metadata {
+  order_id string [primary key]
+  review_id string
+  review_creation_date timestamp
+  review_answer_timestamp timestamp
+  review_score integer
+}
+
+Table olist_user {
+  user_id integer [primary key]
+  user_type string
+  zip_code integer
+  ingest_time timestamp
+}
+
+Table order_event {
+  order_id string [primary key]
+  data_type string
+  timestamp timestamp
+  ingest_time timestamp
+}
+
+// Relationships
+Ref: customer_order.product_id > product_metadata.product_id
+Ref: product_metadata.seller_id > olist_user.user_id
+Ref: olist_user.zip_code > geo_coord.zip_code
+Ref: order_event.order_id > customer_order.order_id
+Ref: review_metadata.order_id > customer_order.order_id

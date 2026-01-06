@@ -1,0 +1,23 @@
+services:
+  inference:
+    build:
+      context: ./infra/inference
+      dockerfile: Dockerfile
+    image: ecommerce-inference:latest
+    container_name: inference
+    # command: python inference.py
+    command: bash -c "tail -f /dev/null"
+    environment:
+      - PYTHONPATH=/mnt/src
+    volumes:
+      - ./src/:/mnt/src/
+      # - ./jobs/stream/inference.py:/mnt/app/inference.py
+      - ./downloads/models/:/mnt/models/
+      - ./logs/:/mnt/logs/
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # 또는 1, 2 등
+              capabilities: [gpu]

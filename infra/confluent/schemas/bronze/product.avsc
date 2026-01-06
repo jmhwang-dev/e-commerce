@@ -1,0 +1,17 @@
+{
+  "namespace": "bronze",
+  "type": "record",
+  "name": "product",
+  "fields": [
+    { "name": "category", "type": ["null", "string"], "default": null },
+    { "name": "weight_g", "type": ["null", "float"], "default": null },
+    { "name": "length_cm", "type": ["null", "float"], "default": null },
+    { "name": "height_cm", "type": ["null", "float"], "default": null },
+    { "name": "width_cm", "type": ["null", "float"], "default": null },
+    {
+      "name": "ingest_time",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    }
+  ]
+}

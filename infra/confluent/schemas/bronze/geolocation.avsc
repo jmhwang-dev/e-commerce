@@ -1,0 +1,16 @@
+{
+  "namespace": "bronze",
+  "type": "record",
+  "name": "geolocation",
+  "fields": [
+    { "name": "lat", "type": ["null", "float"], "default": null },
+    { "name": "lng", "type": ["null", "float"], "default": null },
+    { "name": "state", "type": ["null", "string"], "default": null },
+    { "name": "city", "type": ["null", "string"], "default": null },
+    {
+      "name": "ingest_time",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    }
+  ]
+}

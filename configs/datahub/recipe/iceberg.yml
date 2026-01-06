@@ -1,0 +1,19 @@
+source:
+  type: iceberg
+  config:
+    env: dev
+    catalog:
+      warehousedev:
+        type: rest
+        uri: 'http://192.168.45.191:8181'
+        s3.endpoint: 'http://192.168.45.191:9000'
+        s3.access-key-id: minioadmin
+        s3.secret-access-key: minioadmin
+        s3.path-style-access: true
+        s3.region: us-east-1
+    profiling:
+      enabled: false
+sink:
+  type: datahub-rest
+  config:
+    server: 'http://localhost:8080'

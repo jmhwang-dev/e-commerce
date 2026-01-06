@@ -1,0 +1,10 @@
+my_dbt:
+  target: dev
+  outputs:
+    dev:
+      host: spark-client
+      method: thrift
+      port: 10000
+      schema: warehousedev.gold
+      threads: 1
+      type: spark

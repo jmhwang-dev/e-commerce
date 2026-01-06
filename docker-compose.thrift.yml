@@ -1,0 +1,71 @@
+x-spark-common: &spark-common
+  # build:
+  #   context: ./infra/spark
+  #   dockerfile: Dockerfile
+  # image: ecommerce-spark:latest
+  image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+
+services:
+  query-client:
+    <<: *spark-common
+    hostname: query-client
+    container_name: query-client
+    depends_on:
+      - query-master
+      - query-worker
+    ports:
+      - "4049:4040"   # application web ui
+      - "10000:10000"
+
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+      - ./notebooks/spark:/opt/spark/work-dir
+      - ./jobs/:/jobs/
+      - ./src/:/mnt/src
+      - ./logs/spark/:/opt/spark/logs/
+      - ./infra/shared:/mnt/shared/
+      - ./configs/jmx/spark_driver.yml:/mnt/configs/jmx/spark_driver.yml
+
+    working_dir: /
+    environment:
+      - SPARK_NO_DAEMONIZE=true # run foreground
+      - AWS_REGION=us-east-1    # tmp value to load minio. TODO: thrift-server만 워커로 전달하는지 확인. 잡 제출할 때는 명시적으로 넘겨줘야 함
+      - PYTHONPATH=/mnt/src
+
+    
+    mem_limit: 4g  # Docker 컨테이너 메모리 제한. JVM 힙메모리는 이것보다 작아야함.
+    cpus: 4.0  # 드라이버 코어 제한
+
+    command: >
+      /opt/spark/sbin/start-thriftserver.sh
+
+  query-worker:
+    <<: *spark-common
+    container_name: query-worker
+    ports:
+      - "8086:8081"   # web ui
+
+    environment:
+      SPARK_WORKER_MEMORY: 2g  # upper limit of memory to use
+      SPARK_WORKER_CORES: 2    # upper limit of cores to use
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+      - ./infra/shared:/mnt/shared/
+      - ./configs/jmx/spark_executor.yml:/mnt/configs/jmx/spark_executor.yml
+
+    command: >
+      bash -c "
+        sleep 10 &&
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://query-master:7077
+      "
+
+  query-master:
+      <<: *spark-common
+      hostname: query-master
+      container_name: query-master
+      ports:
+        - "18083:8080"  # web ui: 클러스터 상태 모니터링
+        - "7080:7077"   # Spark 클러스터 통신: 클러스터 매니저 <-> 워커노드
+      volumes:
+        - ./configs/spark:/opt/spark/conf
+      command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master

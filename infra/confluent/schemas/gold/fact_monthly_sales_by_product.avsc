@@ -1,0 +1,35 @@
+{
+  "type": "record",
+  "name": "fact_monthly_sales_by_product",
+  "namespace": "gold",
+  "fields": [
+    {
+      "name": "category",
+      "type": "string"
+    },
+    {
+      "name": "product_id",
+      "type": "string"
+    },
+    {
+      "name": "sales_period",
+      "type": "string"
+    },
+    {
+      "name": "group",
+      "type": "string"
+    },
+    {
+      "name": "total_sales_quantity",
+      "type": "double"
+    },
+    {
+      "name": "total_sales_amount",
+      "type": "double"
+    },
+    {
+      "name": "mean_sales",
+      "type": "double"
+    }
+  ]
+}

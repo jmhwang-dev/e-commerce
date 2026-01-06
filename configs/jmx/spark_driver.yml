@@ -1,0 +1,24 @@
+# mbean 원본 패턴으로 pattern을 찾아야함
+rules:
+  - pattern: 'metrics<name=app-(.*)\.driver\.spark\.streaming\.(.*)\.(.+), type=gauges><>Value'
+    name: spark_driver_streaming_$3
+    labels:
+      app_id: "$1"
+      stream_id: "$2"
+
+  - pattern: 'metrics<name=app-(.*)\.driver\.appStatus\.(.*), type=gauges><>Value'  
+    name: spark_driver_appStatus_$2
+    labels:
+      app_id: "$1"
+
+  - pattern: 'metrics<name=app-(.*)\.driver\.BlockManager\.memory\.(.+), type=gauges><>Value'
+    name: spark_driver_blockmanager_$2
+    labels:
+      app_id: "$1"
+
+  - pattern: 'java\.lang<type=OperatingSystem><>ProcessCpuTime'
+    name: spark_driver_process_cpu_seconds
+    multiplier: 0.000000001
+
+  - pattern: 'java\.lang<type=OperatingSystem><>CommittedVirtualMemorySize'  
+    name: spark_driver_process_virtual_memory_bytes

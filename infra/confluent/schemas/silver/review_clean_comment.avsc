@@ -1,0 +1,19 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "review_clean_comment",
+  "fields": [
+    {
+      "name": "review_id",
+      "type": "string"
+    },
+    {
+      "name": "message_type",
+      "type": "string"
+    },
+    {
+      "name": "portuguess",
+      "type": "string"
+    }
+  ]
+}

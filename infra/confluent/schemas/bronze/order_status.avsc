@@ -1,0 +1,18 @@
+{
+  "namespace": "bronze",
+  "type": "record",
+  "name": "order_status",
+  "fields": [
+    { "name": "status", "type": ["null", "string"], "default": null },
+    {
+      "name": "timestamp",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    },
+    {
+      "name": "ingest_time",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ],
+      "default": null
+    }
+  ]
+}

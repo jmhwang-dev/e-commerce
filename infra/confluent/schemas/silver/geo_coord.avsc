@@ -1,0 +1,10 @@
+{
+  "namespace": "silver",
+  "type": "record",
+  "name": "geo_coord",
+  "fields": [
+    { "name": "lat", "type": "float" },
+    { "name": "lng", "type": "float" },
+    { "name": "ingest_time", "type": { "type": "long", "logicalType": "timestamp-millis" } }
+  ]
+}

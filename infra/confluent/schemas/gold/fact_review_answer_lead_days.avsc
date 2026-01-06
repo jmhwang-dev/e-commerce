@@ -1,0 +1,25 @@
+{
+  "namespace": "gold",
+  "type": "record",
+  "name": "fact_review_answer_lead_days",
+  "fields": [
+    { "name": "review_id", "type": "string" },
+    { "name": "order_id", "type": "string" },
+    { "name": "review_score", "type": "int" },
+    {
+      "name": "review_creation_date",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "review_answer_timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    { "name": "until_answer_lead_days", "type": "int" }
+  ]
+}
