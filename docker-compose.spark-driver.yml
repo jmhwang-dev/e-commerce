@@ -1,46 +1,24 @@
-# -------------------------------------------------------
-# [1] 공통 설정 (이미지와 네트워크만 관리)
-# -------------------------------------------------------
 x-spark-common: &spark-common
   image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
-  # [변경] macOS Docker Desktop의 VM 격리 특성으로 host 모드 미지원.
-  # Bridge 모드(기본값) 사용 및 명시적 포트 매핑(Ports Mapping) 적용.
-  # network_mode: host 
 
 services:
-  # -------------------------------------------------------
-  # 1. Spark Client (Driver 역할)
-  # -------------------------------------------------------
   spark-client:
     <<: *spark-common
     container_name: spark-client
-    
-    # Bridge 모드 사용에 따른 외부(워커) 접속용 포트 개방
-    ports:
-      # [CDC용]
-      - "7003:7003" # Driver
-      - "7004:7004" # BlockManager
-      
-      # [Stream용]
-      - "7005:7005" # Driver
-      - "7006:7006" # BlockManager
-      
-      - "4040:4040" # CDC UI
-      - "4041:4041" # Stream UI (UI 포트도 겹치면 안 됨)
 
-      # stream
-      - "9080:9080" # JMX Exporter for Driver
-      - "9081:9081" # JMX Exporter for Excutor
-
-      # cdc
-      - "9083:9083" # JMX Exporter for Driver
-      - "9084:9084" # JMX Exporter for Excutor
-      
+    network_mode: host
     environment:
-      PYTHONPATH: "/mnt/src"
+      - PYTHONPATH=/mnt/src
+      - SPARK_LOCAL_IP=${SPARK_LOCAL_IP}
+      - SPARK_MASTER_HOST=${SPARK_MASTER_HOST}
+      - SPARK_MASTER_PORT=${SPARK_MASTER_PORT}
+      - SPARK_NO_DAEMONIZE=${SPARK_NO_DAEMONIZE}
+      - SPARK_DRIVER_PORT=${SPARK_DRIVER_PORT}
+      - SPARK_DRIVER_BLOCK_MANAGER_PORT=${SPARK_DRIVER_BLOCK_MANAGER_PORT}
+      - SPARK_DRIVER_WEBUI_PORT=${SPARK_DRIVER_WEBUI_PORT}
       
-    mem_limit: 5g
-    cpus: 6.0
+    # mem_limit: 5g
+    # cpus: 6.0
 
     command: tail -f /dev/null
     volumes:
