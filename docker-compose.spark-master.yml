@@ -1,0 +1,71 @@
+# -------------------------------------------------------
+# [1] 공통 설정 (이미지와 네트워크만 관리)
+# -------------------------------------------------------
+x-spark-common: &spark-common
+  image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
+  # [변경] macOS Docker Desktop의 VM 격리 특성으로 host 모드 미지원.
+  # Bridge 모드(기본값) 사용 및 명시적 포트 매핑(Ports Mapping) 적용.
+  # network_mode: host 
+
+services:
+  spark-master-batch:
+    <<: *spark-common
+    container_name: spark-master-batch
+    
+    ports:
+      - "7079:7079"
+      - "8083:8083"
+
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_MASTER_HOST: 0.0.0.0
+      SPARK_PUBLIC_DNS: 192.168.45.190
+      SPARK_MASTER_PORT: 7079
+      SPARK_MASTER_WEBUI_PORT: 8083
+      
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    depends_on:
+      - spark-history
+
+  # -------------------------------------------------------
+  # 5. History Server (Port: 18080)
+  # -------------------------------------------------------
+  spark-history:
+    <<: *spark-common
+    container_name: spark-history
+    restart: unless-stopped
+    
+    ports:
+      - "18080:18080"
+
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_HISTORY_OPTS: "-Dspark.history.ui.port=18080"
+      # 워커와 직접 통신하지 않으므로 Public DNS 불필요. S3(MinIO) 연결 설정 중요.
+      
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
+
+  # -------------------------------------------------------
+  # 6. Init Job (Iceberg Namespace 생성)
+  # -------------------------------------------------------
+  init-spark:
+    <<: *spark-common
+    container_name: init-spark
+    depends_on:
+      - spark-master-batch
+    volumes:
+      - ./configs/spark:/opt/spark/conf
+    # Bridge 모드이나 Desktop(192.168.45.191)은 외부망이므로 접근 가능.
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for cluster stability...';
+        sleep 10;
+        echo 'Initializing Iceberg Namespace via S3 (MinIO)...';
+        /opt/spark/bin/spark-sql \
+        --master local[*] \
+        -e \"CREATE NAMESPACE IF NOT EXISTS warehousedev.default;\"
+      "
