@@ -1,47 +1,55 @@
 x-spark-common: &spark-common
   image: ghcr.io/jmhwang-dev/warehouse:sp3.5.6-ice1.9.1
-
+  
 services:
   spark-master-batch:
     <<: *spark-common
     container_name: spark-master-batch
-    ports:
-      - "${SPARK_MASTER_PORT}:${SPARK_MASTER_PORT}"
-      - "${SPARK_MASTER_WEBUI_PORT:-8080}:${SPARK_MASTER_WEBUI_PORT:-8080}"
+
+    network_mode: host
     environment:
-      SPARK_LOCAL_IP: ${SPARK_LOCAL_IP}
-      SPARK_MASTER_HOST: ${SPARK_MASTER_HOST}
-      SPARK_MASTER_PORT: ${SPARK_MASTER_PORT}
-      SPARK_NO_DAEMONIZE: ${SPARK_NO_DAEMONIZE}
-      SPARK_MASTER_WEBUI_PORT: ${SPARK_MASTER_WEBUI_PORT:-8080}
+      - SPARK_NO_DAEMONIZE=${SPARK_NO_DAEMONIZE}
+      - SPARK_MASTER_HOST=${SPARK_MASTER_HOST}
+      - SPARK_MASTER_PORT=${SPARK_MASTER_PORT}
+      - SPARK_MASTER_WEBUI_PORT=${SPARK_MASTER_WEBUI_PORT}
+      
     volumes:
-      - ./configs/spark:/opt/spark/conf
+      - ./configs/spark/batch:/opt/spark/conf
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     depends_on:
       - spark-history
 
+  # -------------------------------------------------------
+  # 5. History Server (Port: 18080)
+  # -------------------------------------------------------
   spark-history:
     <<: *spark-common
     container_name: spark-history
     restart: unless-stopped
+    
     ports:
       - "18080:18080"
+
     environment:
-      SPARK_NO_DAEMONIZE: ${SPARK_NO_DAEMONIZE}
+      SPARK_NO_DAEMONIZE: "true"
       SPARK_HISTORY_OPTS: "-Dspark.history.ui.port=18080"
+      # 워커와 직접 통신하지 않으므로 Public DNS 불필요. S3(MinIO) 연결 설정 중요.
+      
     volumes:
-      - ./configs/spark:/opt/spark/conf
+      - ./configs/spark/batch:/opt/spark/conf
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
 
+  # -------------------------------------------------------
+  # 6. Init Job (Iceberg Namespace 생성)
+  # -------------------------------------------------------
   init-spark:
     <<: *spark-common
     container_name: init-spark
     depends_on:
       - spark-master-batch
-    environment:
-      SPARK_MASTER_URL: "spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT}"
     volumes:
-      - ./configs/spark:/opt/spark/conf
+      - ./configs/spark/batch:/opt/spark/conf
+    # Bridge 모드이나 Desktop(192.168.45.191)은 외부망이므로 접근 가능.
     entrypoint: >
       bash -c "
         echo 'Waiting for cluster stability...';
