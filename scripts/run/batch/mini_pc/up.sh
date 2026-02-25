@@ -1,4 +1,8 @@
 docker compose \
     -f docker-compose.spark-master.yml \
     --env-file ./configs/spark/batch/.env.mini_pc \
-    up -d --force-recreate
+    up --force-recreate -d
+
+docker compose \
+    -f docker-compose.storage.yml \
+    up --force-recreate -d
